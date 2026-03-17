@@ -19,7 +19,7 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const identifier = (credentials?.login ?? credentials?.email)?.trim();
+        const identifier = credentials?.login?.trim();
         const password = credentials?.password;
         if (process.env.NODE_ENV !== "production") {
           // eslint-disable-next-line no-console -- dev-only debug for login 401
