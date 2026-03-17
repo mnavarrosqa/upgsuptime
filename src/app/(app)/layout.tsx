@@ -25,7 +25,7 @@ export default async function AppLayout({
               className="flex shrink-0 items-center text-sm font-semibold text-text-primary hover:text-text-muted"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Uptime
+              UPGS Monitor
             </Link>
             <span className="my-3 w-px bg-border" aria-hidden />
             <AppNavLinks />

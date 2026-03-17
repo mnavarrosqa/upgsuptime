@@ -24,8 +24,8 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Uptime Monitor",
-  description: "Multi-user uptime monitoring",
+  title: "UPGS Monitor",
+  description: "UPGS Monitor — Multi-user uptime monitoring",
 };
 
 export default function RootLayout({

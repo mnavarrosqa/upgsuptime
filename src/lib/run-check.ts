@@ -72,7 +72,7 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
       const res = await fetch(m.url, {
         method,
         signal: controller.signal,
-        headers: { "User-Agent": "UptimeMonitor/1.0" },
+        headers: { "User-Agent": "UPGSMonitor/1.0" },
       });
       clearTimeout(timeout);
       statusCode = res.status;
