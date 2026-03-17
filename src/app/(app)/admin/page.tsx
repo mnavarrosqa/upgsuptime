@@ -1,35 +1,31 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-
-interface Stats {
-  totalUsers: number;
-  totalMonitors: number;
-  checksLast24h: number;
-  monitorsUp: number;
-  monitorsDown: number;
-}
-
-async function getStats(): Promise<Stats> {
-  const res = await fetch(
-    `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/api/admin/stats`,
-    { cache: "no-store" }
-  );
-  return res.json();
-}
+import { db } from "@/db";
+import { user, monitor, checkResult } from "@/db/schema";
+import { count, eq, gte } from "drizzle-orm";
 
 export default async function AdminPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
 
-  const stats = await getStats();
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [[{ totalUsers }], [{ totalMonitors }], [{ checksLast24h }], [{ monitorsUp }], [{ monitorsDown }]] =
+    await Promise.all([
+      db.select({ totalUsers: count() }).from(user),
+      db.select({ totalMonitors: count() }).from(monitor),
+      db.select({ checksLast24h: count() }).from(checkResult).where(gte(checkResult.createdAt, since)),
+      db.select({ monitorsUp: count() }).from(monitor).where(eq(monitor.currentStatus, true)),
+      db.select({ monitorsDown: count() }).from(monitor).where(eq(monitor.currentStatus, false)),
+    ]);
 
   const cards = [
-    { label: "Total users", value: stats.totalUsers },
-    { label: "Total monitors", value: stats.totalMonitors },
-    { label: "Checks (last 24h)", value: stats.checksLast24h },
-    { label: "Monitors up", value: stats.monitorsUp },
-    { label: "Monitors down", value: stats.monitorsDown },
+    { label: "Total users", value: totalUsers },
+    { label: "Total monitors", value: totalMonitors },
+    { label: "Checks (last 24h)", value: checksLast24h },
+    { label: "Monitors up", value: monitorsUp },
+    { label: "Monitors down", value: monitorsDown },
   ];
 
   return (

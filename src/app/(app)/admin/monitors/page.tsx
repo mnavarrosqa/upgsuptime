@@ -1,32 +1,28 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
-
-interface AdminMonitor {
-  id: string;
-  name: string;
-  url: string;
-  intervalMinutes: number;
-  currentStatus: boolean | null;
-  lastCheckAt: string | null;
-  createdAt: string;
-  ownerEmail: string;
-  ownerUsername: string | null;
-}
-
-async function getMonitors(): Promise<AdminMonitor[]> {
-  const res = await fetch(
-    `${process.env.NEXTAUTH_URL ?? "http://localhost:3000"}/api/admin/monitors`,
-    { cache: "no-store" }
-  );
-  return res.json();
-}
+import { db } from "@/db";
+import { monitor, user } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 export default async function AdminMonitorsPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
 
-  const monitors = await getMonitors();
+  const monitors = await db
+    .select({
+      id: monitor.id,
+      name: monitor.name,
+      url: monitor.url,
+      intervalMinutes: monitor.intervalMinutes,
+      currentStatus: monitor.currentStatus,
+      lastCheckAt: monitor.lastCheckAt,
+      ownerEmail: user.email,
+      ownerUsername: user.username,
+    })
+    .from(monitor)
+    .innerJoin(user, eq(monitor.userId, user.id))
+    .orderBy(user.email, monitor.name);
 
   return (
     <div className="space-y-6">
@@ -69,9 +65,7 @@ export default async function AdminMonitorsPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-text-muted">
-                  {m.lastCheckAt
-                    ? new Date(m.lastCheckAt).toLocaleString()
-                    : "—"}
+                  {m.lastCheckAt ? m.lastCheckAt.toLocaleString() : "—"}
                 </td>
                 <td className="px-4 py-3 text-text-muted">
                   {m.intervalMinutes}m
