@@ -1,14 +1,9 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { monitor, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { AdminSubNav } from "@/components/admin-sub-nav";
 
 export default async function AdminMonitorsPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/login");
-
   const monitors = await db
     .select({
       id: monitor.id,
@@ -27,11 +22,13 @@ export default async function AdminMonitorsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">All Monitors</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          {monitors.length} monitor{monitors.length !== 1 ? "s" : ""} across all users
-        </p>
+        <h1 className="text-xl font-semibold">Admin</h1>
       </div>
+      <AdminSubNav />
+
+      <p className="text-sm text-text-muted">
+        {monitors.length} monitor{monitors.length !== 1 ? "s" : ""} across all users
+      </p>
 
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">

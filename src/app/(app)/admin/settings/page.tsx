@@ -1,10 +1,8 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AdminSettingsClient } from "./settings-client";
+import { AdminSubNav } from "@/components/admin-sub-nav";
 
 export interface AdminSettings {
   registrationEnabled: boolean;
@@ -15,9 +13,6 @@ export interface AdminSettings {
 const SMTP_VARS = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM"];
 
 export default async function AdminSettingsPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/login");
-
   const [row] = await db
     .select()
     .from(settings)
@@ -33,9 +28,9 @@ export default async function AdminSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Settings</h1>
-        <p className="mt-1 text-sm text-text-muted">App-wide configuration</p>
+        <h1 className="text-xl font-semibold">Admin</h1>
       </div>
+      <AdminSubNav />
       <AdminSettingsClient
         settings={{ registrationEnabled, smtpConfigured, smtpVarsSet }}
       />

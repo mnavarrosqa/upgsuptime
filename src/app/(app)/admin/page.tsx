@@ -1,14 +1,10 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
+import Link from "next/link";
 import { db } from "@/db";
 import { user, monitor, checkResult } from "@/db/schema";
 import { count, eq, gte } from "drizzle-orm";
+import { AdminSubNav } from "@/components/admin-sub-nav";
 
 export default async function AdminPage() {
-  const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/login");
-
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
   const [[{ totalUsers }], [{ totalMonitors }], [{ checksLast24h }], [{ monitorsUp }], [{ monitorsDown }]] =
@@ -31,9 +27,9 @@ export default async function AdminPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Admin Overview</h1>
-        <p className="mt-1 text-sm text-text-muted">System-wide statistics</p>
+        <h1 className="text-xl font-semibold">Admin</h1>
       </div>
+      <AdminSubNav />
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {cards.map(({ label, value }) => (
@@ -53,14 +49,14 @@ export default async function AdminPage() {
           { href: "/admin/monitors", label: "Monitors", desc: "View all monitors across all users" },
           { href: "/admin/settings", label: "Settings", desc: "Configure app-wide settings" },
         ].map(({ href, label, desc }) => (
-          <a
+          <Link
             key={href}
             href={href}
             className="rounded-lg border border-border bg-bg-card p-4 transition-colors hover:border-accent"
           >
             <div className="font-medium">{label}</div>
             <div className="mt-1 text-sm text-text-muted">{desc}</div>
-          </a>
+          </Link>
         ))}
       </div>
     </div>

@@ -11,16 +11,19 @@ export function AdminUsersClient({
   currentUserId: string;
 }) {
   const [users, setUsers] = useState(initialUsers);
+  const [busyId, setBusyId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function toggleRole(u: AdminUser) {
     const newRole = u.role === "admin" ? "user" : "admin";
     setError(null);
+    setBusyId(u.id);
     const res = await fetch(`/api/admin/users/${u.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ role: newRole }),
     });
+    setBusyId(null);
     if (!res.ok) {
       const data = await res.json();
       setError(data.error ?? "Failed to update role");
@@ -34,7 +37,9 @@ export function AdminUsersClient({
   async function deleteUser(u: AdminUser) {
     if (!confirm(`Delete ${u.email}? This will also delete all their monitors.`)) return;
     setError(null);
+    setBusyId(u.id);
     const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
+    setBusyId(null);
     if (!res.ok) {
       const data = await res.json();
       setError(data.error ?? "Failed to delete user");
@@ -65,6 +70,7 @@ export function AdminUsersClient({
           <tbody>
             {users.map((u) => {
               const isSelf = u.id === currentUserId;
+              const isBusy = busyId === u.id;
               return (
                 <tr key={u.id} className="border-b border-border last:border-0">
                   <td className="px-4 py-3 font-medium">{u.email}</td>
@@ -92,15 +98,15 @@ export function AdminUsersClient({
                     <div className="flex items-center gap-2 justify-end">
                       <button
                         onClick={() => toggleRole(u)}
-                        disabled={isSelf}
+                        disabled={isSelf || busyId !== null}
                         className="rounded px-2 py-1 text-xs font-medium text-text-muted hover:bg-bg-page disabled:cursor-not-allowed disabled:opacity-40"
                         title={isSelf ? "Cannot change your own role" : `Make ${u.role === "admin" ? "user" : "admin"}`}
                       >
-                        {u.role === "admin" ? "Demote" : "Make admin"}
+                        {isBusy ? "…" : u.role === "admin" ? "Demote" : "Make admin"}
                       </button>
                       <button
                         onClick={() => deleteUser(u)}
-                        disabled={isSelf}
+                        disabled={isSelf || busyId !== null}
                         className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-950"
                         title={isSelf ? "Cannot delete your own account" : "Delete user"}
                       >

@@ -1,10 +1,10 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { user, monitor } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
 import { AdminUsersClient } from "./users-client";
+import { AdminSubNav } from "@/components/admin-sub-nav";
 
 export interface AdminUser {
   id: string;
@@ -17,7 +17,6 @@ export interface AdminUser {
 
 export default async function AdminUsersPage() {
   const session = await getServerSession(authOptions);
-  if (!session?.user) redirect("/login");
 
   const rows = await db
     .select({
@@ -41,12 +40,10 @@ export default async function AdminUsersPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">Users</h1>
-        <p className="mt-1 text-sm text-text-muted">
-          Manage user accounts and roles
-        </p>
+        <h1 className="text-xl font-semibold">Admin</h1>
       </div>
-      <AdminUsersClient users={users} currentUserId={session.user.id} />
+      <AdminSubNav />
+      <AdminUsersClient users={users} currentUserId={session!.user.id} />
     </div>
   );
 }
