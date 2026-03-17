@@ -28,7 +28,7 @@ export default async function AppLayout({
               UPGS Monitor
             </Link>
             <span className="my-3 w-px bg-border" aria-hidden />
-            <AppNavLinks />
+            <AppNavLinks role={session.user.role} />
             <div className="ml-auto flex items-center gap-1">
               <ThemeToggle />
               <span className="h-4 w-px bg-border" aria-hidden />

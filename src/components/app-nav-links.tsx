@@ -8,7 +8,7 @@ const links = [
   { href: "/monitors", label: "Monitors" },
 ] as const;
 
-export function AppNavLinks() {
+export function AppNavLinks({ role }: { role?: string | null }) {
   const pathname = usePathname();
 
   return (
@@ -32,6 +32,18 @@ export function AppNavLinks() {
           </Link>
         );
       })}
+      {role === "admin" && (
+        <Link
+          href="/admin"
+          className={`flex items-center border-b-2 px-2 text-sm font-medium transition-colors ${
+            pathname.startsWith("/admin")
+              ? "border-accent text-text-primary"
+              : "border-transparent text-text-muted hover:text-text-primary"
+          }`}
+        >
+          Admin
+        </Link>
+      )}
     </nav>
   );
 }

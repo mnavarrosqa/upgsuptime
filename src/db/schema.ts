@@ -50,9 +50,16 @@ export const checkResult = sqliteTable("check_result", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+export const settings = sqliteTable("settings", {
+  key: text("key").primaryKey(),
+  value: text("value").notNull(),
+});
+
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type Monitor = typeof monitor.$inferSelect;
 export type NewMonitor = typeof monitor.$inferInsert;
 export type CheckResult = typeof checkResult.$inferSelect;
 export type NewCheckResult = typeof checkResult.$inferInsert;
+export type Settings = typeof settings.$inferSelect;
+export type NewSettings = typeof settings.$inferInsert;

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { user } from "@/db/schema";
+import { user, settings } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
@@ -47,6 +47,17 @@ export async function POST(request: Request) {
   if (row.count === 0) {
     return NextResponse.json(
       { error: "Create the admin account first via the setup page." },
+      { status: 403 }
+    );
+  }
+
+  const [regSetting] = await db
+    .select()
+    .from(settings)
+    .where(eq(settings.key, "registrationEnabled"));
+  if (regSetting && regSetting.value === "false") {
+    return NextResponse.json(
+      { error: "Registration is currently disabled." },
       { status: 403 }
     );
   }
