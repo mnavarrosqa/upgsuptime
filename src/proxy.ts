@@ -7,7 +7,7 @@ const authMiddleware = withAuth({
   pages: { signIn: "/login" },
 });
 
-export default function middleware(request: NextRequest, event: NextFetchEvent) {
+export default function proxy(request: NextRequest, event: NextFetchEvent) {
   const pathname = request.nextUrl.pathname;
 
   if (pathname.startsWith("/api/auth") && request.method === "POST") {
@@ -39,3 +39,4 @@ export const config = {
     "/api/auth/:path*",
   ],
 };
+
