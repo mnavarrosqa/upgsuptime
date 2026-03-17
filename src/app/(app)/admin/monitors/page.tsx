@@ -65,7 +65,9 @@ export default async function AdminMonitorsPage() {
                   )}
                 </td>
                 <td className="px-4 py-3 text-text-muted">
-                  {m.lastCheckAt ? m.lastCheckAt.toLocaleString() : "—"}
+                  {m.lastCheckAt
+                    ? m.lastCheckAt.toISOString().slice(0, 16).replace("T", " ")
+                    : "—"}
                 </td>
                 <td className="px-4 py-3 text-text-muted">
                   {m.intervalMinutes}m

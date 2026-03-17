@@ -86,7 +86,7 @@ export function AdminUsersClient({
                     {u.monitorCount}
                   </td>
                   <td className="px-4 py-3 text-text-muted">
-                    {new Date(u.createdAt).toLocaleDateString()}
+                    {new Date(u.createdAt).toLocaleDateString("en-CA")}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
