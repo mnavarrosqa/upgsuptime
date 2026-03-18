@@ -80,6 +80,8 @@ export async function PATCH(
     typeof body.showOnStatusPage === "boolean"
       ? body.showOnStatusPage
       : existing.showOnStatusPage !== false;
+  const paused =
+    typeof body.paused === "boolean" ? body.paused : !!existing.paused;
 
   if (!name || !url) {
     return NextResponse.json(
@@ -108,7 +110,7 @@ export async function PATCH(
 
   await db
     .update(monitor)
-    .set({ name, url, intervalMinutes, timeoutSeconds, method, expectedStatusCodes, alertEmail, alertEmailTo, sslMonitoring, showOnStatusPage })
+    .set({ name, url, intervalMinutes, timeoutSeconds, method, expectedStatusCodes, alertEmail, alertEmailTo, sslMonitoring, showOnStatusPage, paused })
     .where(eq(monitor.id, id));
 
   const [updated] = await db.select().from(monitor).where(eq(monitor.id, id));

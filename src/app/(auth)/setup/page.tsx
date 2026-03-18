@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { Eye, EyeOff, HeartPulse } from "lucide-react";
 
 export default function SetupPage() {
   const router = useRouter();
@@ -79,7 +79,7 @@ export default function SetupPage() {
       {/* Brand */}
       <div className="mb-8 flex flex-col items-center text-center">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-bg-page">
-          <ShieldCheck size={22} strokeWidth={2.5} />
+          <HeartPulse size={22} strokeWidth={2.5} />
         </div>
         <h1
           className="text-2xl font-semibold tracking-tight text-text-primary"

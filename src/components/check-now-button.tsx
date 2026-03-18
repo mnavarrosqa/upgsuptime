@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
 
 export function CheckNowButton({
@@ -22,12 +23,13 @@ export function CheckNowButton({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        alert(data.error ?? data.message ?? "Check failed");
+        toast.error(data.error ?? data.message ?? "Check failed");
         return;
       }
       router.refresh();
+      toast.success("Check complete");
     } catch {
-      alert("Check failed");
+      toast.error("Check failed");
     } finally {
       setLoading(false);
     }

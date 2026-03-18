@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
 
 const inputClass =
@@ -69,6 +70,7 @@ export function AddMonitorForm({
       setAlertEmailTo("");
       setSslMonitoring(false);
       setShowOnStatusPage(true);
+      toast.success("Monitor added");
       router.refresh();
       onSuccess?.();
     } catch {

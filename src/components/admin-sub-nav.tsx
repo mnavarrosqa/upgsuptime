@@ -14,7 +14,7 @@ export function AdminSubNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="flex gap-1 border-b border-border" aria-label="Admin navigation">
+    <nav className="flex gap-1 overflow-x-auto border-b border-border" aria-label="Admin navigation">
       {links.map(({ href, label }) => {
         const active =
           href === "/admin" ? pathname === "/admin" : pathname.startsWith(href);

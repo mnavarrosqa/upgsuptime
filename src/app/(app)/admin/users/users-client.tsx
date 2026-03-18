@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { AdminUser } from "./page";
 
 export function AdminUsersClient({
@@ -12,11 +14,10 @@ export function AdminUsersClient({
 }) {
   const [users, setUsers] = useState(initialUsers);
   const [busyId, setBusyId] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null);
 
   async function toggleRole(u: AdminUser) {
     const newRole = u.role === "admin" ? "user" : "admin";
-    setError(null);
     setBusyId(u.id);
     const res = await fetch(`/api/admin/users/${u.id}`, {
       method: "PATCH",
@@ -26,35 +27,47 @@ export function AdminUsersClient({
     setBusyId(null);
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to update role");
+      toast.error(data.error ?? "Failed to update role");
       return;
     }
     setUsers((prev) =>
       prev.map((x) => (x.id === u.id ? { ...x, role: newRole } : x))
     );
+    toast.success(`Role updated to ${newRole}`);
   }
 
-  async function deleteUser(u: AdminUser) {
-    if (!confirm(`Delete ${u.email}? This will also delete all their monitors.`)) return;
-    setError(null);
+  async function handleDeleteConfirm() {
+    if (!confirmDelete) return;
+    const u = confirmDelete;
     setBusyId(u.id);
     const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
     setBusyId(null);
+    setConfirmDelete(null);
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to delete user");
+      toast.error(data.error ?? "Failed to delete user");
       return;
     }
     setUsers((prev) => prev.filter((x) => x.id !== u.id));
+    toast.success(`${u.email} deleted`);
   }
 
   return (
     <div className="space-y-3">
-      {error && (
-        <div className="rounded-md border border-red-300 bg-red-50 px-4 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950 dark:text-red-300">
-          {error}
-        </div>
-      )}
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete user"
+        message={
+          confirmDelete
+            ? `Delete ${confirmDelete.email}? This will also delete all their monitors.`
+            : ""
+        }
+        confirmLabel="Delete"
+        destructive
+        busy={busyId === confirmDelete?.id}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setConfirmDelete(null)}
+      />
       <div className="overflow-x-auto rounded-lg border border-border">
         <table className="w-full text-sm">
           <thead>
@@ -98,15 +111,15 @@ export function AdminUsersClient({
                     <div className="flex items-center gap-2 justify-end">
                       <button
                         onClick={() => toggleRole(u)}
-                        disabled={isSelf || busyId !== null}
+                        disabled={isSelf || isBusy}
                         className="rounded px-2 py-1 text-xs font-medium text-text-muted hover:bg-bg-page disabled:cursor-not-allowed disabled:opacity-40"
                         title={isSelf ? "Cannot change your own role" : `Make ${u.role === "admin" ? "user" : "admin"}`}
                       >
                         {isBusy ? "…" : u.role === "admin" ? "Demote" : "Make admin"}
                       </button>
                       <button
-                        onClick={() => deleteUser(u)}
-                        disabled={isSelf || busyId !== null}
+                        onClick={() => setConfirmDelete(u)}
+                        disabled={isSelf || isBusy}
                         className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-950"
                         title={isSelf ? "Cannot delete your own account" : "Delete user"}
                       >

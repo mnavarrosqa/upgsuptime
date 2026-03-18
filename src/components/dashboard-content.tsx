@@ -152,6 +152,7 @@ export function DashboardContent({
               id={m.id}
               name={m.name}
               url={m.url}
+              paused={m.paused}
               latest={latestByMonitor[m.id]}
               trendResults={trendByMonitor[m.id] ?? []}
               lastCheckAt={m.lastCheckAt}

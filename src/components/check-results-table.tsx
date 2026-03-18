@@ -27,7 +27,7 @@ export function CheckResultsTable({
 
   return (
     <div className="mt-4">
-      <div className="overflow-hidden rounded-lg border border-border bg-bg-card">
+      <div className="overflow-x-auto rounded-lg border border-border bg-bg-card">
         <table className="min-w-full divide-y divide-border">
           <thead>
             <tr>
@@ -37,14 +37,14 @@ export function CheckResultsTable({
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
                 Status
               </th>
-              <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
+              <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
                 Code
               </th>
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
                 Response
               </th>
               {!hideMessage && (
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
+                <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
                   Message
                 </th>
               )}
@@ -67,14 +67,14 @@ export function CheckResultsTable({
                     {r.ok ? "Up" : "Down"}
                   </span>
                 </td>
-                <td className="px-4 py-2.5 text-sm text-text-muted">
+                <td className="hidden px-4 py-2.5 text-sm text-text-muted sm:table-cell">
                   {r.statusCode ?? "—"}
                 </td>
                 <td className="px-4 py-2.5 text-sm text-text-muted">
                   {r.responseTimeMs != null ? `${r.responseTimeMs}ms` : "—"}
                 </td>
                 {!hideMessage && (
-                  <td className="max-w-[14rem] truncate px-4 py-2.5 text-sm text-text-muted" title={r.message ?? undefined}>
+                  <td className="hidden max-w-[14rem] truncate px-4 py-2.5 text-sm text-text-muted sm:table-cell" title={r.message ?? undefined}>
                     {r.message ?? "—"}
                   </td>
                 )}

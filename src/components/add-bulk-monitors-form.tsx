@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
 import { validateMonitorUrl } from "@/lib/validate-monitor";
 
@@ -101,6 +102,8 @@ export function AddBulkMonitorsForm({
         }
         return;
       }
+      const count = data.created ?? parsed.length;
+      toast.success(`${count} monitor${count !== 1 ? "s" : ""} added`);
       setUrlsText("");
       router.refresh();
       onSuccess?.();

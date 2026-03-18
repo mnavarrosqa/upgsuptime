@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
+import { useActivity } from "@/components/activity-context";
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -15,6 +16,11 @@ interface Incident {
 
 export function IncidentPoller() {
   const lastCheckedRef = useRef<number>(Date.now());
+  const { addUnread, removeUnread } = useActivity();
+  const addUnreadRef = useRef(addUnread);
+  const removeUnreadRef = useRef(removeUnread);
+  addUnreadRef.current = addUnread;
+  removeUnreadRef.current = removeUnread;
 
   useEffect(() => {
     async function poll() {
@@ -26,13 +32,17 @@ export function IncidentPoller() {
         if (!res.ok) return;
         const data: { incidents: Incident[] } = await res.json();
         for (const incident of data.incidents) {
+          addUnreadRef.current(incident.id);
           toast.error(
             <span>
               <strong>{incident.name}</strong> is down —{" "}
               <Link
                 href={`/monitors/${incident.id}`}
                 className="underline"
-                onClick={() => toast.dismiss()}
+                onClick={() => {
+                  removeUnreadRef.current(incident.id);
+                  toast.dismiss();
+                }}
               >
                 View monitor
               </Link>

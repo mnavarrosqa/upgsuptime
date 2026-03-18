@@ -35,6 +35,7 @@ export const monitor = sqliteTable("monitor", {
   sslExpiresAt: integer("ssl_expires_at", { mode: "timestamp" }),
   sslLastCheckedAt: integer("ssl_last_checked_at", { mode: "timestamp" }),
   showOnStatusPage: integer("show_on_status_page", { mode: "boolean" }),
+  paused: integer("paused", { mode: "boolean" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 

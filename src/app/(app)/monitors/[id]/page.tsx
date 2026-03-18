@@ -106,17 +106,23 @@ export default async function MonitorDetailPage({
             >
               {m.name}
             </h1>
-            <span
-              className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                lastOk === true
-                  ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
-                  : lastOk === false
-                    ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
-                    : "bg-border text-text-muted"
-              }`}
-            >
-              {lastOk === true ? "Up" : lastOk === false ? "Down" : "No data"}
-            </span>
+            {m.paused ? (
+              <span className="inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium bg-border text-text-muted">
+                Paused
+              </span>
+            ) : (
+              <span
+                className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                  lastOk === true
+                    ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
+                    : lastOk === false
+                      ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
+                      : "bg-border text-text-muted"
+                }`}
+              >
+                {lastOk === true ? "Up" : lastOk === false ? "Down" : "No data"}
+              </span>
+            )}
           </div>
           <p className="mt-1 break-all text-sm text-text-muted">{m.url}</p>
           {/* Config meta */}

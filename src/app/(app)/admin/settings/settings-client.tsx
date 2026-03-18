@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import type { AdminSettings } from "./page";
 
 export function AdminSettingsClient({
@@ -12,14 +13,10 @@ export function AdminSettingsClient({
     initial.registrationEnabled
   );
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
 
   async function handleToggle() {
     const next = !registrationEnabled;
     setSaving(true);
-    setError(null);
-    setSaved(false);
 
     const res = await fetch("/api/admin/settings", {
       method: "PATCH",
@@ -31,13 +28,12 @@ export function AdminSettingsClient({
 
     if (!res.ok) {
       const data = await res.json();
-      setError(data.error ?? "Failed to save");
+      toast.error(data.error ?? "Failed to save");
       return;
     }
 
     setRegistrationEnabled(next);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    toast.success("Settings saved");
   }
 
   return (
@@ -68,12 +64,6 @@ export function AdminSettingsClient({
             />
           </button>
         </div>
-        {error && (
-          <div className="text-sm text-red-600 dark:text-red-400">{error}</div>
-        )}
-        {saved && (
-          <div className="text-sm text-green-600 dark:text-green-400">Saved</div>
-        )}
       </div>
 
       {/* SMTP */}

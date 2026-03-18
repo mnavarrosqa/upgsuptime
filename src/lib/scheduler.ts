@@ -20,6 +20,7 @@ export async function runDueChecks(): Promise<{ ran: number }> {
   const emailById = new Map(users.map((u) => [u.id, u.email]));
 
   const due = monitors.filter((m) => {
+    if (m.paused) return false;
     if (!m.lastCheckAt) return true;
     const dueAt = m.lastCheckAt.getTime() + m.intervalMinutes * 60 * 1000;
     return dueAt <= now.getTime();

@@ -1,10 +1,14 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { toast } from "sonner";
+import { MoreHorizontal } from "lucide-react";
 import type { Monitor } from "@/db/schema";
 import { Overlay } from "@/components/overlay";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { AddMonitorFlow } from "@/components/add-monitor-flow";
 import { EditMonitorForm } from "@/components/edit-monitor-form";
 import {
@@ -46,6 +50,109 @@ function formatLastChecked(date: Date | null): string {
   return `${Math.floor(diffHr / 24)}d ago`;
 }
 
+function RowActionsMenu({
+  monitor,
+  isPausing,
+  onEdit,
+  onPause,
+  onDelete,
+}: {
+  monitor: Monitor;
+  isPausing: boolean;
+  onEdit: (id: string) => void;
+  onPause: (id: string, currentlyPaused: boolean) => void;
+  onDelete: (id: string, name: string) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, right: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  function handleOpen() {
+    if (!btnRef.current) return;
+    const rect = btnRef.current.getBoundingClientRect();
+    setPos({
+      top: rect.bottom + window.scrollY + 4,
+      right: window.innerWidth - rect.right,
+    });
+    setOpen((v) => !v);
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    function onClickOutside(e: MouseEvent) {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node) &&
+        !btnRef.current?.contains(e.target as Node)
+      ) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, [open]);
+
+  const menu = open
+    ? createPortal(
+        <div
+          ref={menuRef}
+          style={{ top: pos.top, right: pos.right }}
+          className="fixed z-50 w-40 overflow-hidden rounded-lg border border-border bg-bg-card shadow-lg"
+        >
+          <Link
+            href={`/monitors/${monitor.id}`}
+            className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98]"
+            onClick={() => setOpen(false)}
+          >
+            View
+          </Link>
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onEdit(monitor.id); }}
+            className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98]"
+          >
+            Edit
+          </button>
+          <button
+            type="button"
+            disabled={isPausing}
+            onClick={() => { setOpen(false); onPause(monitor.id, !!monitor.paused); }}
+            className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98] disabled:opacity-50"
+          >
+            {isPausing
+              ? monitor.paused ? "Resuming…" : "Pausing…"
+              : monitor.paused ? "Resume" : "Pause"}
+          </button>
+          <div className="my-1 border-t border-border" />
+          <button
+            type="button"
+            onClick={() => { setOpen(false); onDelete(monitor.id, monitor.name); }}
+            className="flex w-full items-center px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50 active:scale-[0.98] dark:text-red-400 dark:hover:bg-red-900/20"
+          >
+            Delete
+          </button>
+        </div>,
+        document.body
+      )
+    : null;
+
+  return (
+    <>
+      <button
+        ref={btnRef}
+        type="button"
+        onClick={handleOpen}
+        className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition hover:bg-bg-page hover:text-text-primary active:scale-90"
+        aria-label="Actions"
+      >
+        <MoreHorizontal className="h-4 w-4" />
+      </button>
+      {menu}
+    </>
+  );
+}
+
 export function MonitorsPageClient({
   monitors,
   latestByMonitor,
@@ -58,6 +165,8 @@ export function MonitorsPageClient({
   const [editMonitorId, setEditMonitorId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [pausingId, setPausingId] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importData, setImportData] = useState<MonitorConfig[] | null>(null);
@@ -142,14 +251,42 @@ export function MonitorsPageClient({
     setImportResult(null);
   }
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  async function handleDelete() {
+    if (!confirmDelete) return;
+    const { id, name } = confirmDelete;
     setDeletingId(id);
     try {
       const res = await fetch(`/api/monitors/${id}`, { method: "DELETE" });
-      if (res.ok) router.refresh();
+      if (res.ok) {
+        toast.success(`"${name}" deleted`);
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Delete failed");
+      }
     } finally {
       setDeletingId(null);
+      setConfirmDelete(null);
+    }
+  }
+
+  async function handlePause(id: string, currentlyPaused: boolean) {
+    setPausingId(id);
+    try {
+      const res = await fetch(`/api/monitors/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paused: !currentlyPaused }),
+      });
+      if (res.ok) {
+        toast.success(currentlyPaused ? "Monitor resumed" : "Monitor paused");
+        router.refresh();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.error ?? "Failed to update monitor");
+      }
+    } finally {
+      setPausingId(null);
     }
   }
 
@@ -169,9 +306,9 @@ export function MonitorsPageClient({
       </div>
 
       {/* Toolbar: search + add */}
-      <div className="mt-5 flex items-center gap-3">
+      <div className="mt-5 flex flex-wrap items-center gap-2">
         {monitors.length > 0 && (
-          <div className="flex-1">
+          <div className="w-full sm:flex-1">
             <SearchWithTypeahead
               monitors={monitors.map((m) => ({
                 id: m.id,
@@ -216,6 +353,18 @@ export function MonitorsPageClient({
           Add monitor
         </button>
       </div>
+
+      {/* Confirm delete */}
+      <ConfirmDialog
+        open={confirmDelete !== null}
+        title="Delete monitor"
+        message={confirmDelete ? `Delete "${confirmDelete.name}"? This cannot be undone.` : ""}
+        confirmLabel="Delete"
+        destructive
+        busy={deletingId !== null}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(null)}
+      />
 
       {/* Modals */}
       <Overlay
@@ -381,7 +530,7 @@ export function MonitorsPageClient({
                 const favicon = getFaviconUrl(m.url);
                 const status = latestByMonitor[m.id];
                 return (
-                  <tr key={m.id} className="hover:bg-bg-page">
+                  <tr key={m.id} className={m.paused ? "opacity-60 hover:opacity-80" : "hover:bg-bg-page"}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         {favicon ? (
@@ -400,7 +549,7 @@ export function MonitorsPageClient({
                         )}
                         <Link
                           href={`/monitors/${m.id}`}
-                          className="font-medium text-text-primary hover:text-text-muted"
+                          className="font-medium text-text-primary transition active:scale-95 hover:text-text-muted"
                         >
                           {m.name}
                         </Link>
@@ -414,17 +563,25 @@ export function MonitorsPageClient({
                       {m.url}
                     </td>
                     <td className="px-4 py-3">
-                      <span
-                        className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                          status === true
-                            ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
-                            : status === false
-                              ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
-                              : "bg-border text-text-muted"
-                        }`}
-                      >
-                        {status === true ? "Up" : status === false ? "Down" : "—"}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        {m.paused ? (
+                          <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-border text-text-muted">
+                            Paused
+                          </span>
+                        ) : (
+                          <span
+                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
+                              status === true
+                                ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
+                                : status === false
+                                  ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
+                                  : "bg-border text-text-muted"
+                            }`}
+                          >
+                            {status === true ? "Up" : status === false ? "Down" : "—"}
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="hidden px-4 py-3 sm:table-cell">
                       <SslBadge
@@ -442,23 +599,13 @@ export function MonitorsPageClient({
                       </span>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <span className="flex items-center justify-end gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setEditMonitorId(m.id)}
-                          className="text-sm text-text-muted hover:text-text-primary"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(m.id, m.name)}
-                          disabled={deletingId === m.id}
-                          className="text-sm text-text-muted hover:text-red-600 disabled:opacity-50 dark:hover:text-red-400"
-                        >
-                          {deletingId === m.id ? "Deleting…" : "Delete"}
-                        </button>
-                      </span>
+                      <RowActionsMenu
+                        monitor={m}
+                        isPausing={pausingId === m.id}
+                        onEdit={setEditMonitorId}
+                        onPause={handlePause}
+                        onDelete={(id, name) => setConfirmDelete({ id, name })}
+                      />
                     </td>
                   </tr>
                 );

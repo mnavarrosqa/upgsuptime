@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const inputClass =
   "w-full rounded-md border border-input-border bg-bg-card px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
@@ -12,12 +12,10 @@ export function PasswordForm() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
     setSaving(true);
     try {
       const res = await fetch("/api/user/password", {
@@ -30,7 +28,7 @@ export function PasswordForm() {
         setError(data.error ?? "Failed to change password");
         return;
       }
-      setSuccess(true);
+      toast.success("Password changed");
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
@@ -51,15 +49,6 @@ export function PasswordForm() {
           {error}
         </div>
       )}
-      {success && (
-        <div
-          className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300"
-          role="status"
-        >
-          <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
-          Password changed successfully
-        </div>
-      )}
       <div>
         <label
           htmlFor="currentPassword"
@@ -72,10 +61,7 @@ export function PasswordForm() {
           type="password"
           autoComplete="current-password"
           value={currentPassword}
-          onChange={(e) => {
-            setCurrentPassword(e.target.value);
-            setSuccess(false);
-          }}
+          onChange={(e) => setCurrentPassword(e.target.value)}
           required
           className={inputClass}
         />
@@ -92,10 +78,7 @@ export function PasswordForm() {
           type="password"
           autoComplete="new-password"
           value={newPassword}
-          onChange={(e) => {
-            setNewPassword(e.target.value);
-            setSuccess(false);
-          }}
+          onChange={(e) => setNewPassword(e.target.value)}
           required
           minLength={8}
           className={inputClass}
@@ -114,10 +97,7 @@ export function PasswordForm() {
           type="password"
           autoComplete="new-password"
           value={confirmPassword}
-          onChange={(e) => {
-            setConfirmPassword(e.target.value);
-            setSuccess(false);
-          }}
+          onChange={(e) => setConfirmPassword(e.target.value)}
           required
           className={inputClass}
         />

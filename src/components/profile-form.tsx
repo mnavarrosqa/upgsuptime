@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
-import { CheckCircle } from "lucide-react";
+import { toast } from "sonner";
 
 type ProfileFormProps = {
   username: string | null | undefined;
@@ -18,12 +18,10 @@ export function ProfileForm({ username }: ProfileFormProps) {
   const [value, setValue] = useState(username ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
     setSaving(true);
     try {
       const res = await fetch("/api/user/profile", {
@@ -36,7 +34,7 @@ export function ProfileForm({ username }: ProfileFormProps) {
         setError(data.error ?? "Failed to save");
         return;
       }
-      setSuccess(true);
+      toast.success("Username updated");
       await update();
       router.refresh();
     } catch {
@@ -56,15 +54,6 @@ export function ProfileForm({ username }: ProfileFormProps) {
           {error}
         </div>
       )}
-      {success && (
-        <div
-          className="flex items-center gap-2 rounded-md border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800 dark:border-green-800 dark:bg-green-900/30 dark:text-green-300"
-          role="status"
-        >
-          <CheckCircle className="h-4 w-4 shrink-0" aria-hidden />
-          Username updated
-        </div>
-      )}
       <div>
         <label
           htmlFor="username"
@@ -78,10 +67,7 @@ export function ProfileForm({ username }: ProfileFormProps) {
           type="text"
           autoComplete="username"
           value={value}
-          onChange={(e) => {
-            setValue(e.target.value);
-            setSuccess(false);
-          }}
+          onChange={(e) => setValue(e.target.value)}
           placeholder="Letters, numbers, underscores"
           className={inputClass}
         />

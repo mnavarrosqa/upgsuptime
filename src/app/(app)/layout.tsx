@@ -2,10 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { HeartPulse } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { AppNavLinks } from "@/components/app-nav-links";
 import { IncidentPoller } from "@/components/incident-poller";
+import { ActivityProvider } from "@/components/activity-context";
 
 export default async function AppLayout({
   children,
@@ -16,16 +18,18 @@ export default async function AppLayout({
   if (!session?.user) redirect("/login");
 
   return (
+    <ActivityProvider>
     <div className="min-h-screen bg-bg-page text-text-primary">
       <header className="border-b border-border bg-bg-card">
         <div className="mx-auto max-w-5xl px-4 sm:px-6">
-          <div className="flex h-14 items-stretch gap-5">
+          <div className="flex h-14 items-stretch gap-2 sm:gap-5">
             <Link
               href="/dashboard"
-              className="flex shrink-0 items-center text-sm font-semibold text-text-primary hover:text-text-muted"
+              className="flex shrink-0 items-center gap-2 text-sm font-semibold text-text-primary hover:text-text-muted"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              UPGS Monitor
+              <HeartPulse className="size-4 shrink-0" />
+              <span className="hidden sm:inline">UPGS Monitor</span>
             </Link>
             <span className="my-3 w-px bg-border" aria-hidden />
             <AppNavLinks role={session.user.role} />
@@ -43,5 +47,6 @@ export default async function AppLayout({
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</main>
       <IncidentPoller />
     </div>
+    </ActivityProvider>
   );
 }

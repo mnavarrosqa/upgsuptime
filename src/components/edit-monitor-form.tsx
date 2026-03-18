@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import type { Monitor } from "@/db/schema";
 import { Spinner } from "@/components/spinner";
 
@@ -66,6 +67,7 @@ export function EditMonitorForm({
         setError(data.error ?? "Failed to update");
         return;
       }
+      toast.success("Monitor updated");
       router.refresh();
       onSuccess?.();
     } catch {

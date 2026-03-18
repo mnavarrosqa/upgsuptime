@@ -21,17 +21,17 @@ export function RecentIncidentsList({ incidents }: { incidents: IncidentRow[] })
   }
 
   return (
-    <div className="mt-4 overflow-hidden rounded-lg border border-border bg-bg-card">
+    <div className="mt-4 overflow-x-auto rounded-lg border border-border bg-bg-card">
       <table className="min-w-full divide-y divide-border">
         <thead>
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
               Time
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
+            <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
               Status
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
+            <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
               Code
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
@@ -48,18 +48,18 @@ export function RecentIncidentsList({ incidents }: { incidents: IncidentRow[] })
               <td className="px-4 py-3 text-sm text-text-muted">
                 <FormattedDateTime value={r.createdAt} />
               </td>
-              <td className="px-4 py-3">
+              <td className="hidden px-4 py-3 sm:table-cell">
                 <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400">
                   Down
                 </span>
               </td>
-              <td className="px-4 py-3 text-sm text-text-muted">
+              <td className="hidden px-4 py-3 text-sm text-text-muted sm:table-cell">
                 {r.statusCode ?? "—"}
               </td>
               <td className="px-4 py-3 text-sm text-text-muted">
                 {r.responseTimeMs != null ? `${r.responseTimeMs} ms` : "—"}
               </td>
-              <td className="px-4 py-3 text-sm text-text-muted max-w-[14rem] truncate" title={r.message ?? undefined}>
+              <td className="max-w-[14rem] truncate px-4 py-3 text-sm text-text-muted" title={r.message ?? undefined}>
                 {r.message ?? "—"}
               </td>
             </tr>

@@ -7,6 +7,7 @@ type MonitorCardProps = {
   id: string;
   name: string;
   url: string;
+  paused?: boolean | null;
   latest: { ok: boolean; responseTimeMs: number | null } | undefined;
   trendResults: TrendPoint[];
   lastCheckAt: Date | null;
@@ -39,6 +40,7 @@ export function MonitorCard({
   id,
   name,
   url,
+  paused,
   latest,
   trendResults,
   lastCheckAt,
@@ -60,7 +62,7 @@ export function MonitorCard({
     <li>
       <Link
         href={`/monitors/${id}`}
-        className="flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow"
+        className={`flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow active:scale-[0.98] ${paused ? "opacity-60" : ""}`}
       >
         {/* Header: favicon + name + status */}
         <div className="flex items-start gap-2.5">
@@ -85,18 +87,24 @@ export function MonitorCard({
               <span className="truncate font-medium leading-snug text-text-primary">
                 {name}
               </span>
-              <span
-                className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
-                  latest?.ok
-                    ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
-                    : latest
-                      ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
-                      : "bg-border text-text-muted"
-                }`}
-              >
-                {StatusIcon && <StatusIcon className="h-3.5 w-3.5" aria-hidden />}
-                {statusLabel}
-              </span>
+              {paused ? (
+                <span className="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium bg-border text-text-muted">
+                  Paused
+                </span>
+              ) : (
+                <span
+                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                    latest?.ok
+                      ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
+                      : latest
+                        ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
+                        : "bg-border text-text-muted"
+                  }`}
+                >
+                  {StatusIcon && <StatusIcon className="h-3.5 w-3.5" aria-hidden />}
+                  {statusLabel}
+                </span>
+              )}
             </div>
             <p className="mt-0.5 truncate text-xs text-text-muted" title={url}>
               {url}
