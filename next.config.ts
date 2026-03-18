@@ -1,4 +1,13 @@
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
+
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+  additionalPrecacheEntries: [{ url: "/~offline", revision: "1" }],
+  reloadOnOnline: false,
+});
 
 const nextConfig: NextConfig = {
   // Allow dev server to be opened by IP (e.g. http://192.168.x.x:3077) instead of only localhost
@@ -27,6 +36,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: https:",
               "font-src 'self'",
               "connect-src 'self' ws: wss:",
+              "worker-src 'self'",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
@@ -38,6 +48,7 @@ const nextConfig: NextConfig = {
               "img-src 'self' data: https:",
               "font-src 'self'",
               "connect-src 'self'",
+              "worker-src 'self'",
               "frame-ancestors 'none'",
               "base-uri 'self'",
               "form-action 'self'",
@@ -50,8 +61,17 @@ const nextConfig: NextConfig = {
         value: "max-age=31536000; includeSubDomains; preload",
       });
     }
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Content-Type", value: "application/javascript; charset=utf-8" },
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+        ],
+      },
+    ];
   },
 };
 
-export default nextConfig;
+export default withSerwist(nextConfig);

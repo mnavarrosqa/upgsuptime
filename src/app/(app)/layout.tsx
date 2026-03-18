@@ -6,6 +6,7 @@ import { HeartPulse } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { AppNavLinks } from "@/components/app-nav-links";
+import { MobileMenu } from "@/components/mobile-menu";
 import { IncidentPoller } from "@/components/incident-poller";
 import { ActivityProvider } from "@/components/activity-context";
 
@@ -29,14 +30,27 @@ export default async function AppLayout({
               style={{ fontFamily: "var(--font-display)" }}
             >
               <HeartPulse className="size-4 shrink-0" />
-              <span className="hidden sm:inline">UPGS Monitor</span>
+              UPGS Monitor
             </Link>
-            <span className="my-3 w-px bg-border" aria-hidden />
-            <AppNavLinks role={session.user.role} />
-            <div className="ml-auto flex items-center gap-1">
-              <ThemeToggle />
-              <span className="h-4 w-px bg-border" aria-hidden />
-              <UserMenu
+
+            {/* Desktop nav */}
+            <span className="my-3 hidden w-px bg-border sm:block" aria-hidden />
+            <div className="hidden sm:flex sm:flex-1 sm:items-stretch">
+              <AppNavLinks role={session.user.role} />
+              <div className="ml-auto flex items-center gap-1">
+                <ThemeToggle />
+                <span className="h-4 w-px bg-border" aria-hidden />
+                <UserMenu
+                  email={session.user.email ?? ""}
+                  name={session.user.name ?? null}
+                />
+              </div>
+            </div>
+
+            {/* Mobile hamburger */}
+            <div className="ml-auto flex items-center sm:hidden">
+              <MobileMenu
+                role={session.user.role}
                 email={session.user.email ?? ""}
                 name={session.user.name ?? null}
               />

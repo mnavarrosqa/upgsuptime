@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Script from "next/script";
 import { Instrument_Sans, DM_Sans } from "next/font/google";
 import "./globals.css";
@@ -23,9 +23,25 @@ const dmSans = DM_Sans({
   subsets: ["latin"],
 });
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#1c1917" },
+    { media: "(prefers-color-scheme: dark)", color: "#0c0a09" },
+  ],
+};
+
 export const metadata: Metadata = {
   title: "UPGS Monitor",
   description: "UPGS Monitor — Multi-user uptime monitoring",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "UPGS Monitor",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
