@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useActivity } from "@/components/activity-context";
 
@@ -36,22 +37,45 @@ function formatAbsolute(date: Date | null): string {
 
 export function ActivityPageClient({ items }: { items: ActivityItem[] }) {
   const { markAllRead } = useActivity();
+  const router = useRouter();
+  const [clearing, setClearing] = useState(false);
 
   useEffect(() => {
     markAllRead();
   }, [markAllRead]);
 
+  async function handleClear() {
+    setClearing(true);
+    try {
+      await fetch("/api/activity/clear", { method: "POST" });
+      router.refresh();
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
     <>
-      <div className="flex items-center gap-x-3">
-        <h1
-          className="text-2xl font-semibold tracking-tight text-text-primary"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          Recent Activity
-        </h1>
+      <div className="flex items-center justify-between gap-x-3">
+        <div className="flex items-center gap-x-3">
+          <h1
+            className="text-2xl font-semibold tracking-tight text-text-primary"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            Recent Activity
+          </h1>
+          {items.length > 0 && (
+            <span className="text-sm text-text-muted">{items.length} event{items.length !== 1 ? "s" : ""}</span>
+          )}
+        </div>
         {items.length > 0 && (
-          <span className="text-sm text-text-muted">{items.length} event{items.length !== 1 ? "s" : ""}</span>
+          <button
+            onClick={handleClear}
+            disabled={clearing}
+            className="text-sm text-text-muted hover:text-text-primary disabled:opacity-50 transition-colors"
+          >
+            {clearing ? "Clearing…" : "Clear all"}
+          </button>
         )}
       </div>
       <p className="mt-1 text-sm text-text-muted">

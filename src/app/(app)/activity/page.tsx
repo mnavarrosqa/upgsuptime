@@ -2,8 +2,8 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { monitor } from "@/db/schema";
-import { eq, and, gte, isNotNull, desc } from "drizzle-orm";
+import { monitor, user } from "@/db/schema";
+import { eq, and, gte, isNotNull, desc, gt } from "drizzle-orm";
 import { ActivityPageClient } from "@/components/activity-page-client";
 
 export default async function ActivityPage() {
@@ -11,6 +11,20 @@ export default async function ActivityPage() {
   if (!session?.user?.id) redirect("/login");
 
   const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const [currentUser] = await db
+    .select({ activityClearedAt: user.activityClearedAt })
+    .from(user)
+    .where(eq(user.id, session.user.id));
+
+  const clearedAt = currentUser?.activityClearedAt ?? null;
+
+  const whereConditions = [
+    eq(monitor.userId, session.user.id),
+    isNotNull(monitor.lastStatusChangedAt),
+    gte(monitor.lastStatusChangedAt, since),
+    ...(clearedAt ? [gt(monitor.lastStatusChangedAt, clearedAt)] : []),
+  ];
 
   const items = await db
     .select({
@@ -21,13 +35,7 @@ export default async function ActivityPage() {
       lastStatusChangedAt: monitor.lastStatusChangedAt,
     })
     .from(monitor)
-    .where(
-      and(
-        eq(monitor.userId, session.user.id),
-        isNotNull(monitor.lastStatusChangedAt),
-        gte(monitor.lastStatusChangedAt, since)
-      )
-    )
+    .where(and(...whereConditions))
     .orderBy(desc(monitor.lastStatusChangedAt));
 
   return <ActivityPageClient items={items} />;

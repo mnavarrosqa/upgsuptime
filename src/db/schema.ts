@@ -12,6 +12,7 @@ export const user = sqliteTable("user", {
   passwordHash: text("password_hash").notNull(),
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  activityClearedAt: integer("activity_cleared_at", { mode: "timestamp" }),
 });
 
 export const monitor = sqliteTable("monitor", {
