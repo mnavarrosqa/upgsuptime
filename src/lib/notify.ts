@@ -35,7 +35,8 @@ export async function sendEmailAlert(
   m: Monitor,
   newStatus: boolean,
   result: RunCheckResult,
-  ownerEmail: string
+  ownerEmail: string,
+  sslResult: SslCheckResult | null = null
 ): Promise<void> {
   const transporter = getTransporter();
   if (!transporter) return;
@@ -47,6 +48,18 @@ export async function sendEmailAlert(
     : `[DOWN] ${m.name} is unreachable`;
 
   const checkedAt = new Date().toUTCString();
+  const sslLines: (string | null)[] = [];
+  if (newStatus && sslResult) {
+    sslLines.push(``, `SSL Certificate`);
+    if (sslResult.valid) {
+      sslLines.push(`  Status: Valid`);
+      if (sslResult.expiresAt != null) {
+        sslLines.push(`  Expires: ${new Date(sslResult.expiresAt).toUTCString()} (${sslResult.daysUntilExpiry} days)`);
+      }
+    } else {
+      sslLines.push(`  Status: Invalid — ${sslResult.error ?? "Certificate not trusted"}`);
+    }
+  }
   const textLines = [
     `Monitor: ${m.name}`,
     `URL: ${m.url}`,
@@ -55,13 +68,14 @@ export async function sendEmailAlert(
     result.statusCode != null ? `Status code: ${result.statusCode}` : null,
     result.responseTimeMs != null ? `Response time: ${result.responseTimeMs}ms` : null,
     result.message ? `Error: ${result.message}` : null,
+    ...sslLines,
     ``,
     `Checked at: ${checkedAt}`,
   ]
     .filter((l) => l !== null)
     .join("\n");
 
-  const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt);
+  const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt, sslResult);
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM ?? `"UPGS Monitor" <${process.env.SMTP_USER}>`,
@@ -76,12 +90,13 @@ export async function sendNotifications(
   m: Monitor,
   newStatus: boolean,
   result: RunCheckResult,
-  ownerEmail: string
+  ownerEmail: string,
+  sslResult: SslCheckResult | null = null
 ): Promise<void> {
   if (!m.alertEmail) return;
 
   try {
-    await sendEmailAlert(m, newStatus, result, ownerEmail);
+    await sendEmailAlert(m, newStatus, result, ownerEmail, sslResult);
   } catch (err) {
     console.error("[notify] email failed for monitor", m.id, err);
   }

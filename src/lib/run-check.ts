@@ -40,6 +40,23 @@ function parseExpectedStatusCodes(value: string): (status: number) => boolean {
   };
 }
 
+/** Human-readable label for common HTTP status codes */
+function httpStatusText(code: number): string {
+  const texts: Record<number, string> = {
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    408: "Request Timeout",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+    502: "Bad Gateway",
+    503: "Service Unavailable",
+    504: "Gateway Timeout",
+  };
+  return texts[code] ?? "HTTP error";
+}
+
 /** Days until a stored expiry date, or null */
 function daysUntil(date: Date | null | undefined): number | null {
   if (!date) return null;
@@ -84,6 +101,11 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
 
   const responseTimeMs = Date.now() - start;
 
+  // When HTTP check fails with a status code but no network error, add descriptive text
+  if (!ok && statusCode != null && !message) {
+    message = httpStatusText(statusCode);
+  }
+
   // Start SSL check concurrently while we do the DB insert
   const sslPromise = m.sslMonitoring ? checkSSL(m.url, 10_000) : Promise.resolve(null);
 
@@ -100,6 +122,10 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
 
   // Detect HTTP status transition: null (unknown) → any, or true → false, or false → true
   const transitioned = m.currentStatus === null || m.currentStatus !== ok;
+  // Don't send UP email for the very first check — that's not a "recovery"
+  const shouldNotify = transitioned && !(m.currentStatus === null && ok);
+  // True when a site that was confirmed down has just come back up
+  const isHttpRecovery = m.currentStatus === false && ok === true;
 
   // Await SSL result (likely already done by now)
   const sslResult = await sslPromise;
@@ -152,12 +178,14 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
   };
 
   // Fire-and-forget: notification errors must not propagate
-  if (transitioned) {
-    sendNotifications(m, ok, result, ownerEmail).catch((err) => {
+  if (shouldNotify) {
+    // When recovering, include current SSL state in the UP email
+    sendNotifications(m, ok, result, ownerEmail, isHttpRecovery ? sslResult : null).catch((err) => {
       console.error("[run-check] notification error for monitor", m.id, err);
     });
   }
-  if (sslResult && sslAlertType) {
+  // Skip separate SSL-recovered email when already merged into the UP recovery email
+  if (sslResult && sslAlertType && !(sslAlertType === "recovered" && isHttpRecovery)) {
     sendSslNotifications(m, sslResult, sslAlertType, ownerEmail).catch((err) => {
       console.error("[run-check] SSL notification error for monitor", m.id, err);
     });

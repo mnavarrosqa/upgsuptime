@@ -1,5 +1,9 @@
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
-import { CheckCircle, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle, Pause, Play, RefreshCw } from "lucide-react";
 import { MonitorCardTrend, type TrendPoint } from "@/components/monitor-card-trend";
 import { SslBadge } from "@/components/ssl-badge";
 
@@ -8,7 +12,7 @@ type MonitorCardProps = {
   name: string;
   url: string;
   paused?: boolean | null;
-  latest: { ok: boolean; responseTimeMs: number | null } | undefined;
+  latest: { ok: boolean; responseTimeMs: number | null; message?: string | null } | undefined;
   trendResults: TrendPoint[];
   lastCheckAt: Date | null;
   sslMonitoring: boolean;
@@ -48,9 +52,13 @@ export function MonitorCard({
   sslValid,
   sslExpiresAt,
 }: MonitorCardProps) {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [checking, setChecking] = useState(false);
+
   const favicon = getFaviconUrl(url);
-  const statusLabel = latest?.ok ? "Up" : latest ? "Down" : "—";
-  const StatusIcon = latest?.ok ? CheckCircle : latest ? XCircle : null;
+  const isDown = latest && !latest.ok && !paused;
+  const isUp = latest?.ok && !paused;
   const uptimePct =
     trendResults.length > 0
       ? Math.round(
@@ -58,11 +66,40 @@ export function MonitorCard({
         )
       : null;
 
+  const leftBorderColor = isDown
+    ? "#ef4444"
+    : isUp
+      ? "#10b981"
+      : undefined;
+
+  async function handlePauseToggle(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setLoading(true);
+    await fetch(`/api/monitors/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ paused: !paused }),
+    });
+    router.refresh();
+    setLoading(false);
+  }
+
+  async function handleCheckNow(e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setChecking(true);
+    await fetch(`/api/monitors/${id}/check-now`, { method: "POST" });
+    router.refresh();
+    setChecking(false);
+  }
+
   return (
-    <li>
+    <li className="relative group">
       <Link
         href={`/monitors/${id}`}
-        className={`flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow active:scale-[0.98] ${paused ? "opacity-60" : ""}`}
+        className={`flex h-full flex-col rounded-lg border border-l-4 border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow active:scale-[0.98] ${paused ? "opacity-60" : ""}`}
+        style={leftBorderColor ? { borderLeftColor: leftBorderColor } : undefined}
       >
         {/* Header: favicon + name + status */}
         <div className="flex items-start gap-2.5">
@@ -93,7 +130,7 @@ export function MonitorCard({
                 </span>
               ) : (
                 <span
-                  className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
                     latest?.ok
                       ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
                       : latest
@@ -101,14 +138,29 @@ export function MonitorCard({
                         : "bg-border text-text-muted"
                   }`}
                 >
-                  {StatusIcon && <StatusIcon className="h-3.5 w-3.5" aria-hidden />}
-                  {statusLabel}
+                  {latest?.ok ? (
+                    <CheckCircle className="h-3.5 w-3.5" aria-hidden />
+                  ) : latest ? (
+                    <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75" />
+                      <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
+                    </span>
+                  ) : null}
+                  {latest?.ok ? "Up" : latest ? "Down" : "—"}
                 </span>
               )}
             </div>
             <p className="mt-0.5 truncate text-xs text-text-muted" title={url}>
               {url}
             </p>
+            {latest && !latest.ok && latest.message && (
+              <p
+                className="mt-0.5 truncate text-xs text-red-500 dark:text-red-400"
+                title={latest.message}
+              >
+                {latest.message}
+              </p>
+            )}
           </div>
         </div>
 
@@ -156,6 +208,32 @@ export function MonitorCard({
           <span>{formatLastChecked(lastCheckAt)}</span>
         </div>
       </Link>
+
+      {/* Hover quick-actions */}
+      <div className="absolute bottom-2 right-2 z-10 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+        <button
+          type="button"
+          onClick={handleCheckNow}
+          title="Check now"
+          disabled={checking || !!paused}
+          className="rounded border border-border bg-bg-card p-1.5 text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40"
+        >
+          <RefreshCw className={`h-3.5 w-3.5 ${checking ? "animate-spin" : ""}`} aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={handlePauseToggle}
+          title={paused ? "Resume" : "Pause"}
+          disabled={loading}
+          className="rounded border border-border bg-bg-card p-1.5 text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40"
+        >
+          {paused ? (
+            <Play className="h-3.5 w-3.5" aria-hidden />
+          ) : (
+            <Pause className="h-3.5 w-3.5" aria-hidden />
+          )}
+        </button>
+      </div>
     </li>
   );
 }

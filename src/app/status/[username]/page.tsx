@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/db";
 import { monitor, user, checkResult } from "@/db/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { eq, and, gte, desc } from "drizzle-orm";
 import { StatusPageShell } from "@/components/status-page-shell";
 
 export async function generateMetadata({
@@ -43,7 +43,11 @@ export default async function StatusPage({
   const monitorsWithStats = await Promise.all(
     publicMonitors.map(async (m) => {
       const rows = await db
-        .select({ ok: checkResult.ok, createdAt: checkResult.createdAt })
+        .select({
+          ok: checkResult.ok,
+          createdAt: checkResult.createdAt,
+          responseTimeMs: checkResult.responseTimeMs,
+        })
         .from(checkResult)
         .where(
           and(
@@ -55,6 +59,16 @@ export default async function StatusPage({
       const total = rows.length;
       const okCount = rows.filter((r) => r.ok).length;
       const uptimePct = total > 0 ? Math.round((okCount / total) * 1000) / 10 : null;
+
+      const responseTimes = rows
+        .map((r) => r.responseTimeMs)
+        .filter((v): v is number => v !== null);
+      const avgResponseTimeMs =
+        responseTimes.length > 0
+          ? Math.round(
+              responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length
+            )
+          : null;
 
       // 30 buckets × 3 days, oldest (index 0) → newest (index 29)
       const buckets: { ok: number; total: number }[] = Array.from(
@@ -70,6 +84,20 @@ export default async function StatusPage({
         if (r.ok) buckets[displayIdx].ok++;
       }
 
+      // For down monitors, fetch the most recent failed check's error details
+      let lastErrorMessage: string | null = null;
+      let lastErrorCode: number | null = null;
+      if (m.currentStatus === false) {
+        const [lastFailed] = await db
+          .select({ message: checkResult.message, statusCode: checkResult.statusCode })
+          .from(checkResult)
+          .where(and(eq(checkResult.monitorId, m.id), eq(checkResult.ok, false)))
+          .orderBy(desc(checkResult.createdAt))
+          .limit(1);
+        lastErrorMessage = lastFailed?.message ?? null;
+        lastErrorCode = lastFailed?.statusCode ?? null;
+      }
+
       return {
         id: m.id,
         name: m.name,
@@ -82,6 +110,9 @@ export default async function StatusPage({
         uptimePct,
         checkCount90d: total,
         buckets,
+        avgResponseTimeMs,
+        lastErrorMessage,
+        lastErrorCode,
       };
     })
   );

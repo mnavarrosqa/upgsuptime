@@ -105,7 +105,8 @@ export function buildUptimeAlertHtml(
   m: Monitor,
   newStatus: boolean,
   result: RunCheckResult,
-  checkedAt: string
+  checkedAt: string,
+  sslResult: SslCheckResult | null = null
 ): string {
   const isUp = newStatus;
   const stripeColor = isUp ? COLORS.up : COLORS.down;
@@ -125,6 +126,36 @@ export function buildUptimeAlertHtml(
   if (!isUp && result.message)
     rows.push(detailRow("Error", escHtml(result.message)));
 
+  // SSL section — only included in UP (recovery) emails when SSL result is available
+  let sslSection = "";
+  if (isUp && sslResult) {
+    const sslRows: string[] = [];
+    if (sslResult.valid) {
+      sslRows.push(detailRow("SSL Status", "Valid"));
+      if (sslResult.expiresAt != null) {
+        sslRows.push(
+          detailRow(
+            "SSL Expires",
+            `${new Date(sslResult.expiresAt).toUTCString()} (${sslResult.daysUntilExpiry} days)`
+          )
+        );
+      }
+    } else {
+      sslRows.push(
+        detailRow(
+          "SSL Status",
+          `<span style="color:${COLORS.down};">Invalid</span> — ${escHtml(sslResult.error ?? "Certificate not trusted")}`
+        )
+      );
+    }
+    sslSection = `
+    <!-- SSL divider -->
+    <div style="height:1px;background:${COLORS.border};margin:${rows.length > 0 ? "6px" : "0"} 0 14px;"></div>
+    <p style="margin:0 0 10px;font-size:11px;color:${COLORS.textMuted};text-transform:uppercase;letter-spacing:0.07em;font-weight:600;font-family:${FONT_STACK};">SSL Certificate</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">${sslRows.join("")}</table>`;
+  }
+
+  const hasDetails = rows.length > 0 || sslSection;
   const body = `
     <!-- Badge -->
     <div style="margin-bottom:16px;">${statusBadge}</div>
@@ -144,9 +175,10 @@ export function buildUptimeAlertHtml(
         ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">${rows.join("")}</table>`
         : ""
     }
+    ${sslSection}
 
     <!-- Timestamp -->
-    <p style="margin:${rows.length > 0 ? "6px" : "0"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
+    <p style="margin:${hasDetails ? "6px" : "0"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
       Checked at ${escHtml(checkedAt)}
     </p>`;
 

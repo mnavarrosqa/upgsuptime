@@ -17,11 +17,87 @@ type DashboardContentProps = {
   monitors: Monitor[];
   latestByMonitor: Record<
     string,
-    { ok: boolean; responseTimeMs: number | null }
+    { ok: boolean; responseTimeMs: number | null; message: string | null }
   >;
   trendByMonitor: Record<string, TrendPoint[]>;
   username: string | null;
 };
+
+type MonitorGridProps = {
+  monitors: Monitor[];
+  latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }>;
+  trendByMonitor: Record<string, TrendPoint[]>;
+};
+
+function MonitorGrid({ monitors, latestByMonitor, trendByMonitor }: MonitorGridProps) {
+  const downMonitors = monitors.filter((m) => !m.paused && latestByMonitor[m.id] && !latestByMonitor[m.id].ok);
+  const pausedMonitors = monitors.filter((m) => m.paused);
+  const upMonitors = monitors.filter((m) => !m.paused && latestByMonitor[m.id]?.ok === true);
+  const uncheckedMonitors = monitors.filter((m) => !m.paused && !latestByMonitor[m.id]);
+
+  const multipleGroups =
+    [downMonitors, pausedMonitors, [...upMonitors, ...uncheckedMonitors]].filter((g) => g.length > 0).length > 1;
+
+  function renderCard(m: Monitor) {
+    return (
+      <MonitorCard
+        key={m.id}
+        id={m.id}
+        name={m.name}
+        url={m.url}
+        paused={m.paused}
+        latest={latestByMonitor[m.id]}
+        trendResults={trendByMonitor[m.id] ?? []}
+        lastCheckAt={m.lastCheckAt}
+        sslMonitoring={!!m.sslMonitoring}
+        sslValid={m.sslValid ?? null}
+        sslExpiresAt={m.sslExpiresAt ?? null}
+      />
+    );
+  }
+
+  return (
+    <ul className="mt-5 grid gap-4 sm:grid-cols-2">
+      {downMonitors.length > 0 && (
+        <>
+          {multipleGroups && (
+            <li className="col-span-full">
+              <p className="text-xs font-semibold uppercase tracking-widest text-red-600 dark:text-red-400">
+                Issues
+              </p>
+            </li>
+          )}
+          {downMonitors.map(renderCard)}
+        </>
+      )}
+      {pausedMonitors.length > 0 && (
+        <>
+          {multipleGroups && (
+            <li className="col-span-full mt-1">
+              <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">
+                Paused
+              </p>
+            </li>
+          )}
+          {pausedMonitors.map(renderCard)}
+        </>
+      )}
+      {(upMonitors.length > 0 || uncheckedMonitors.length > 0) && (
+        <>
+          {multipleGroups && (
+            <li className="col-span-full mt-1">
+              <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
+                Operational
+              </p>
+            </li>
+          )}
+          {upMonitors.map(renderCard)}
+          {uncheckedMonitors.map(renderCard)}
+        </>
+      )}
+    </ul>
+  );
+}
 
 export function DashboardContent({
   monitors,
@@ -145,23 +221,11 @@ export function DashboardContent({
           </button>
         </div>
       ) : (
-        <ul className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredMonitors.map((m) => (
-            <MonitorCard
-              key={m.id}
-              id={m.id}
-              name={m.name}
-              url={m.url}
-              paused={m.paused}
-              latest={latestByMonitor[m.id]}
-              trendResults={trendByMonitor[m.id] ?? []}
-              lastCheckAt={m.lastCheckAt}
-              sslMonitoring={!!m.sslMonitoring}
-              sslValid={m.sslValid ?? null}
-              sslExpiresAt={m.sslExpiresAt ?? null}
-            />
-          ))}
-        </ul>
+        <MonitorGrid
+          monitors={filteredMonitors}
+          latestByMonitor={latestByMonitor}
+          trendByMonitor={trendByMonitor}
+        />
       )}
     </div>
   );

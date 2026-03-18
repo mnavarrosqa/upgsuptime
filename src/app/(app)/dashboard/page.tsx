@@ -15,32 +15,32 @@ export default async function DashboardPage() {
     .from(monitor)
     .where(eq(monitor.userId, session.user.id));
 
-  const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null }> = {};
+  const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }> = {};
   for (const m of monitors) {
     const [latest] = await db
-      .select({ ok: checkResult.ok, responseTimeMs: checkResult.responseTimeMs })
+      .select({ ok: checkResult.ok, responseTimeMs: checkResult.responseTimeMs, message: checkResult.message })
       .from(checkResult)
       .where(eq(checkResult.monitorId, m.id))
       .orderBy(desc(checkResult.createdAt))
       .limit(1);
-    if (latest) latestByMonitor[m.id] = { ok: latest.ok, responseTimeMs: latest.responseTimeMs };
+    if (latest) latestByMonitor[m.id] = { ok: latest.ok, responseTimeMs: latest.responseTimeMs, message: latest.message };
   }
 
-  let trendByMonitor: Record<string, { ok: boolean }[]> = {};
+  let trendByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null }[]> = {};
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
     const limit = Math.min(monitorIds.length * 24, 500);
     const recentResults = await db
-      .select({ monitorId: checkResult.monitorId, ok: checkResult.ok })
+      .select({ monitorId: checkResult.monitorId, ok: checkResult.ok, responseTimeMs: checkResult.responseTimeMs })
       .from(checkResult)
       .where(inArray(checkResult.monitorId, monitorIds))
       .orderBy(desc(checkResult.createdAt))
       .limit(limit);
-    const grouped = new Map<string, { ok: boolean }[]>();
+    const grouped = new Map<string, { ok: boolean; responseTimeMs: number | null }[]>();
     for (const r of recentResults) {
       const list = grouped.get(r.monitorId) ?? [];
       if (list.length < 24) {
-        list.push({ ok: r.ok });
+        list.push({ ok: r.ok, responseTimeMs: r.responseTimeMs });
         grouped.set(r.monitorId, list);
       }
     }
