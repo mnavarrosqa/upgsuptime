@@ -47,7 +47,7 @@ const nextConfig: NextConfig = {
               "style-src 'self' 'unsafe-inline'",
               "img-src 'self' data: https:",
               "font-src 'self'",
-              "connect-src 'self' https://www.google.com",
+              "connect-src 'self'",
               "worker-src 'self'",
               "frame-ancestors 'none'",
               "base-uri 'self'",
