@@ -57,20 +57,12 @@ export function MonitorCard({
   const [checking, setChecking] = useState(false);
 
   const favicon = getFaviconUrl(url);
-  const isDown = latest && !latest.ok && !paused;
-  const isUp = latest?.ok && !paused;
   const uptimePct =
     trendResults.length > 0
       ? Math.round(
           (trendResults.filter((r) => r.ok).length / trendResults.length) * 100
         )
       : null;
-
-  const leftBorderColor = isDown
-    ? "#ef4444"
-    : isUp
-      ? "#10b981"
-      : undefined;
 
   async function handlePauseToggle(e: React.MouseEvent) {
     e.preventDefault();
@@ -98,8 +90,7 @@ export function MonitorCard({
     <li className="relative group">
       <Link
         href={`/monitors/${id}`}
-        className={`flex h-full flex-col rounded-lg border border-l-4 border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow active:scale-[0.98] ${paused ? "opacity-60" : ""}`}
-        style={leftBorderColor ? { borderLeftColor: leftBorderColor } : undefined}
+        className={`flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow active:scale-[0.98] ${paused ? "opacity-60" : ""}`}
       >
         {/* Header: favicon + name + status */}
         <div className="flex items-start gap-2.5">
@@ -125,7 +116,11 @@ export function MonitorCard({
                 {name}
               </span>
               {paused ? (
-                <span className="inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium bg-border text-text-muted">
+                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-border text-text-muted">
+                  <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75" />
+                    <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-500" />
+                  </span>
                   Paused
                 </span>
               ) : (
