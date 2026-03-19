@@ -2,7 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { monitor, checkResult } from "@/db/schema";
+import { monitor, checkResult, user } from "@/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 import { DashboardContent } from "@/components/dashboard-content";
 
@@ -14,6 +14,11 @@ export default async function DashboardPage() {
     .select()
     .from(monitor)
     .where(eq(monitor.userId, session.user.id));
+
+  const [userOnboarding] = await db
+    .select({ onboardingCompleted: user.onboardingCompleted, onboardingStep: user.onboardingStep })
+    .from(user)
+    .where(eq(user.id, session.user.id));
 
   const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }> = {};
   for (const m of monitors) {
@@ -53,6 +58,11 @@ export default async function DashboardPage() {
       latestByMonitor={latestByMonitor}
       trendByMonitor={trendByMonitor}
       username={session.user.name ?? null}
+      onboarding={{
+        onboardingCompleted: userOnboarding?.onboardingCompleted,
+        onboardingStep: userOnboarding?.onboardingStep,
+      }}
+      userId={session.user.id}
     />
   );
 }

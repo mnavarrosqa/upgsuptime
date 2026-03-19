@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { ChevronDown, User, LogOut } from "lucide-react";
+import { ChevronDown, User, LogOut, BookOpen } from "lucide-react";
 
 type UserMenuProps = {
   email: string;
@@ -88,6 +88,15 @@ export function UserMenu({ email, name }: UserMenuProps) {
           >
             <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
             Account
+          </Link>
+          <Link
+            href="/account#onboarding"
+            role="menuitem"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-page hover:text-text-primary"
+            onClick={() => setOpen(false)}
+          >
+            <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            Onboarding guide
           </Link>
           <button
             type="button"

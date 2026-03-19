@@ -4,6 +4,10 @@ import { redirect } from "next/navigation";
 import { Mail, Shield, User } from "lucide-react";
 import { ProfileForm } from "@/components/profile-form";
 import { PasswordForm } from "@/components/password-form";
+import { db } from "@/db";
+import { user } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { AccountOnboardingSection } from "@/components/account-onboarding-section";
 
 function getInitials(name: string | null | undefined, email: string): string {
   if (name) {
@@ -21,8 +25,13 @@ export default async function AccountPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
 
-  const { email, name, role } = session.user;
+  const { email, name, role, id } = session.user;
   const initials = getInitials(name, email ?? "");
+
+  const [userOnboarding] = await db
+    .select({ onboardingCompleted: user.onboardingCompleted, onboardingStep: user.onboardingStep })
+    .from(user)
+    .where(eq(user.id, id));
 
   return (
     <div className="mx-auto max-w-xl">
@@ -129,6 +138,12 @@ export default async function AccountPage() {
           <PasswordForm />
         </div>
       </div>
+
+      {/* Onboarding section */}
+      <AccountOnboardingSection
+        onboardingCompleted={userOnboarding?.onboardingCompleted}
+        userId={id}
+      />
     </div>
   );
 }

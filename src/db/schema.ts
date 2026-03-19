@@ -13,6 +13,8 @@ export const user = sqliteTable("user", {
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   activityClearedAt: integer("activity_cleared_at", { mode: "timestamp" }),
+  onboardingCompleted: integer("onboarding_completed", { mode: "boolean" }),
+  onboardingStep: text("onboarding_step"),
 });
 
 export const monitor = sqliteTable("monitor", {

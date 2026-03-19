@@ -11,6 +11,8 @@ import {
 import type { TrendPoint } from "@/components/monitor-card-trend";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { OnboardingOverlay } from "@/components/onboarding-overlay";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 type DashboardContentProps = {
@@ -21,6 +23,11 @@ type DashboardContentProps = {
   >;
   trendByMonitor: Record<string, TrendPoint[]>;
   username: string | null;
+  onboarding?: {
+    onboardingCompleted?: boolean | null;
+    onboardingStep?: string | null;
+  };
+  userId: string;
 };
 
 type MonitorGridProps = {
@@ -104,8 +111,15 @@ export function DashboardContent({
   latestByMonitor,
   trendByMonitor,
   username,
+  onboarding,
+  userId,
 }: DashboardContentProps) {
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(
+    !onboarding?.onboardingCompleted && monitors.length === 0
+  );
+
   const searchItems: MonitorSearchItem[] = monitors.map((m) => ({
     id: m.id,
     name: m.name,
@@ -227,6 +241,18 @@ export function DashboardContent({
           trendByMonitor={trendByMonitor}
         />
       )}
+
+      <OnboardingOverlay
+        open={showOnboarding}
+        onClose={() => setShowOnboarding(false)}
+        userId={userId}
+        currentStep={onboarding?.onboardingStep as "welcome" | "add-monitor" | "alerts" | "status-page" | "complete" | null}
+        username={username}
+        onComplete={() => {
+          setShowOnboarding(false);
+          router.refresh();
+        }}
+      />
     </div>
   );
 }
