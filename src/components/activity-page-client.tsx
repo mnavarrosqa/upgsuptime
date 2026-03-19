@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useActivity } from "@/components/activity-context";
+import { formatRelativeTime as formatRelative } from "@/lib/format-time";
 
 interface ActivityItem {
   id: string;
@@ -11,18 +12,6 @@ interface ActivityItem {
   url: string;
   currentStatus: boolean | null;
   lastStatusChangedAt: Date | null;
-}
-
-function formatRelative(date: Date | null): string {
-  if (!date) return "—";
-  const diffMs = Date.now() - new Date(date).getTime();
-  const diffMin = Math.floor(diffMs / 60_000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  const diffDay = Math.floor(diffHr / 24);
-  return `${diffDay}d ago`;
 }
 
 function formatAbsolute(date: Date | null): string {

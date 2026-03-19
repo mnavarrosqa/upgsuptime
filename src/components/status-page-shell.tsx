@@ -3,29 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle, XCircle, Minus, AlertTriangle } from "lucide-react";
-
-function formatRelativeTime(isoString: string | null): string {
-  if (!isoString) return "Never";
-  const diffMs = Date.now() - new Date(isoString).getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  return `${Math.floor(diffHr / 24)}d ago`;
-}
-
-function formatDuration(isoString: string | null): string {
-  if (!isoString) return "unknown duration";
-  const diffMs = Date.now() - new Date(isoString).getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "just now";
-  if (diffMin < 60) return `${diffMin}m`;
-  const diffHr = Math.floor(diffMin / 60);
-  const remainMin = diffMin % 60;
-  if (diffHr < 24) return remainMin > 0 ? `${diffHr}h ${remainMin}m` : `${diffHr}h`;
-  return `${Math.floor(diffHr / 24)}d`;
-}
+import { formatRelativeTime, formatDuration } from "@/lib/format-time";
 
 function getFaviconUrl(url: string): string {
   try {

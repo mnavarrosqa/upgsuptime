@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -16,6 +16,8 @@ import {
   filterMonitorsBySearch,
 } from "@/components/search-with-typeahead";
 import { SslBadge } from "@/components/ssl-badge";
+import { SortableTableHeader } from "@/components/sortable-table-header";
+import { sortMonitors } from "@/lib/sort-monitors";
 
 type MonitorConfig = {
   name: string;
@@ -164,6 +166,10 @@ export function MonitorsPageClient({
   const [addOpen, setAddOpen] = useState(false);
   const [editMonitorId, setEditMonitorId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<{ field: string; direction: "asc" | "desc" }>({
+    field: "name",
+    direction: "asc",
+  });
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
   const [pausingId, setPausingId] = useState<string | null>(null);
@@ -179,6 +185,12 @@ export function MonitorsPageClient({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const filteredMonitors = filterMonitorsBySearch(monitors, searchQuery);
+  const sortedMonitors = sortMonitors(
+    filteredMonitors,
+    sortBy.field,
+    sortBy.direction,
+    latestByMonitor as unknown as Record<string, { ok: boolean; responseTimeMs: number | null }>
+  );
   const editMonitor = editMonitorId
     ? monitors.find((m) => m.id === editMonitorId)
     : null;
@@ -505,28 +517,83 @@ export function MonitorsPageClient({
           <table className="min-w-full divide-y divide-border">
             <thead>
               <tr>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-                  Monitor
-                </th>
-                <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
-                  URL
-                </th>
-                <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-                  Status
-                </th>
-                <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
-                  SSL
-                </th>
-                <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted md:table-cell">
-                  Last checked
-                </th>
+                <SortableTableHeader
+                  column="name"
+                  label="Monitor"
+                  currentSort={sortBy}
+                  onSort={(field) =>
+                    setSortBy((prev) => ({
+                      field,
+                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+                    }))
+                  }
+                />
+                <SortableTableHeader
+                  column="url"
+                  label="URL"
+                  currentSort={sortBy}
+                  onSort={(field) =>
+                    setSortBy((prev) => ({
+                      field,
+                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+                    }))
+                  }
+                  className="hidden sm:table-cell"
+                />
+                <SortableTableHeader
+                  column="status"
+                  label="Status"
+                  currentSort={sortBy}
+                  onSort={(field) =>
+                    setSortBy((prev) => ({
+                      field,
+                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+                    }))
+                  }
+                />
+                <SortableTableHeader
+                  column="ssl"
+                  label="SSL"
+                  currentSort={sortBy}
+                  onSort={(field) =>
+                    setSortBy((prev) => ({
+                      field,
+                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+                    }))
+                  }
+                  className="hidden sm:table-cell"
+                />
+                <SortableTableHeader
+                  column="lastCheckAt"
+                  label="Last checked"
+                  currentSort={sortBy}
+                  onSort={(field) =>
+                    setSortBy((prev) => ({
+                      field,
+                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+                    }))
+                  }
+                  className="hidden md:table-cell"
+                />
+                <SortableTableHeader
+                  column="intervalMinutes"
+                  label="Interval"
+                  currentSort={sortBy}
+                  onSort={(field) =>
+                    setSortBy((prev) => ({
+                      field,
+                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+                    }))
+                  }
+                  className="hidden md:table-cell"
+                />
                 <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider text-text-muted">
                   Actions
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
-              {filteredMonitors.map((m) => {
+              {sortedMonitors.map((m) => {
                 const favicon = getFaviconUrl(m.url);
                 const status = latestByMonitor[m.id];
                 return (

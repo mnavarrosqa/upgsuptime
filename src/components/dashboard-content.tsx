@@ -12,6 +12,8 @@ import type { TrendPoint } from "@/components/monitor-card-trend";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
+import { SortDropdown } from "@/components/sort-dropdown";
+import { sortMonitors } from "@/lib/sort-monitors";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -34,13 +36,34 @@ type MonitorGridProps = {
   monitors: Monitor[];
   latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }>;
   trendByMonitor: Record<string, TrendPoint[]>;
+  sortBy: { field: string; direction: "asc" | "desc" };
 };
 
-function MonitorGrid({ monitors, latestByMonitor, trendByMonitor }: MonitorGridProps) {
-  const downMonitors = monitors.filter((m) => !m.paused && latestByMonitor[m.id] && !latestByMonitor[m.id].ok);
-  const pausedMonitors = monitors.filter((m) => m.paused);
-  const upMonitors = monitors.filter((m) => !m.paused && latestByMonitor[m.id]?.ok === true);
-  const uncheckedMonitors = monitors.filter((m) => !m.paused && !latestByMonitor[m.id]);
+function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: MonitorGridProps) {
+  const downMonitors = sortMonitors(
+    monitors.filter((m) => !m.paused && latestByMonitor[m.id] && !latestByMonitor[m.id].ok),
+    sortBy.field,
+    sortBy.direction,
+    latestByMonitor
+  );
+  const pausedMonitors = sortMonitors(
+    monitors.filter((m) => m.paused),
+    sortBy.field,
+    sortBy.direction,
+    latestByMonitor
+  );
+  const upMonitors = sortMonitors(
+    monitors.filter((m) => !m.paused && latestByMonitor[m.id]?.ok === true),
+    sortBy.field,
+    sortBy.direction,
+    latestByMonitor
+  );
+  const uncheckedMonitors = sortMonitors(
+    monitors.filter((m) => !m.paused && !latestByMonitor[m.id]),
+    sortBy.field,
+    sortBy.direction,
+    latestByMonitor
+  );
 
   const multipleGroups =
     [downMonitors, pausedMonitors, [...upMonitors, ...uncheckedMonitors]].filter((g) => g.length > 0).length > 1;
@@ -116,6 +139,10 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<{ field: string; direction: "asc" | "desc" }>({
+    field: "name",
+    direction: "asc",
+  });
   const [showOnboarding, setShowOnboarding] = useState(
     !onboarding?.onboardingCompleted && monitors.length === 0
   );
@@ -127,6 +154,14 @@ export function DashboardContent({
   }));
   const filteredMonitors = filterMonitorsBySearch(monitors, searchQuery);
 
+  const sortOptions = [
+    { value: "name", label: "Name" },
+    { value: "lastCheckAt", label: "Last checked" },
+    { value: "createdAt", label: "Created" },
+    { value: "responseTime", label: "Response time" },
+    { value: "intervalMinutes", label: "Interval" },
+  ];
+
   const upCount = monitors.filter((m) => latestByMonitor[m.id]?.ok === true).length;
   const downCount = monitors.filter((m) => {
     const latest = latestByMonitor[m.id];
@@ -136,8 +171,9 @@ export function DashboardContent({
   const allUp = downCount === 0 && hasMonitors;
 
   return (
-    <div>
-      <AutoRefresh />
+    <>
+      <div>
+        <AutoRefresh />
       {/* Header: title + status badge */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
         <h1
@@ -201,15 +237,23 @@ export function DashboardContent({
         </p>
       )}
 
-      {/* Toolbar: search + add button */}
+      {/* Toolbar: search + sort + add button */}
       <div className="mt-5 flex items-center gap-3">
         {hasMonitors && (
-          <div className="flex-1">
-            <SearchWithTypeahead
-              monitors={searchItems}
-              value={searchQuery}
-              onChange={setSearchQuery}
-              placeholder="Search by name or URL…"
+          <div className="flex flex-wrap items-center gap-2 flex-1 sm:flex-nowrap">
+            <div className="flex-1">
+              <SearchWithTypeahead
+                monitors={searchItems}
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Search by name or URL…"
+              />
+            </div>
+            <SortDropdown
+              options={sortOptions}
+              value={sortBy.field}
+              direction={sortBy.direction}
+              onChange={(field, direction) => setSortBy({ field, direction })}
             />
           </div>
         )}
@@ -239,6 +283,7 @@ export function DashboardContent({
           monitors={filteredMonitors}
           latestByMonitor={latestByMonitor}
           trendByMonitor={trendByMonitor}
+          sortBy={sortBy}
         />
       )}
 
@@ -253,6 +298,7 @@ export function DashboardContent({
           router.refresh();
         }}
       />
-    </div>
+      </div>
+    </>
   );
 }
