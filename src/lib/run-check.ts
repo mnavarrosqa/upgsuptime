@@ -177,15 +177,38 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
     message,
   };
 
+  const mergeSslIntoDownEmail =
+    Boolean(
+      shouldNotify &&
+        !ok &&
+        sslResult &&
+        sslAlertType &&
+        sslAlertType !== "recovered"
+    );
+
   // Fire-and-forget: notification errors must not propagate
   if (shouldNotify) {
-    // When recovering, include current SSL state in the UP email
-    sendNotifications(m, ok, result, ownerEmail, isHttpRecovery ? sslResult : null).catch((err) => {
+    const sslForUptime =
+      isHttpRecovery || mergeSslIntoDownEmail ? sslResult : null;
+    const mergedSslAlertForDown = mergeSslIntoDownEmail ? sslAlertType : null;
+    sendNotifications(
+      m,
+      ok,
+      result,
+      ownerEmail,
+      sslForUptime,
+      mergedSslAlertForDown
+    ).catch((err) => {
       console.error("[run-check] notification error for monitor", m.id, err);
     });
   }
-  // Skip separate SSL-recovered email when already merged into the UP recovery email
-  if (sslResult && sslAlertType && !(sslAlertType === "recovered" && isHttpRecovery)) {
+  // Skip separate SSL email when merged into UP recovery or into DOWN email
+  if (
+    sslResult &&
+    sslAlertType &&
+    !(sslAlertType === "recovered" && isHttpRecovery) &&
+    !mergeSslIntoDownEmail
+  ) {
     sendSslNotifications(m, sslResult, sslAlertType, ownerEmail).catch((err) => {
       console.error("[run-check] SSL notification error for monitor", m.id, err);
     });

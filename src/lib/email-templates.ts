@@ -45,11 +45,20 @@ function detailRow(label: string, value: string) {
   </tr>`;
 }
 
-function topStripe(color: string) {
-  return `<tr><td style="height:4px;background:${color};border-radius:12px 12px 0 0;font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td></tr>`;
+/** Neutral double rule (replaces status-colored top stripe). */
+function cardTopAccent() {
+  return `<tr>
+    <td style="padding:0;background:${COLORS.cardBg};border-radius:12px 12px 0 0;">
+      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+        <tr><td style="height:1px;background:${COLORS.border};font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td></tr>
+        <tr><td style="height:5px;font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td></tr>
+        <tr><td style="height:1px;background:${COLORS.border};font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td></tr>
+      </table>
+    </td>
+  </tr>`;
 }
 
-function wrap(stripeColor: string, body: string) {
+function wrap(body: string) {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -69,11 +78,11 @@ function wrap(stripeColor: string, body: string) {
             </td>
           </tr>
 
-          <!-- Card outer (stripe + body) -->
+          <!-- Card outer (accent + body) -->
           <tr>
             <td>
               <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;border:1px solid ${COLORS.border};border-radius:12px;overflow:hidden;">
-                ${topStripe(stripeColor)}
+                ${cardTopAccent()}
                 <tr>
                   <td style="background:${COLORS.cardBg};padding:28px 32px;border-radius:0 0 12px 12px;">
                     ${body}
@@ -99,6 +108,25 @@ function wrap(stripeColor: string, body: string) {
 </html>`;
 }
 
+function sslProblemDetailRows(
+  sslResult: SslCheckResult,
+  alertType: "invalid" | "expiring" | "critical"
+): string[] {
+  const rows: string[] = [];
+  if (alertType === "invalid") {
+    rows.push(
+      detailRow("Issue", escHtml(sslResult.error ?? "Certificate not trusted"))
+    );
+  }
+  if (alertType === "expiring" || alertType === "critical") {
+    rows.push(detailRow("Days remaining", `${sslResult.daysUntilExpiry}`));
+  }
+  if (sslResult.expiresAt != null) {
+    rows.push(detailRow("Expires", new Date(sslResult.expiresAt).toUTCString()));
+  }
+  return rows;
+}
+
 // ─── uptime alert ─────────────────────────────────────────────────────────────
 
 export function buildUptimeAlertHtml(
@@ -106,10 +134,10 @@ export function buildUptimeAlertHtml(
   newStatus: boolean,
   result: RunCheckResult,
   checkedAt: string,
-  sslResult: SslCheckResult | null = null
+  sslResult: SslCheckResult | null = null,
+  mergedSslAlertType: SslAlertType | null = null
 ): string {
   const isUp = newStatus;
-  const stripeColor = isUp ? COLORS.up : COLORS.down;
   const statusBadge = isUp
     ? badge("● Up", COLORS.upBg, COLORS.upText)
     : badge("● Down", COLORS.downBg, COLORS.downText);
@@ -126,9 +154,21 @@ export function buildUptimeAlertHtml(
   if (!isUp && result.message)
     rows.push(detailRow("Error", escHtml(result.message)));
 
-  // SSL section — only included in UP (recovery) emails when SSL result is available
+  // SSL: recovery summary when UP; problem details when DOWN merged with SSL alert
   let sslSection = "";
-  if (isUp && sslResult) {
+  if (
+    !isUp &&
+    sslResult &&
+    mergedSslAlertType &&
+    mergedSslAlertType !== "recovered"
+  ) {
+    const sslRows = sslProblemDetailRows(sslResult, mergedSslAlertType);
+    sslSection = `
+    <!-- SSL divider -->
+    <div style="height:1px;background:${COLORS.border};margin:${rows.length > 0 ? "6px" : "0"} 0 14px;"></div>
+    <p style="margin:0 0 10px;font-size:11px;color:${COLORS.textMuted};text-transform:uppercase;letter-spacing:0.07em;font-weight:600;font-family:${FONT_STACK};">SSL Certificate</p>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">${sslRows.join("")}</table>`;
+  } else if (isUp && sslResult) {
     const sslRows: string[] = [];
     if (sslResult.valid) {
       sslRows.push(detailRow("SSL Status", "Valid"));
@@ -182,7 +222,7 @@ export function buildUptimeAlertHtml(
       Checked at ${escHtml(checkedAt)}
     </p>`;
 
-  return wrap(stripeColor, body);
+  return wrap(body);
 }
 
 // ─── SSL alert ────────────────────────────────────────────────────────────────
@@ -193,49 +233,32 @@ export function buildSslAlertHtml(
   alertType: SslAlertType,
   checkedAt: string
 ): string {
-  let stripeColor: string;
   let statusBadge: string;
   let headline: string;
 
   switch (alertType) {
     case "invalid":
-      stripeColor = COLORS.down;
       statusBadge = badge("● SSL Invalid", COLORS.downBg, COLORS.downText);
       headline = `SSL certificate for <span style="color:${COLORS.down};">${escHtml(m.name)}</span> is not trusted`;
       break;
     case "expiring":
-      stripeColor = COLORS.warn;
       statusBadge = badge(`● SSL Expiring`, COLORS.warnBg, COLORS.warnText);
       headline = `SSL certificate for <span style="color:${COLORS.warn};">${escHtml(m.name)}</span> is expiring soon`;
       break;
     case "critical":
-      stripeColor = COLORS.critical;
       statusBadge = badge(`● SSL Critical`, COLORS.criticalBg, COLORS.criticalText);
       headline = `SSL certificate for <span style="color:${COLORS.critical};">${escHtml(m.name)}</span> expires very soon`;
       break;
     case "recovered":
-      stripeColor = COLORS.up;
       statusBadge = badge("● SSL Valid", COLORS.upBg, COLORS.upText);
       headline = `SSL certificate for <span style="color:${COLORS.up};">${escHtml(m.name)}</span> is valid`;
       break;
   }
 
-  const rows: string[] = [];
-
-  if (alertType === "invalid") {
-    rows.push(detailRow("Issue", escHtml(sslResult.error ?? "Certificate not trusted")));
-  }
-  if (alertType === "expiring" || alertType === "critical") {
-    rows.push(detailRow("Days remaining", `${sslResult.daysUntilExpiry}`));
-  }
-  if (sslResult.expiresAt != null) {
-    rows.push(
-      detailRow("Expires", new Date(sslResult.expiresAt).toUTCString())
-    );
-  }
-  if (alertType === "recovered") {
-    rows.push(detailRow("Status", "Certificate is valid and trusted"));
-  }
+  const rows: string[] =
+    alertType === "recovered"
+      ? [detailRow("Status", "Certificate is valid and trusted")]
+      : sslProblemDetailRows(sslResult, alertType);
 
   const body = `
     <!-- Badge -->
@@ -262,7 +285,7 @@ export function buildSslAlertHtml(
       Checked at ${escHtml(checkedAt)}
     </p>`;
 
-  return wrap(stripeColor, body);
+  return wrap(body);
 }
 
 // ─── util ─────────────────────────────────────────────────────────────────────

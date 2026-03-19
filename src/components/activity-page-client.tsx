@@ -4,27 +4,49 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useActivity } from "@/components/activity-context";
-import { formatRelativeTime as formatRelative } from "@/lib/format-time";
 
 interface ActivityItem {
+  /** Check result row id (unique per transition event). */
   id: string;
+  monitorId: string;
   name: string;
   url: string;
-  currentStatus: boolean | null;
-  lastStatusChangedAt: Date | null;
+  /** True = transitioned to up, false = transitioned to down. */
+  recovered: boolean;
+  /** ISO 8601 timestamp from the server. */
+  at: string;
 }
 
-function formatAbsolute(date: Date | null): string {
-  if (!date) return "";
+function formatFullTimestamp(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return iso;
   return new Intl.DateTimeFormat(undefined, {
+    weekday: "short",
+    year: "numeric",
     month: "short",
     day: "numeric",
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
-  }).format(new Date(date));
+    second: "2-digit",
+    timeZoneName: "short",
+  }).format(d);
 }
 
-export function ActivityPageClient({ items }: { items: ActivityItem[] }) {
+type ActivityPageClientProps = {
+  items: ActivityItem[];
+  page: number;
+  totalPages: number;
+  totalCount: number;
+  pageSize: number;
+};
+
+export function ActivityPageClient({
+  items,
+  page,
+  totalPages,
+  totalCount,
+  pageSize,
+}: ActivityPageClientProps) {
   const { markAllRead } = useActivity();
   const router = useRouter();
   const [clearing, setClearing] = useState(false);
@@ -53,11 +75,13 @@ export function ActivityPageClient({ items }: { items: ActivityItem[] }) {
           >
             Recent Activity
           </h1>
-          {items.length > 0 && (
-            <span className="text-sm text-text-muted">{items.length} event{items.length !== 1 ? "s" : ""}</span>
+          {totalCount > 0 && (
+            <span className="text-sm text-text-muted">
+              {totalCount} event{totalCount !== 1 ? "s" : ""}
+            </span>
           )}
         </div>
-        {items.length > 0 && (
+        {totalCount > 0 && (
           <button
             onClick={handleClear}
             disabled={clearing}
@@ -68,11 +92,11 @@ export function ActivityPageClient({ items }: { items: ActivityItem[] }) {
         )}
       </div>
       <p className="mt-1 text-sm text-text-muted">
-        Status changes across your monitors in the last 7 days.
+        Up to 50 status changes in the last 7 days, {pageSize} per page.
       </p>
 
       <div className="mt-6">
-        {items.length === 0 ? (
+        {totalCount === 0 ? (
           <div className="rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
             <p className="text-text-muted">No activity in the last 7 days.</p>
           </div>
@@ -94,13 +118,13 @@ export function ActivityPageClient({ items }: { items: ActivityItem[] }) {
               </thead>
               <tbody className="divide-y divide-border">
                 {items.map((item) => {
-                  const isDown = item.currentStatus === false;
+                  const isDown = !item.recovered;
                   return (
                     <tr key={item.id} className="hover:bg-bg-page">
                       <td className="px-4 py-3">
                         <div className="flex flex-col">
                           <Link
-                            href={`/monitors/${item.id}`}
+                            href={`/monitors/${item.monitorId}`}
                             className="font-medium text-text-primary hover:text-text-muted"
                           >
                             {item.name}
@@ -127,11 +151,8 @@ export function ActivityPageClient({ items }: { items: ActivityItem[] }) {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className="text-sm text-text-muted"
-                          title={formatAbsolute(item.lastStatusChangedAt)}
-                        >
-                          {formatRelative(item.lastStatusChangedAt)}
+                        <span className="text-sm text-text-muted tabular-nums whitespace-nowrap">
+                          {formatFullTimestamp(item.at)}
                         </span>
                       </td>
                     </tr>
@@ -139,6 +160,42 @@ export function ActivityPageClient({ items }: { items: ActivityItem[] }) {
                 })}
               </tbody>
             </table>
+            {totalPages > 1 && (
+              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
+                <p className="text-sm text-text-muted">
+                  Page {page} of {totalPages}
+                  <span className="text-text-muted/80">
+                    {" "}
+                    · {(page - 1) * pageSize + 1}–
+                    {Math.min(page * pageSize, totalCount)} of {totalCount}
+                  </span>
+                </p>
+                <div className="flex items-center gap-2">
+                  <Link
+                    href={page === 2 ? "/activity" : `/activity?page=${page - 1}`}
+                    aria-disabled={page <= 1}
+                    className={`rounded-md border border-border px-3 py-1.5 text-sm transition-colors ${
+                      page <= 1
+                        ? "pointer-events-none opacity-40 text-text-muted"
+                        : "text-text-primary hover:bg-bg-page"
+                    }`}
+                  >
+                    Previous
+                  </Link>
+                  <Link
+                    href={`/activity?page=${page + 1}`}
+                    aria-disabled={page >= totalPages}
+                    className={`rounded-md border border-border px-3 py-1.5 text-sm transition-colors ${
+                      page >= totalPages
+                        ? "pointer-events-none opacity-40 text-text-muted"
+                        : "text-text-primary hover:bg-bg-page"
+                    }`}
+                  >
+                    Next
+                  </Link>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
