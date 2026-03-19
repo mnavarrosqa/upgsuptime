@@ -237,17 +237,10 @@ export function StatusPageShell({
                         ? "text-yellow-600 dark:text-yellow-400"
                         : "text-red-600 dark:text-red-400";
 
-                // Left accent border color
-                const accentBorder = isUp
-                  ? "border-l-emerald-500"
-                  : isDown
-                    ? "border-l-red-500"
-                    : "border-l-border";
-
                 return (
                   <div
                     key={m.id}
-                    className={`rounded-lg border border-border border-l-4 bg-bg-card px-4 py-3 ${accentBorder}`}
+                    className="rounded-lg border border-border bg-bg-card px-4 py-3"
                   >
                     {/* Service header row */}
                     <div className="flex items-center gap-2.5">
