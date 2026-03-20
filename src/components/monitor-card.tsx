@@ -3,8 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, Pause, Play, RefreshCw } from "lucide-react";
+import { Pause, Play, RefreshCw } from "lucide-react";
 import { MonitorCardTrend, type TrendPoint } from "@/components/monitor-card-trend";
+import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { SslBadge } from "@/components/ssl-badge";
 
 type MonitorCardProps = {
@@ -88,11 +89,16 @@ export function MonitorCard({
 
   return (
     <li className="relative group">
-      <Link
-        href={`/monitors/${id}`}
-        className={`flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow active:scale-[0.98] ${paused ? "opacity-60" : ""}`}
+      <div
+        className={`relative flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow active:scale-[0.98] ${paused ? "opacity-60" : ""}`}
       >
+        <Link
+          href={`/monitors/${id}`}
+          className="absolute inset-0 z-0 rounded-lg outline-offset-2"
+          aria-label={`View details for ${name}`}
+        />
         {/* Header: favicon + name + status */}
+        <div className="pointer-events-none relative z-[1] flex flex-1 flex-col">
         <div className="flex items-start gap-2.5">
           {favicon ? (
             <img
@@ -115,42 +121,17 @@ export function MonitorCard({
               <span className="truncate font-medium leading-snug text-text-primary">
                 {name}
               </span>
-              {paused ? (
-                <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-border text-text-muted">
-                  <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-                    <span className="animate-monitor-status-ring absolute inline-flex h-full w-full rounded-full bg-gray-400" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-500" />
-                  </span>
-                  Paused
-                </span>
-              ) : (
-                <span
-                  className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
-                    latest?.ok
-                      ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
-                      : latest
-                        ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
-                        : "bg-border text-text-muted"
-                  }`}
-                >
-                  {latest?.ok ? (
-                    <CheckCircle
-                      className="h-3.5 w-3.5 animate-monitor-status-breathe"
-                      aria-hidden
-                    />
-                  ) : latest ? (
-                    <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-                      <span className="animate-monitor-status-ring absolute inline-flex h-full w-full rounded-full bg-red-300" />
-                      <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
-                    </span>
-                  ) : null}
-                  {latest?.ok ? "Up" : latest ? "Down" : "—"}
-                </span>
-              )}
+              <MonitorStatusBadge paused={paused} latest={latest} />
             </div>
-            <p className="mt-0.5 truncate text-xs text-text-muted" title={url}>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto mt-0.5 truncate text-xs text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
+              title={url}
+            >
               {url}
-            </p>
+            </a>
             {latest && !latest.ok && latest.message && (
               <p
                 className="mt-0.5 truncate text-xs text-red-500 dark:text-red-400"
@@ -205,10 +186,11 @@ export function MonitorCard({
           </div>
           <span>{formatLastChecked(lastCheckAt)}</span>
         </div>
-      </Link>
+        </div>
+      </div>
 
       {/* Hover quick-actions */}
-      <div className="absolute bottom-2 right-2 z-10 flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
         <button
           type="button"
           onClick={handleCheckNow}

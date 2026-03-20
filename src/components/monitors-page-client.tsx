@@ -15,6 +15,7 @@ import {
   SearchWithTypeahead,
   filterMonitorsBySearch,
 } from "@/components/search-with-typeahead";
+import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { SslBadge } from "@/components/ssl-badge";
 import { SortableTableHeader } from "@/components/sortable-table-header";
 import { sortMonitors, type LatestByMonitor } from "@/lib/sort-monitors";
@@ -617,8 +618,6 @@ export function MonitorsPageClient({
               {sortedMonitors.map((m) => {
                 const favicon = getFaviconUrl(m.url);
                 const latest = latestByMonitor[m.id];
-                const up = latest?.ok === true;
-                const down = latest?.ok === false;
                 return (
                   <tr key={m.id} className={m.paused ? "opacity-60 hover:opacity-80" : "hover:bg-bg-page"}>
                     <td className="px-4 py-3">
@@ -632,35 +631,31 @@ export function MonitorsPageClient({
                         </Link>
                       </div>
                       {/* URL shown below name on mobile */}
-                      <p className="mt-0.5 truncate text-xs text-text-muted sm:hidden">
+                      <a
+                        href={m.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-0.5 block truncate text-xs text-text-muted underline-offset-2 hover:text-text-primary hover:underline sm:hidden"
+                      >
                         {m.url}
-                      </p>
+                      </a>
                       <p className="mt-0.5 hidden truncate text-xs text-text-muted sm:max-md:block">
                         {formatLastChecked(m.lastCheckAt)} · every {m.intervalMinutes}m
                       </p>
                     </td>
-                    <td className="hidden max-w-[14rem] truncate px-4 py-3 text-sm text-text-muted sm:table-cell">
-                      {m.url}
+                    <td className="hidden max-w-[14rem] px-4 py-3 text-sm sm:table-cell">
+                      <a
+                        href={m.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block truncate text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
+                      >
+                        {m.url}
+                      </a>
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
-                        {m.paused ? (
-                          <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-border text-text-muted">
-                            Paused
-                          </span>
-                        ) : (
-                          <span
-                            className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                              up
-                                ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
-                                : down
-                                  ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
-                                  : "bg-border text-text-muted"
-                            }`}
-                          >
-                            {up ? "Up" : down ? "Down" : "—"}
-                          </span>
-                        )}
+                        <MonitorStatusBadge paused={m.paused} latest={latest} />
                       </div>
                     </td>
                     <td className="hidden px-4 py-3 sm:table-cell">
