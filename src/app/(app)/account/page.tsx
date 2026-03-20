@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AccountOnboardingSection } from "@/components/account-onboarding-section";
+import { AccountDataPortability } from "@/components/account-data-portability";
 
 function getInitials(name: string | null | undefined, email: string): string {
   if (name) {
@@ -144,6 +145,8 @@ export default async function AccountPage() {
         onboardingCompleted={userOnboarding?.onboardingCompleted}
         userId={id}
       />
+
+      <AccountDataPortability />
     </div>
   );
 }
