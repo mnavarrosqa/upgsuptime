@@ -17,7 +17,7 @@ import {
 } from "@/components/search-with-typeahead";
 import { SslBadge } from "@/components/ssl-badge";
 import { SortableTableHeader } from "@/components/sortable-table-header";
-import { sortMonitors } from "@/lib/sort-monitors";
+import { sortMonitors, type LatestByMonitor } from "@/lib/sort-monitors";
 
 type MonitorConfig = {
   name: string;
@@ -39,6 +39,26 @@ function getFaviconUrl(url: string): string {
   } catch {
     return "";
   }
+}
+
+function MonitorFavicon({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) {
+    return (
+      <span className="h-4 w-4 shrink-0 rounded bg-border" aria-hidden />
+    );
+  }
+  return (
+    <img
+      src={src}
+      alt=""
+      className="h-4 w-4 shrink-0 rounded"
+      width={16}
+      height={16}
+      loading="lazy"
+      onError={() => setFailed(true)}
+    />
+  );
 }
 
 function formatLastChecked(date: Date | null): string {
@@ -160,7 +180,7 @@ export function MonitorsPageClient({
   latestByMonitor,
 }: {
   monitors: Monitor[];
-  latestByMonitor: Record<string, boolean>;
+  latestByMonitor: LatestByMonitor;
 }) {
   const router = useRouter();
   const [addOpen, setAddOpen] = useState(false);
@@ -189,7 +209,7 @@ export function MonitorsPageClient({
     filteredMonitors,
     sortBy.field,
     sortBy.direction,
-    latestByMonitor as unknown as Record<string, { ok: boolean; responseTimeMs: number | null }>
+    latestByMonitor
   );
   const editMonitor = editMonitorId
     ? monitors.find((m) => m.id === editMonitorId)
@@ -513,10 +533,11 @@ export function MonitorsPageClient({
           </button>
         </div>
       ) : (
-        <div className="mt-5 overflow-hidden rounded-lg border border-border bg-bg-card">
+        <div className="mt-5 overflow-x-auto rounded-lg border border-border bg-bg-card">
           <table className="min-w-full divide-y divide-border">
+            <caption className="sr-only">Your monitors</caption>
             <thead>
-              <tr>
+              <tr className="bg-bg-page">
                 <SortableTableHeader
                   column="name"
                   label="Monitor"
@@ -595,25 +616,14 @@ export function MonitorsPageClient({
             <tbody className="divide-y divide-border">
               {sortedMonitors.map((m) => {
                 const favicon = getFaviconUrl(m.url);
-                const status = latestByMonitor[m.id];
+                const latest = latestByMonitor[m.id];
+                const up = latest?.ok === true;
+                const down = latest?.ok === false;
                 return (
                   <tr key={m.id} className={m.paused ? "opacity-60 hover:opacity-80" : "hover:bg-bg-page"}>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
-                        {favicon ? (
-                          <img
-                            src={favicon}
-                            alt=""
-                            className="h-4 w-4 shrink-0 rounded"
-                            width={16}
-                            height={16}
-                          />
-                        ) : (
-                          <span
-                            className="h-4 w-4 shrink-0 rounded bg-border"
-                            aria-hidden
-                          />
-                        )}
+                        <MonitorFavicon src={favicon} />
                         <Link
                           href={`/monitors/${m.id}`}
                           className="font-medium text-text-primary transition active:scale-95 hover:text-text-muted"
@@ -624,6 +634,9 @@ export function MonitorsPageClient({
                       {/* URL shown below name on mobile */}
                       <p className="mt-0.5 truncate text-xs text-text-muted sm:hidden">
                         {m.url}
+                      </p>
+                      <p className="mt-0.5 hidden truncate text-xs text-text-muted sm:max-md:block">
+                        {formatLastChecked(m.lastCheckAt)} · every {m.intervalMinutes}m
                       </p>
                     </td>
                     <td className="hidden max-w-[14rem] truncate px-4 py-3 text-sm text-text-muted sm:table-cell">
@@ -638,14 +651,14 @@ export function MonitorsPageClient({
                         ) : (
                           <span
                             className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                              status === true
+                              up
                                 ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
-                                : status === false
+                                : down
                                   ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
                                   : "bg-border text-text-muted"
                             }`}
                           >
-                            {status === true ? "Up" : status === false ? "Down" : "—"}
+                            {up ? "Up" : down ? "Down" : "—"}
                           </span>
                         )}
                       </div>
@@ -657,13 +670,11 @@ export function MonitorsPageClient({
                         expiresAt={m.sslExpiresAt ?? null}
                       />
                     </td>
-                    <td className="hidden px-4 py-3 text-sm md:table-cell">
-                      <span className="text-text-muted">
-                        {formatLastChecked(m.lastCheckAt)}
-                      </span>
-                      <span className="ml-2 text-xs text-text-muted/50">
-                        every {m.intervalMinutes}m
-                      </span>
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-text-muted md:table-cell">
+                      {formatLastChecked(m.lastCheckAt)}
+                    </td>
+                    <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-text-muted md:table-cell">
+                      every {m.intervalMinutes}m
                     </td>
                     <td className="px-4 py-3 text-right">
                       <RowActionsMenu

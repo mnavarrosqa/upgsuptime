@@ -118,7 +118,7 @@ export function MonitorCard({
               {paused ? (
                 <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-border text-text-muted">
                   <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-gray-400 opacity-75" />
+                    <span className="animate-monitor-status-ring absolute inline-flex h-full w-full rounded-full bg-gray-400" />
                     <span className="relative inline-flex h-2 w-2 rounded-full bg-gray-500" />
                   </span>
                   Paused
@@ -134,10 +134,13 @@ export function MonitorCard({
                   }`}
                 >
                   {latest?.ok ? (
-                    <CheckCircle className="h-3.5 w-3.5" aria-hidden />
+                    <CheckCircle
+                      className="h-3.5 w-3.5 animate-monitor-status-breathe"
+                      aria-hidden
+                    />
                   ) : latest ? (
                     <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-300 opacity-75" />
+                      <span className="animate-monitor-status-ring absolute inline-flex h-full w-full rounded-full bg-red-300" />
                       <span className="relative inline-flex h-2 w-2 rounded-full bg-red-400" />
                     </span>
                   ) : null}

@@ -1,6 +1,9 @@
 import type { Monitor } from "@/db/schema";
 
-export type LatestByMonitor = Record<string, { ok: boolean; responseTimeMs: number | null }>;
+export type LatestByMonitor = Record<
+  string,
+  { ok: boolean; responseTimeMs?: number | null }
+>;
 
 /**
  * Get the comparable value for a monitor based on the sort field.

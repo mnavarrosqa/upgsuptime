@@ -15,7 +15,7 @@ export default async function MonitorsPage() {
     .from(monitor)
     .where(eq(monitor.userId, session.user.id));
 
-  const latestByMonitor: Record<string, boolean> = {};
+  const latestByMonitor: Record<string, { ok: boolean }> = {};
   for (const m of monitors) {
     const [latest] = await db
       .select({ ok: checkResult.ok })
@@ -23,7 +23,7 @@ export default async function MonitorsPage() {
       .where(eq(checkResult.monitorId, m.id))
       .orderBy(desc(checkResult.createdAt))
       .limit(1);
-    if (latest) latestByMonitor[m.id] = latest.ok;
+    if (latest) latestByMonitor[m.id] = { ok: latest.ok };
   }
 
   return (

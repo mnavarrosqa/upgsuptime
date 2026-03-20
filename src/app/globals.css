@@ -48,8 +48,41 @@
   --font-display: var(--font-display), var(--font-sans);
 }
 
+@theme {
+  --animate-monitor-status-ring: monitor-status-ring 2.25s cubic-bezier(0, 0, 0.2, 1) infinite;
+  --animate-monitor-status-breathe: monitor-status-breathe 2.75s ease-in-out infinite;
+
+  @keyframes monitor-status-ring {
+    0% {
+      transform: scale(1);
+      opacity: 0.5;
+    }
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+
+  @keyframes monitor-status-breathe {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.82;
+    }
+  }
+}
+
 body {
   background: var(--bg-page);
   color: var(--text-primary);
   font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-monitor-status-ring,
+  .animate-monitor-status-breathe {
+    animation: none;
+  }
 }
