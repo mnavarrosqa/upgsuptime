@@ -12,11 +12,14 @@ export function Overlay({
   onClose,
   title,
   children,
+  panelClassName,
 }: {
   open: boolean;
   onClose: () => void;
   title?: string;
   children: ReactNode;
+  /** Replaces default max width (e.g. max-w-2xl). */
+  panelClassName?: string;
 }) {
   const panelRef = useRef<HTMLDivElement>(null);
   const previousActiveRef = useRef<HTMLElement | null>(null);
@@ -82,7 +85,7 @@ export function Overlay({
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? "overlay-title" : undefined}
-        className="relative z-10 max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-bg-card p-6 shadow-xl"
+        className={`relative z-10 max-h-[90vh] w-full overflow-y-auto rounded-xl border border-border bg-bg-card p-6 shadow-xl ${panelClassName ?? "max-w-lg"}`}
         onClick={(e) => e.stopPropagation()}
       >
         {title && (

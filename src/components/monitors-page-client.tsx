@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -11,6 +11,7 @@ import { Overlay } from "@/components/overlay";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { AddMonitorFlow } from "@/components/add-monitor-flow";
 import { EditMonitorForm } from "@/components/edit-monitor-form";
+import { BulkEditMonitorsForm } from "@/components/bulk-edit-monitors-form";
 import {
   SearchWithTypeahead,
   filterMonitorsBySearch,
@@ -61,6 +62,10 @@ function MonitorFavicon({ src }: { src: string }) {
     />
   );
 }
+
+type DeleteConfirmState =
+  | { kind: "single"; id: string; name: string }
+  | { kind: "bulk"; ids: string[] };
 
 function formatLastChecked(date: Date | null): string {
   if (!date) return "Never";
@@ -192,8 +197,17 @@ export function MonitorsPageClient({
     direction: "asc",
   });
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [confirmDelete, setConfirmDelete] = useState<{ id: string; name: string } | null>(null);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState<DeleteConfirmState | null>(
+    null
+  );
   const [pausingId, setPausingId] = useState<string | null>(null);
+  const [bulkPauseBusy, setBulkPauseBusy] = useState(false);
+  const [bulkPauseMode, setBulkPauseMode] = useState<"pause" | "resume" | null>(
+    null
+  );
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [bulkEditOpen, setBulkEditOpen] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
   const [importData, setImportData] = useState<MonitorConfig[] | null>(null);
@@ -204,6 +218,7 @@ export function MonitorsPageClient({
     errors: { index: number; name: string; url: string; error: string }[];
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const headerSelectRef = useRef<HTMLInputElement>(null);
 
   const filteredMonitors = filterMonitorsBySearch(monitors, searchQuery);
   const sortedMonitors = sortMonitors(
@@ -215,6 +230,62 @@ export function MonitorsPageClient({
   const editMonitor = editMonitorId
     ? monitors.find((m) => m.id === editMonitorId)
     : null;
+
+  const visibleIds = useMemo(
+    () => sortedMonitors.map((m) => m.id),
+    [sortedMonitors]
+  );
+  const selectedCount = selectedIds.size;
+  const selectedVisibleCount = useMemo(
+    () => visibleIds.filter((id) => selectedIds.has(id)).length,
+    [visibleIds, selectedIds]
+  );
+  const allVisibleSelected =
+    visibleIds.length > 0 && selectedVisibleCount === visibleIds.length;
+  const someVisibleSelected =
+    selectedVisibleCount > 0 && !allVisibleSelected;
+
+  const selectedMonitorsList = useMemo(
+    () => monitors.filter((m) => selectedIds.has(m.id)),
+    [monitors, selectedIds]
+  );
+  const allSelectedPaused =
+    selectedMonitorsList.length > 0 &&
+    selectedMonitorsList.every((m) => m.paused);
+  const allSelectedUnpaused =
+    selectedMonitorsList.length > 0 &&
+    selectedMonitorsList.every((m) => !m.paused);
+
+  useEffect(() => {
+    if (headerSelectRef.current) {
+      headerSelectRef.current.indeterminate = someVisibleSelected;
+    }
+  }, [someVisibleSelected]);
+
+  function toggleSelected(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAllVisible() {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (allVisibleSelected) {
+        for (const id of visibleIds) next.delete(id);
+      } else {
+        for (const id of visibleIds) next.add(id);
+      }
+      return next;
+    });
+  }
+
+  function clearSelection() {
+    setSelectedIds(new Set());
+  }
 
   async function handleExport() {
     setExporting(true);
@@ -284,22 +355,143 @@ export function MonitorsPageClient({
     setImportResult(null);
   }
 
-  async function handleDelete() {
-    if (!confirmDelete) return;
-    const { id, name } = confirmDelete;
-    setDeletingId(id);
+  async function handleDeleteConfirm() {
+    if (!deleteConfirm) return;
+    if (deleteConfirm.kind === "single") {
+      const { id, name } = deleteConfirm;
+      setDeletingId(id);
+      try {
+        const res = await fetch(`/api/monitors/${id}`, { method: "DELETE" });
+        if (res.ok) {
+          toast.success(`"${name}" deleted`);
+          router.refresh();
+        } else {
+          const data = await res.json().catch(() => ({}));
+          toast.error(data.error ?? "Delete failed");
+        }
+      } finally {
+        setDeletingId(null);
+        setDeleteConfirm(null);
+      }
+      return;
+    }
+
+    const { ids } = deleteConfirm;
+    setBulkDeleting(true);
     try {
-      const res = await fetch(`/api/monitors/${id}`, { method: "DELETE" });
-      if (res.ok) {
-        toast.success(`"${name}" deleted`);
+      const results = await Promise.allSettled(
+        ids.map((id) =>
+          fetch(`/api/monitors/${id}`, { method: "DELETE" }).then(async (res) => {
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error ?? "Delete failed");
+            }
+          })
+        )
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      const ok = results.length - failed;
+      if (ok > 0) {
+        toast.success(
+          ok === 1 ? "1 monitor deleted" : `${ok} monitors deleted`
+        );
+        if (failed > 0) {
+          toast.error(
+            failed === 1
+              ? "1 monitor could not be deleted"
+              : `${failed} monitors could not be deleted`
+          );
+        }
+        clearSelection();
         router.refresh();
       } else {
-        const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Delete failed");
+        toast.error("Could not delete monitors");
       }
     } finally {
-      setDeletingId(null);
-      setConfirmDelete(null);
+      setBulkDeleting(false);
+      setDeleteConfirm(null);
+    }
+  }
+
+  async function handleBulkPause() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkPauseMode("pause");
+    setBulkPauseBusy(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) =>
+          fetch(`/api/monitors/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ paused: true }),
+          }).then(async (res) => {
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error ?? "Failed to pause");
+            }
+          })
+        )
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      const ok = results.length - failed;
+      if (ok > 0) {
+        toast.success(ok === 1 ? "Monitor paused" : `${ok} monitors paused`);
+        if (failed > 0) {
+          toast.error(
+            failed === 1
+              ? "1 monitor could not be paused"
+              : `${failed} monitors could not be paused`
+          );
+        }
+        router.refresh();
+      } else {
+        toast.error("Could not pause monitors");
+      }
+    } finally {
+      setBulkPauseBusy(false);
+      setBulkPauseMode(null);
+    }
+  }
+
+  async function handleBulkResume() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    setBulkPauseMode("resume");
+    setBulkPauseBusy(true);
+    try {
+      const results = await Promise.allSettled(
+        ids.map((id) =>
+          fetch(`/api/monitors/${id}`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ paused: false }),
+          }).then(async (res) => {
+            if (!res.ok) {
+              const data = await res.json().catch(() => ({}));
+              throw new Error(data.error ?? "Failed to resume");
+            }
+          })
+        )
+      );
+      const failed = results.filter((r) => r.status === "rejected").length;
+      const ok = results.length - failed;
+      if (ok > 0) {
+        toast.success(ok === 1 ? "Monitor resumed" : `${ok} monitors resumed`);
+        if (failed > 0) {
+          toast.error(
+            failed === 1
+              ? "1 monitor could not be resumed"
+              : `${failed} monitors could not be resumed`
+          );
+        }
+        router.refresh();
+      } else {
+        toast.error("Could not resume monitors");
+      }
+    } finally {
+      setBulkPauseBusy(false);
+      setBulkPauseMode(null);
     }
   }
 
@@ -387,16 +579,101 @@ export function MonitorsPageClient({
         </button>
       </div>
 
+      {selectedCount > 0 && monitors.length > 0 && (
+        <div
+          className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-bg-page px-3 py-2.5"
+          role="region"
+          aria-label="Bulk actions"
+        >
+          <span className="text-sm font-medium text-text-primary">
+            {selectedCount} selected
+            {selectedCount !== selectedVisibleCount && visibleIds.length > 0 && (
+              <span className="font-normal text-text-muted">
+                {" "}
+                ({selectedVisibleCount} on this page)
+              </span>
+            )}
+          </span>
+          <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
+            <button
+              type="button"
+              onClick={handleBulkPause}
+              disabled={bulkPauseBusy || allSelectedPaused}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card disabled:opacity-50"
+            >
+              {bulkPauseMode === "pause" ? "Pausing…" : "Pause"}
+            </button>
+            <button
+              type="button"
+              onClick={handleBulkResume}
+              disabled={bulkPauseBusy || allSelectedUnpaused}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card disabled:opacity-50"
+            >
+              {bulkPauseMode === "resume" ? "Resuming…" : "Resume"}
+            </button>
+            <button
+              type="button"
+              onClick={() => setBulkEditOpen(true)}
+              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card"
+            >
+              Edit
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setDeleteConfirm({
+                  kind: "bulk",
+                  ids: [...selectedIds],
+                })
+              }
+              className="rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20"
+            >
+              Delete
+            </button>
+            <button
+              type="button"
+              onClick={clearSelection}
+              className="rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:text-text-primary"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Confirm delete */}
       <ConfirmDialog
-        open={confirmDelete !== null}
-        title="Delete monitor"
-        message={confirmDelete ? `Delete "${confirmDelete.name}"? This cannot be undone.` : ""}
+        open={deleteConfirm !== null}
+        title={
+          deleteConfirm?.kind === "bulk"
+            ? "Delete monitors"
+            : "Delete monitor"
+        }
+        message={
+          deleteConfirm === null
+            ? ""
+            : deleteConfirm.kind === "bulk"
+              ? (() => {
+                  const ids = deleteConfirm.ids;
+                  const preview = ids
+                    .slice(0, 3)
+                    .map(
+                      (id) =>
+                        monitors.find((m) => m.id === id)?.name ?? "…"
+                    )
+                    .map((n) => `"${n}"`)
+                    .join(", ");
+                  const rest =
+                    ids.length > 3 ? ` and ${ids.length - 3} more` : "";
+                  return `Delete ${ids.length} monitors (${preview}${rest})? This cannot be undone.`;
+                })()
+              : `Delete "${deleteConfirm.name}"? This cannot be undone.`
+        }
         confirmLabel="Delete"
         destructive
-        busy={deletingId !== null}
-        onConfirm={handleDelete}
-        onCancel={() => setConfirmDelete(null)}
+        busy={deletingId !== null || bulkDeleting}
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteConfirm(null)}
       />
 
       {/* Modals */}
@@ -423,6 +700,22 @@ export function MonitorsPageClient({
             monitor={editMonitor}
             onSuccess={() => setEditMonitorId(null)}
             onCancel={() => setEditMonitorId(null)}
+          />
+        )}
+      </Overlay>
+      <Overlay
+        open={bulkEditOpen}
+        onClose={() => setBulkEditOpen(false)}
+        title={`Edit ${selectedMonitorsList.length} monitor${
+          selectedMonitorsList.length !== 1 ? "s" : ""
+        }`}
+        panelClassName="max-w-2xl"
+      >
+        {bulkEditOpen && selectedMonitorsList.length > 0 && (
+          <BulkEditMonitorsForm
+            monitors={selectedMonitorsList}
+            onSuccess={() => setBulkEditOpen(false)}
+            onCancel={() => setBulkEditOpen(false)}
           />
         )}
       </Overlay>
@@ -539,6 +832,16 @@ export function MonitorsPageClient({
             <caption className="sr-only">Your monitors</caption>
             <thead>
               <tr className="bg-bg-page">
+                <th className="w-10 px-3 py-2.5">
+                  <input
+                    ref={headerSelectRef}
+                    type="checkbox"
+                    checked={allVisibleSelected}
+                    onChange={toggleSelectAllVisible}
+                    className="h-4 w-4 rounded border-input-border accent-accent"
+                    aria-label="Select all monitors in this list"
+                  />
+                </th>
                 <SortableTableHeader
                   column="name"
                   label="Monitor"
@@ -620,6 +923,15 @@ export function MonitorsPageClient({
                 const latest = latestByMonitor[m.id];
                 return (
                   <tr key={m.id} className={m.paused ? "opacity-60 hover:opacity-80" : "hover:bg-bg-page"}>
+                    <td className="w-10 px-3 py-3 align-top">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(m.id)}
+                        onChange={() => toggleSelected(m.id)}
+                        className="h-4 w-4 rounded border-input-border accent-accent"
+                        aria-label={`Select ${m.name}`}
+                      />
+                    </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2.5">
                         <MonitorFavicon src={favicon} />
@@ -677,7 +989,9 @@ export function MonitorsPageClient({
                         isPausing={pausingId === m.id}
                         onEdit={setEditMonitorId}
                         onPause={handlePause}
-                        onDelete={(id, name) => setConfirmDelete({ id, name })}
+                        onDelete={(id, name) =>
+              setDeleteConfirm({ kind: "single", id, name })
+            }
                       />
                     </td>
                   </tr>
