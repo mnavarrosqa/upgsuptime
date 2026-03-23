@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
-import dns from "dns";
-import { Agent } from "undici";
+import { lookup as dnsLookup } from "dns/promises";
+import { fetch as undiciFetch, buildConnector, Agent } from "undici";
 import { db } from "@/db";
 import { monitor, checkResult } from "@/db/schema";
 import { sql } from "drizzle-orm";
@@ -20,6 +20,30 @@ export type RunCheckResult = {
 
 /** Number of consecutive failures required before transitioning to DOWN and alerting. */
 const CONFIRMATION_COUNT = 2;
+
+/**
+ * Undici agent that re-validates resolved IPs at connect time, eliminating the
+ * TOCTOU race between the pre-check in getUrlNotAllowedReason and the actual fetch.
+ */
+const defaultConnector = buildConnector({});
+const ssrfGuardAgent = new Agent({
+  connect: (options, callback) => {
+    const hostname = (options as { hostname?: string }).hostname ?? "";
+    dnsLookup(hostname, { all: true })
+      .then((addresses) => {
+        for (const { address } of addresses) {
+          if (isBlockedIP(address)) {
+            callback(new Error(`Resolved IP ${address} is not allowed (SSRF protection)`), null);
+            return;
+          }
+        }
+        defaultConnector(options, callback);
+      })
+      .catch((err: unknown) => {
+        callback(err instanceof Error ? err : new Error(String(err)), null);
+      });
+  },
+});
 /** Total fetch attempts per check (1 initial + 2 retries). */
 const TOTAL_ATTEMPTS = 3;
 /** Delay between retry attempts in milliseconds. */
@@ -88,29 +112,6 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
   let message: string | undefined;
   let responseTimeMs = 0;
 
-  // Undici agent that re-validates DNS at connect time (eliminates TOCTOU race)
-  const ssrfGuardAgent = new Agent({
-    connect: {
-      lookup: (hostname, options, callback) => {
-        dns.lookup(
-          hostname,
-          { family: (options as { family?: 4 | 6 })?.family ?? 0 },
-          (err, address, family) => {
-            if (err) return callback(err, "", 4);
-            if (isBlockedIP(address)) {
-              return callback(
-                new Error(`Resolved IP ${address} is not allowed (SSRF protection)`),
-                "",
-                family
-              );
-            }
-            callback(null, address, family);
-          }
-        );
-      },
-    },
-  });
-
   const notAllowedReason = await getUrlNotAllowedReason(m.url);
   if (notAllowedReason) {
     message = notAllowedReason;
@@ -126,12 +127,12 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
       try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), timeoutMs);
-        const res = await fetch(m.url, {
+        const res = await undiciFetch(m.url, {
           method,
           signal: controller.signal,
           headers: { "User-Agent": "UPGSMonitor/1.0" },
           dispatcher: ssrfGuardAgent,
-        } as RequestInit & { dispatcher: Agent });
+        });
         clearTimeout(timeout);
         statusCode = res.status;
         ok = isSuccess(res.status);
