@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
-import { ChevronDown, User, LogOut, BookOpen } from "lucide-react";
+import { ChevronDown, User, LogOut, BookOpen, CircleHelp } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 type UserMenuProps = {
@@ -90,6 +90,15 @@ export function UserMenu({ email, name }: UserMenuProps) {
           >
             <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {t("account")}
+          </Link>
+          <Link
+            href="/help"
+            role="menuitem"
+            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-page hover:text-text-primary"
+            onClick={() => setOpen(false)}
+          >
+            <CircleHelp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {t("help")}
           </Link>
           <Link
             href="/account#onboarding"

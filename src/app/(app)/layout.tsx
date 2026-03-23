@@ -26,7 +26,7 @@ export default async function AppLayout({
     <ActivityProvider>
     <div className="min-h-screen bg-bg-page text-text-primary">
       <header className="border-b border-border bg-bg-card">
-        <div className="mx-auto max-w-5xl px-4 sm:px-6">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex h-14 items-stretch gap-2 sm:gap-5">
             <Link
               href="/dashboard"
@@ -63,7 +63,7 @@ export default async function AppLayout({
         </div>
       </header>
       <PullToRefresh />
-      <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
       <IncidentPoller />
     </div>
     </ActivityProvider>

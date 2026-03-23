@@ -41,9 +41,9 @@ export function SortableTableHeader({
       aria-sort={getAriaSort()}
       onClick={() => onSort(column)}
     >
-      <div className="flex items-center gap-1">
-        <span>{label}</span>
-        <span className="inline-flex items-center">{getSortIcon()}</span>
+      <div className="flex min-w-0 items-start gap-1">
+        <span className="min-w-0 break-words leading-tight">{label}</span>
+        <span className="inline-flex shrink-0 items-center pt-0.5">{getSortIcon()}</span>
       </div>
     </th>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, Sun, Moon, User, LogOut } from "lucide-react";
+import { Menu, X, Sun, Moon, User, LogOut, CircleHelp } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
@@ -174,6 +174,15 @@ export function MobileMenu({
           >
             <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {t("account")}
+          </Link>
+          <Link
+            href="/help"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
+          >
+            <CircleHelp className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {t("help")}
           </Link>
           <button
             type="button"

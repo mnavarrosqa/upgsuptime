@@ -87,6 +87,7 @@
     "activity": "Activity",
     "admin": "Admin",
     "account": "Account",
+    "help": "Help",
     "signOut": "Sign out",
     "onboardingGuide": "Onboarding guide",
     "mainNav": "Main navigation",
@@ -222,5 +223,200 @@
     "statusPaused": "Paused",
     "statusUp": "Up",
     "statusDown": "Down"
+  },
+  "help": {
+    "pageTitle": "Help",
+    "pageSubtitle": "Documentation for UPG Monitor features. Use the index to jump to a topic or search across all articles.",
+    "searchPlaceholder": "Search help…",
+    "searchLabel": "Search documentation",
+    "searchEmpty": "No articles match your search. Try different words or clear the search.",
+    "clearSearch": "Clear search",
+    "indexHeading": "On this page",
+    "indexToggleShow": "Show index",
+    "indexToggleHide": "Hide index",
+    "backToTop": "Back to top",
+    "mainAria": "Help documentation",
+    "categories": {
+      "gettingStarted": "Getting started",
+      "dashboard": "Dashboard",
+      "monitors": "Monitors",
+      "monitorDetail": "Monitor detail",
+      "activity": "Activity",
+      "account": "Account",
+      "dataPortability": "Export and import",
+      "publicStatus": "Public status page",
+      "appExperience": "App experience",
+      "admin": "Administration"
+    },
+    "articles": {
+      "welcome": {
+        "title": "Welcome to UPG Monitor",
+        "summary": "What this app does and how monitors work.",
+        "body": [
+          "UPG Monitor checks your URLs on a schedule and records whether each check succeeded, how long it took, and SSL certificate status when enabled.",
+          "You own a private list of monitors. You can share a read-only public status page with visitors using your username.",
+          "Use the Dashboard for a quick overview, Monitors to manage configuration, and Activity to see recent up and down events."
+        ]
+      },
+      "signInAndAccount": {
+        "title": "Signing in and registration",
+        "summary": "Login, setup, and who can use the app.",
+        "body": [
+          "Sign in with your email or username and password. If the server was just installed, an administrator creates the first account on the setup page; after that, new users may register if registration is enabled.",
+          "Your session keeps you signed in until you sign out or the session expires. You can change your password anytime from Account without losing your session."
+        ]
+      },
+      "dashboardOverview": {
+        "title": "Dashboard overview",
+        "summary": "Summary cards and monitor list at a glance.",
+        "body": [
+          "The Dashboard shows how many monitors are up, down, or paused, and lists every monitor with its current status.",
+          "Paused monitors are not checked until you resume them from the Monitors page.",
+          "When you have no monitors yet, the Dashboard prompts you to add your first one."
+        ]
+      },
+      "dashboardSearchAndStatusLink": {
+        "title": "Dashboard search and status page link",
+        "summary": "Find monitors quickly and open your public page.",
+        "body": [
+          "Use the search field to filter monitors by name or URL. Clear the search to show the full list again.",
+          "The status page link opens your public page at /status/your-username so you can verify what visitors see."
+        ]
+      },
+      "dashboardTrends": {
+        "title": "Trend charts",
+        "summary": "Recent check history on the Dashboard.",
+        "body": [
+          "Each monitor card can show a small trend of recent checks so you can spot instability without opening the detail page.",
+          "Charts reflect stored check results; if a monitor is new, there may be few points until more checks run."
+        ]
+      },
+      "addingMonitors": {
+        "title": "Adding a monitor",
+        "summary": "Create a new URL check from the Dashboard or Monitors page.",
+        "body": [
+          "Choose Add monitor and enter a display name and the full URL (including https://). The app will request that URL on your interval.",
+          "You can add many monitors; each is checked independently."
+        ]
+      },
+      "monitorSettings": {
+        "title": "Monitor settings explained",
+        "summary": "Interval, timeout, method, status codes, alerts, SSL, and status page visibility.",
+        "body": [
+          "Interval is how often checks run. Timeout is the maximum wait for a response before a check is treated as failed.",
+          "HTTP method can be GET or HEAD. Expected status codes describe which responses count as success, for example 200-299.",
+          "Email alerts notify you when a monitor goes down or recovers; you can override the destination address or use your account default.",
+          "SSL monitoring reports certificate issues when enabled. Show on status page controls whether this monitor appears on your public /status/username page."
+        ]
+      },
+      "monitorsListAndBulk": {
+        "title": "Monitors list, sorting, and bulk actions",
+        "summary": "Table controls, selection, pause, resume, edit, and delete.",
+        "body": [
+          "The Monitors table supports sorting by columns such as name, last check, and interval. Search narrows the list by name or URL.",
+          "Select one or more monitors to pause, resume, edit shared fields in bulk, or delete. Paused monitors skip scheduled checks.",
+          "Deleting a monitor removes its configuration and history from your account; this cannot be undone."
+        ]
+      },
+      "importExportMonitors": {
+        "title": "Import and export monitors",
+        "summary": "JSON backup and restore for monitor definitions.",
+        "body": [
+          "Export downloads a JSON file of your monitors for backup or copying to another environment.",
+          "Import accepts a JSON array of monitor objects. Review the preview and confirm; invalid entries are reported without stopping the whole import when possible."
+        ]
+      },
+      "monitorDetailPage": {
+        "title": "Monitor detail page",
+        "summary": "History, charts, check now, edit, and delete.",
+        "body": [
+          "Open a monitor from the Dashboard or Monitors table to see detailed history, response times, and SSL information when enabled.",
+          "Check now runs an immediate check outside the normal schedule. Edit and Delete apply only to this monitor.",
+          "Incident and result tables help you see exactly when problems started and ended."
+        ]
+      },
+      "activityFeed": {
+        "title": "Activity feed",
+        "summary": "Recent up and down events across monitors.",
+        "body": [
+          "Activity lists recent status changes (went down, recovered) within the last several days, with pagination.",
+          "Clear all removes stored activity you can see in this view. A dot on the Activity nav item can indicate unread incident-related updates.",
+          "Use Activity when you need a chronological story across all monitors instead of per-monitor detail."
+        ]
+      },
+      "accountProfile": {
+        "title": "Account profile and security",
+        "summary": "Username, language, and password.",
+        "body": [
+          "On Account you can change your display username and interface language. Email is not editable after registration.",
+          "Change password requires your current password. After a successful change you remain signed in."
+        ]
+      },
+      "onboardingGuide": {
+        "title": "Onboarding guide",
+        "summary": "Step-by-step introduction vs this Help section.",
+        "body": [
+          "The onboarding guide from the account menu walks you through the product in a short overlay flow and can be reopened anytime.",
+          "This Help section is a reference you can search and browse when you need deeper detail on a specific feature."
+        ]
+      },
+      "accountExportImport": {
+        "title": "Account export and import",
+        "summary": "Full account backup including monitors and optional history.",
+        "body": [
+          "From Account you can export a JSON file with your profile, monitors, and optionally check history for archival or migration.",
+          "Import can merge data or restore in replace mode depending on the options you choose; read the on-screen descriptions carefully before confirming.",
+          "Large histories increase file size; you can export without check results if you only need configuration."
+        ]
+      },
+      "publicStatusPage": {
+        "title": "Public status page",
+        "summary": "Sharing uptime with others.",
+        "body": [
+          "Your public page lives at /status/your-username. Only monitors with Show on status page enabled appear there.",
+          "Visitors do not need to sign in. The page shows high-level status and history appropriate for external communication."
+        ]
+      },
+      "themeAndLanguage": {
+        "title": "Theme and language",
+        "summary": "Light, dark, and locale.",
+        "body": [
+          "Use the theme control in the header to switch light and dark mode; your choice is remembered on this device.",
+          "Interface language is set on the Account page and applies across the signed-in experience."
+        ]
+      },
+      "pwaOffline": {
+        "title": "Installed app, offline, and refresh",
+        "summary": "Progressive web app behavior.",
+        "body": [
+          "You can install UPG Monitor as a PWA from a supporting browser for a more app-like shortcut.",
+          "When you are offline, you may see an offline page until connectivity returns. Pull-to-refresh on supported mobile browsers reloads the current view when you are back online."
+        ]
+      },
+      "adminOverview": {
+        "title": "Admin overview",
+        "summary": "Who admin is for and what the admin area contains.",
+        "body": [
+          "Users with the admin role see an Admin link in the navigation. The admin area is for operating the whole instance, not just your personal monitors.",
+          "The overview shows aggregate statistics such as user count, monitor count, and recent check volume."
+        ]
+      },
+      "adminUsers": {
+        "title": "Managing users (admin)",
+        "summary": "User list and account actions.",
+        "body": [
+          "Admins can list users and perform administrative actions appropriate to your deployment, such as adjusting roles or access depending on server configuration.",
+          "Treat admin capabilities carefully; they affect other people's accounts."
+        ]
+      },
+      "adminMonitorsAndSettings": {
+        "title": "Admin monitors and settings (admin)",
+        "summary": "Instance-wide monitors and configuration.",
+        "body": [
+          "Admins may have views or tools to inspect monitors and application settings across the installation.",
+          "Specific options depend on how your server is configured; use this area when you need instance-level changes rather than edits from a normal user account."
+        ]
+      }
+    }
   }
 }

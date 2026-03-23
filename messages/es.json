@@ -87,6 +87,7 @@
     "activity": "Actividad",
     "admin": "Admin",
     "account": "Cuenta",
+    "help": "Ayuda",
     "signOut": "Cerrar sesion",
     "onboardingGuide": "Guia de inicio",
     "mainNav": "Navegacion principal",
@@ -222,5 +223,200 @@
     "statusPaused": "En pausa",
     "statusUp": "En linea",
     "statusDown": "Caido"
+  },
+  "help": {
+    "pageTitle": "Ayuda",
+    "pageSubtitle": "Documentacion de las funciones de UPG Monitor. Usa el indice para ir a un tema o busca en todos los articulos.",
+    "searchPlaceholder": "Buscar en la ayuda…",
+    "searchLabel": "Buscar en la documentacion",
+    "searchEmpty": "Ningun articulo coincide con tu busqueda. Prueba otras palabras o limpia la busqueda.",
+    "clearSearch": "Limpiar busqueda",
+    "indexHeading": "En esta pagina",
+    "indexToggleShow": "Mostrar indice",
+    "indexToggleHide": "Ocultar indice",
+    "backToTop": "Volver arriba",
+    "mainAria": "Documentacion de ayuda",
+    "categories": {
+      "gettingStarted": "Primeros pasos",
+      "dashboard": "Panel",
+      "monitors": "Monitores",
+      "monitorDetail": "Detalle del monitor",
+      "activity": "Actividad",
+      "account": "Cuenta",
+      "dataPortability": "Exportar e importar",
+      "publicStatus": "Pagina de estado publica",
+      "appExperience": "Experiencia de la app",
+      "admin": "Administracion"
+    },
+    "articles": {
+      "welcome": {
+        "title": "Bienvenido a UPG Monitor",
+        "summary": "Que hace la app y como funcionan los monitores.",
+        "body": [
+          "UPG Monitor comprueba tus URLs segun un intervalo y guarda si cada comprobacion tuvo exito, cuanto tardo y el estado del certificado SSL cuando esta activado.",
+          "Tienes una lista privada de monitores. Puedes compartir una pagina de estado publica de solo lectura usando tu nombre de usuario.",
+          "Usa el Panel para un resumen rapido, Monitores para la configuracion y Actividad para ver los ultimos eventos de caida y recuperacion."
+        ]
+      },
+      "signInAndAccount": {
+        "title": "Inicio de sesion y registro",
+        "summary": "Acceso, configuracion inicial y quien puede usar la app.",
+        "body": [
+          "Inicia sesion con correo o nombre de usuario y contrasena. Si el servidor acaba de instalarse, un administrador crea la primera cuenta en la pagina de configuracion; despues, los nuevos usuarios pueden registrarse si el registro esta habilitado.",
+          "La sesion te mantiene conectado hasta que cierres sesion o expire. Puedes cambiar la contrasena en Cuenta en cualquier momento sin perder la sesion."
+        ]
+      },
+      "dashboardOverview": {
+        "title": "Resumen del panel",
+        "summary": "Tarjetas de estado y lista de monitores.",
+        "body": [
+          "El Panel muestra cuantos monitores estan en linea, caidos o en pausa y lista cada monitor con su estado actual.",
+          "Los monitores en pausa no se comprueban hasta que los reanudes desde Monitores.",
+          "Si aun no tienes monitores, el Panel te invita a anadir el primero."
+        ]
+      },
+      "dashboardSearchAndStatusLink": {
+        "title": "Busqueda en el panel y enlace a la pagina de estado",
+        "summary": "Encontrar monitores y abrir tu pagina publica.",
+        "body": [
+          "Usa el campo de busqueda para filtrar por nombre o URL. Limpia la busqueda para ver la lista completa.",
+          "El enlace a la pagina de estado abre tu pagina publica en /status/tu-usuario para comprobar lo que ven los visitantes."
+        ]
+      },
+      "dashboardTrends": {
+        "title": "Graficos de tendencia",
+        "summary": "Historial reciente en el Panel.",
+        "body": [
+          "Cada tarjeta de monitor puede mostrar una tendencia de comprobaciones recientes para detectar inestabilidad sin abrir el detalle.",
+          "Los graficos reflejan resultados guardados; si el monitor es nuevo, puede haber pocos puntos hasta que se acumulen mas comprobaciones."
+        ]
+      },
+      "addingMonitors": {
+        "title": "Anadir un monitor",
+        "summary": "Crear una nueva comprobacion de URL desde el Panel o Monitores.",
+        "body": [
+          "Elige Anadir monitor e introduce un nombre visible y la URL completa (incluido https://). La app solicitara esa URL segun tu intervalo.",
+          "Puedes anadir muchos monitores; cada uno se comprueba de forma independiente."
+        ]
+      },
+      "monitorSettings": {
+        "title": "Opciones del monitor",
+        "summary": "Intervalo, tiempo de espera, metodo, codigos de estado, alertas, SSL y visibilidad en la pagina publica.",
+        "body": [
+          "El intervalo es cada cuanto se ejecutan las comprobaciones. El tiempo de espera es el maximo antes de considerar fallida una comprobacion.",
+          "El metodo HTTP puede ser GET o HEAD. Los codigos de estado esperados indican que respuestas cuentan como exito, por ejemplo 200-299.",
+          "Las alertas por correo avisan cuando un monitor cae o se recupera; puedes sobrescribir la direccion o usar la predeterminada de la cuenta.",
+          "El monitoreo SSL informa de problemas de certificado cuando esta activo. Mostrar en la pagina de estado controla si este monitor aparece en tu pagina publica /status/usuario."
+        ]
+      },
+      "monitorsListAndBulk": {
+        "title": "Lista de monitores, ordenacion y acciones masivas",
+        "summary": "Tabla, seleccion, pausa, reanudar, editar y eliminar.",
+        "body": [
+          "La tabla de Monitores permite ordenar por columnas como nombre, ultima comprobacion e intervalo. La busqueda filtra por nombre o URL.",
+          "Selecciona uno o varios monitores para pausar, reanudar, editar campos comunes en bloque o eliminar. Los monitores en pausa omiten las comprobaciones programadas.",
+          "Eliminar un monitor borra su configuracion e historial de tu cuenta; no se puede deshacer."
+        ]
+      },
+      "importExportMonitors": {
+        "title": "Importar y exportar monitores",
+        "summary": "Copia de seguridad y restauracion en JSON de las definiciones.",
+        "body": [
+          "Exportar descarga un JSON con tus monitores para copia de seguridad o copiar a otro entorno.",
+          "Importar acepta un array JSON de monitores. Revisa la vista previa y confirma; las entradas no validas se informan sin detener todo el proceso cuando es posible."
+        ]
+      },
+      "monitorDetailPage": {
+        "title": "Pagina de detalle del monitor",
+        "summary": "Historial, graficos, comprobar ahora, editar y eliminar.",
+        "body": [
+          "Abre un monitor desde el Panel o la tabla de Monitores para ver historial detallado, tiempos de respuesta e informacion SSL si esta habilitado.",
+          "Comprobar ahora ejecuta una comprobacion inmediata fuera del horario normal. Editar y Eliminar aplican solo a este monitor.",
+          "Las tablas de incidentes y resultados muestran cuando empezaron y terminaron los problemas."
+        ]
+      },
+      "activityFeed": {
+        "title": "Feed de actividad",
+        "summary": "Eventos recientes de caida y recuperacion en todos los monitores.",
+        "body": [
+          "Actividad lista los cambios de estado recientes (cayo, se recupero) en los ultimos dias, con paginacion.",
+          "Borrar todo elimina la actividad almacenada que ves aqui. Un punto en el enlace de Actividad puede indicar novedades de incidentes sin leer.",
+          "Usa Actividad cuando necesites una cronologia global en lugar del detalle de un solo monitor."
+        ]
+      },
+      "accountProfile": {
+        "title": "Perfil de cuenta y seguridad",
+        "summary": "Usuario, idioma y contrasena.",
+        "body": [
+          "En Cuenta puedes cambiar el nombre de usuario visible y el idioma de la interfaz. El correo no se puede cambiar tras el registro.",
+          "Cambiar la contrasena requiere la contrasena actual. Tras un cambio correcto sigues con la sesion iniciada."
+        ]
+      },
+      "onboardingGuide": {
+        "title": "Guia de inicio",
+        "summary": "Introduccion paso a paso frente a esta seccion de Ayuda.",
+        "body": [
+          "La guia de inicio del menu de cuenta te lleva por el producto en un flujo breve superpuesto y puedes reabrirla cuando quieras.",
+          "Esta Ayuda es una referencia que puedes buscar y explorar cuando necesites mas detalle sobre una funcion concreta."
+        ]
+      },
+      "accountExportImport": {
+        "title": "Exportar e importar cuenta",
+        "summary": "Copia completa de la cuenta con monitores e historial opcional.",
+        "body": [
+          "Desde Cuenta puedes exportar un JSON con tu perfil, monitores e historial de comprobaciones opcional para archivo o migracion.",
+          "La importacion puede fusionar datos o restaurar en modo de reemplazo segun las opciones; lee las descripciones en pantalla antes de confirmar.",
+          "Los historiales grandes aumentan el tamano del archivo; puedes exportar sin resultados de comprobacion si solo necesitas la configuracion."
+        ]
+      },
+      "publicStatusPage": {
+        "title": "Pagina de estado publica",
+        "summary": "Compartir el estado con otras personas.",
+        "body": [
+          "Tu pagina publica esta en /status/tu-usuario. Solo aparecen los monitores con Mostrar en la pagina de estado activado.",
+          "Los visitantes no necesitan iniciar sesion. La pagina muestra el estado de alto nivel e historial adecuado para comunicacion externa."
+        ]
+      },
+      "themeAndLanguage": {
+        "title": "Tema e idioma",
+        "summary": "Claro, oscuro e idioma de la interfaz.",
+        "body": [
+          "Usa el control de tema en la cabecera para alternar modo claro y oscuro; la eleccion se recuerda en este dispositivo.",
+          "El idioma de la interfaz se configura en Cuenta y se aplica en toda la experiencia con sesion iniciada."
+        ]
+      },
+      "pwaOffline": {
+        "title": "App instalada, sin conexion y actualizacion",
+        "summary": "Comportamiento de la aplicacion web progresiva.",
+        "body": [
+          "Puedes instalar UPG Monitor como PWA desde un navegador compatible para un acceso tipo app.",
+          "Sin conexion puede mostrarse una pagina offline hasta que vuelva la red. En moviles compatibles, deslizar hacia abajo para actualizar recarga la vista cuando vuelvas a estar en linea."
+        ]
+      },
+      "adminOverview": {
+        "title": "Resumen de administracion",
+        "summary": "Para quien es el rol admin y que incluye el area de admin.",
+        "body": [
+          "Los usuarios con rol admin ven un enlace Admin en la navegacion. El area de admin sirve para operar toda la instancia, no solo tus monitores personales.",
+          "El resumen muestra estadisticas agregadas como usuarios, monitores y volumen reciente de comprobaciones."
+        ]
+      },
+      "adminUsers": {
+        "title": "Gestion de usuarios (admin)",
+        "summary": "Lista de usuarios y acciones administrativas.",
+        "body": [
+          "Los administradores pueden listar usuarios y realizar acciones segun la configuracion del servidor, como ajustar roles o acceso.",
+          "Usa estas capacidades con cuidado; afectan las cuentas de otras personas."
+        ]
+      },
+      "adminMonitorsAndSettings": {
+        "title": "Monitores y ajustes de admin (admin)",
+        "summary": "Monitores y configuracion a nivel de instancia.",
+        "body": [
+          "Los administradores pueden tener vistas o herramientas para revisar monitores y ajustes de la aplicacion en toda la instalacion.",
+          "Las opciones concretas dependen de como este configurado el servidor; usa esta zona cuando necesites cambios globales y no ediciones desde una cuenta de usuario normal."
+        ]
+      }
+    }
   }
 }

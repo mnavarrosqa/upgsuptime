@@ -814,8 +814,8 @@ export function MonitorsPageClient({
           </button>
         </div>
       ) : (
-        <div className="mt-5 overflow-x-auto rounded-lg border border-border bg-bg-card">
-          <table className="min-w-full divide-y divide-border">
+        <div className="mt-5 w-full min-w-0 rounded-lg border border-border bg-bg-card">
+          <table className="w-full table-fixed divide-y divide-border">
             <caption className="sr-only">{t("tableCaption")}</caption>
             <thead>
               <tr className="bg-bg-page">
@@ -899,7 +899,7 @@ export function MonitorsPageClient({
                   }
                   className="hidden md:table-cell"
                 />
-                <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider text-text-muted">
+                <th className="w-14 min-w-0 px-2 py-2.5 text-right text-xs font-medium uppercase leading-tight tracking-wider text-text-muted break-words sm:w-16 sm:px-3 md:px-4">
                   {t("colActions")}
                 </th>
               </tr>
@@ -919,12 +919,13 @@ export function MonitorsPageClient({
                         aria-label={t("selectMonitorAria", { name: m.name })}
                       />
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2.5">
+                    <td className="min-w-0 px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <MonitorFavicon src={favicon} />
                         <Link
                           href={`/monitors/${m.id}`}
-                          className="font-medium text-text-primary transition active:scale-95 hover:text-text-muted"
+                          className="min-w-0 truncate font-medium text-text-primary transition active:scale-95 hover:text-text-muted"
+                          title={m.name}
                         >
                           {m.name}
                         </Link>
@@ -942,7 +943,7 @@ export function MonitorsPageClient({
                         {formatLastChecked(m.lastCheckAt, tTime)} · {t("everyMinutes", { count: m.intervalMinutes })}
                       </p>
                     </td>
-                    <td className="hidden max-w-[14rem] px-4 py-3 text-sm sm:table-cell">
+                    <td className="hidden min-w-0 px-4 py-3 text-sm sm:table-cell">
                       <a
                         href={m.url}
                         target="_blank"
@@ -952,25 +953,25 @@ export function MonitorsPageClient({
                         {m.url}
                       </a>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
+                    <td className="min-w-0 px-4 py-3">
+                      <div className="flex min-w-0 items-center gap-1.5">
                         <MonitorStatusBadge paused={m.paused} latest={latest} />
                       </div>
                     </td>
-                    <td className="hidden px-4 py-3 sm:table-cell">
+                    <td className="hidden min-w-0 px-4 py-3 sm:table-cell">
                       <SslBadge
                         monitoring={!!m.sslMonitoring}
                         valid={m.sslValid ?? null}
                         expiresAt={m.sslExpiresAt ?? null}
                       />
                     </td>
-                    <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-text-muted md:table-cell">
+                    <td className="hidden whitespace-nowrap px-3 py-3 text-sm text-text-muted md:table-cell md:px-4">
                       {formatLastChecked(m.lastCheckAt, tTime)}
                     </td>
-                    <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-text-muted md:table-cell">
+                    <td className="hidden whitespace-nowrap px-3 py-3 text-sm text-text-muted md:table-cell md:px-4">
                       {t("everyMinutes", { count: m.intervalMinutes })}
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="w-14 whitespace-nowrap px-2 py-3 text-right align-top sm:w-16 sm:px-3 md:px-4">
                       <RowActionsMenu
                         monitor={m}
                         isPausing={pausingId === m.id}
