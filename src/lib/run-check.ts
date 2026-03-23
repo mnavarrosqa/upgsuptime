@@ -154,8 +154,9 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
     message = httpStatusText(statusCode);
   }
 
-  // Start SSL check concurrently while we do the DB insert
-  const sslPromise = m.sslMonitoring ? checkSSL(m.url, 10_000) : Promise.resolve(null);
+  // SSL check only when URL is allowed for HTTP (same SSRF policy); runs while we insert the check row
+  const sslPromise =
+    m.sslMonitoring && !notAllowedReason ? checkSSL(m.url, 10_000) : Promise.resolve(null);
 
   const id = randomUUID();
   await db.insert(checkResult).values({

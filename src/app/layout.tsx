@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Instrument_Sans, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { pwaSplashStartupImages } from "@/lib/pwa-splash-startup.generated";
 
 const themeScript = `
 (function() {
@@ -38,6 +39,7 @@ export const metadata: Metadata = {
     capable: true,
     statusBarStyle: "black-translucent",
     title: "UPGS Monitor",
+    startupImage: pwaSplashStartupImages,
   },
   icons: {
     apple: "/apple-touch-icon.png",

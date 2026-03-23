@@ -43,6 +43,47 @@ export function isBlockedIP(ip: string): boolean {
   return true;
 }
 
+export type SafeTlsTarget =
+  | { ok: true; connectHost: string; servername: string }
+  | { ok: false; error: string };
+
+/**
+ * Resolve hostname to a connect target after SSRF checks, for TLS (SNI + validated IP).
+ * Re-resolves at call time to reduce TOCTOU vs an earlier URL check.
+ */
+export async function resolveSafeTlsConnectTarget(hostname: string): Promise<SafeTlsTarget> {
+  const h = hostname.toLowerCase().trim();
+  if (!h) {
+    return { ok: false, error: "Missing hostname" };
+  }
+  if (BLOCKED_HOSTNAMES.has(h)) {
+    return { ok: false, error: "URL hostname is not allowed" };
+  }
+
+  if (isIPv4(h) || isIPv6(h)) {
+    if (isBlockedIP(h)) {
+      return { ok: false, error: "URL points to a disallowed address" };
+    }
+    return { ok: true, connectHost: h, servername: h };
+  }
+
+  let addresses: { address: string; family: number }[];
+  try {
+    addresses = await lookup(h, { all: true });
+  } catch {
+    return { ok: false, error: "Could not resolve hostname" };
+  }
+  if (!addresses.length) {
+    return { ok: false, error: "Could not resolve hostname" };
+  }
+  for (const { address } of addresses) {
+    if (isBlockedIP(address)) {
+      return { ok: false, error: "URL resolves to a disallowed address" };
+    }
+  }
+  return { ok: true, connectHost: addresses[0].address, servername: h };
+}
+
 /**
  * Returns an error message if the URL must not be fetched (SSRF), or null if allowed.
  * Allows only http/https; blocks private/loopback/link-local IPs and reserved hostnames.
@@ -60,33 +101,9 @@ export async function getUrlNotAllowedReason(urlString: string): Promise<string 
     return "Only HTTP and HTTPS URLs are allowed";
   }
 
-  const hostname = url.hostname.toLowerCase().trim();
-  if (!hostname) {
-    return "Missing hostname";
-  }
-
-  if (BLOCKED_HOSTNAMES.has(hostname)) {
-    return "URL hostname is not allowed";
-  }
-
-  // Hostname that looks like an IP
-  if (isIPv4(hostname) || isIPv6(hostname)) {
-    if (isBlockedIP(hostname)) {
-      return "URL points to a disallowed address";
-    }
-    return null;
-  }
-
-  // Resolve hostname to IP(s) and block if any is private/loopback/link-local
-  try {
-    const addresses = await lookup(hostname, { all: true });
-    for (const { address } of addresses) {
-      if (isBlockedIP(address)) {
-        return "URL resolves to a disallowed address";
-      }
-    }
-  } catch {
-    return "Could not resolve hostname";
+  const target = await resolveSafeTlsConnectTarget(url.hostname);
+  if (!target.ok) {
+    return target.error;
   }
 
   return null;

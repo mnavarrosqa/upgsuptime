@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack -p 3077",
-    "build": "next build --webpack",
+    "generate:splash": "node scripts/generate-pwa-splash.mjs",
+    "generate:pwa-assets": "npm run generate:icons && npm run generate:splash",
+    "build": "npm run generate:pwa-assets && next build --webpack",
     "start": "next start -p 3077",
     "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "db:generate": "drizzle-kit generate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio --host=0.0.0.0",
@@ -44,6 +48,7 @@
     "serwist": "^9.5.7",
     "sharp": "^0.34.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.1"
   }
 }

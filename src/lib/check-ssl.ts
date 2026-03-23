@@ -1,4 +1,5 @@
 import tls from "tls";
+import { resolveSafeTlsConnectTarget } from "@/lib/url-allowed";
 
 export type SslCheckResult = {
   valid: boolean;
@@ -6,6 +7,85 @@ export type SslCheckResult = {
   daysUntilExpiry: number | null;
   error: string | null;
 };
+
+/**
+ * Map TLS peer certificate + trust state to a monitor result.
+ * Exported for unit tests.
+ */
+export function evaluatePeerCertificate(
+  cert: tls.PeerCertificate,
+  authorized: boolean,
+  authorizationError: Error | string | null | undefined,
+  nowMs: number = Date.now()
+): SslCheckResult {
+  if (!cert || typeof cert.valid_to !== "string" || !cert.valid_to) {
+    return {
+      valid: false,
+      expiresAt: null,
+      daysUntilExpiry: null,
+      error: "No peer certificate received",
+    };
+  }
+
+  const expiresAt = new Date(cert.valid_to);
+  if (Number.isNaN(expiresAt.getTime())) {
+    return {
+      valid: false,
+      expiresAt: null,
+      daysUntilExpiry: null,
+      error: "Invalid certificate expiry date",
+    };
+  }
+
+  const daysUntilExpiry = Math.ceil(
+    (expiresAt.getTime() - nowMs) / (1000 * 60 * 60 * 24)
+  );
+
+  const validFrom = cert.valid_from ? new Date(cert.valid_from) : null;
+  if (
+    validFrom &&
+    !Number.isNaN(validFrom.getTime()) &&
+    nowMs < validFrom.getTime()
+  ) {
+    return {
+      valid: false,
+      expiresAt,
+      daysUntilExpiry,
+      error: "Certificate not yet valid",
+    };
+  }
+
+  if (nowMs > expiresAt.getTime()) {
+    return {
+      valid: false,
+      expiresAt,
+      daysUntilExpiry,
+      error: "Certificate expired",
+    };
+  }
+
+  if (!authorized) {
+    const msg =
+      authorizationError instanceof Error
+        ? authorizationError.message
+        : authorizationError != null
+          ? String(authorizationError)
+          : "Certificate not trusted";
+    return {
+      valid: false,
+      expiresAt,
+      daysUntilExpiry,
+      error: msg,
+    };
+  }
+
+  return {
+    valid: true,
+    expiresAt,
+    daysUntilExpiry,
+    error: null,
+  };
+}
 
 /**
  * Check the SSL certificate for an HTTPS URL.
@@ -24,8 +104,16 @@ export async function checkSSL(
   }
   if (parsed.protocol !== "https:") return null;
 
-  const hostname = parsed.hostname;
   const port = parsed.port ? parseInt(parsed.port, 10) : 443;
+  const target = await resolveSafeTlsConnectTarget(parsed.hostname);
+  if (!target.ok) {
+    return {
+      valid: false,
+      expiresAt: null,
+      daysUntilExpiry: null,
+      error: target.error,
+    };
+  }
 
   return new Promise((resolve) => {
     let settled = false;
@@ -34,6 +122,11 @@ export async function checkSSL(
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      try {
+        socket.setTimeout(0);
+      } catch {
+        // ignore
+      }
       try {
         socket.destroy();
       } catch {
@@ -53,34 +146,32 @@ export async function checkSSL(
 
     const socket = tls.connect(
       {
-        host: hostname,
+        host: target.connectHost,
         port,
-        servername: hostname,
+        servername: target.servername,
         rejectUnauthorized: false,
+        minVersion: "TLSv1.2",
       },
       () => {
         const cert = socket.getPeerCertificate();
-        const authorized = socket.authorized;
-
-        let expiresAt: Date | null = null;
-        if (cert?.valid_to) {
-          expiresAt = new Date(cert.valid_to);
-        }
-
-        const daysUntilExpiry =
-          expiresAt != null
-            ? Math.ceil(
-                (expiresAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)
-              )
-            : null;
-
-        const error = authorized
-          ? null
-          : socket.authorizationError?.toString() ?? "Certificate not trusted";
-
-        settle({ valid: authorized, expiresAt, daysUntilExpiry, error });
+        const result = evaluatePeerCertificate(
+          cert,
+          socket.authorized,
+          socket.authorizationError
+        );
+        settle(result);
       }
     );
+
+    socket.setTimeout(timeoutMs);
+    socket.on("timeout", () => {
+      settle({
+        valid: false,
+        expiresAt: null,
+        daysUntilExpiry: null,
+        error: "SSL check timed out",
+      });
+    });
 
     socket.on("error", (err) => {
       settle({
