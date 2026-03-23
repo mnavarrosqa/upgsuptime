@@ -131,7 +131,7 @@ export function PullToRefresh() {
                 />
               )}
             </div>
-            <span className="rounded-full bg-bg-card px-2 py-0.5 text-[10px] text-text-muted shadow-sm">
+            <span className="whitespace-nowrap rounded-full bg-bg-card px-2 py-0.5 text-center text-[10px] text-text-muted shadow-sm">
               {isRefreshing ? "Refreshing…" : pastThreshold ? "Release to refresh" : "Pull to refresh"}
             </span>
           </div>
