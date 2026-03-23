@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import type { Monitor } from "@/db/schema";
 import { MonitorCard } from "@/components/monitor-card";
 import {
@@ -40,6 +41,7 @@ type MonitorGridProps = {
 };
 
 function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: MonitorGridProps) {
+  const t = useTranslations("dashboard");
   const downMonitors = sortMonitors(
     monitors.filter((m) => !m.paused && latestByMonitor[m.id] && !latestByMonitor[m.id].ok),
     sortBy.field,
@@ -93,7 +95,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
           {multipleGroups && (
             <li className="col-span-full">
               <p className="text-xs font-semibold uppercase tracking-widest text-red-600 dark:text-red-400">
-                Issues
+                {t("issues")}
               </p>
             </li>
           )}
@@ -105,7 +107,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
           {multipleGroups && (
             <li className="col-span-full mt-1">
               <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">
-                Paused
+                {t("paused")}
               </p>
             </li>
           )}
@@ -117,7 +119,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
           {multipleGroups && (
             <li className="col-span-full mt-1">
               <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                Operational
+                {t("operational")}
               </p>
             </li>
           )}
@@ -138,6 +140,8 @@ export function DashboardContent({
   userId,
 }: DashboardContentProps) {
   const router = useRouter();
+  const t = useTranslations("dashboard");
+  const tSort = useTranslations("sort");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<{ field: string; direction: "asc" | "desc" }>({
     field: "name",
@@ -154,13 +158,16 @@ export function DashboardContent({
   }));
   const filteredMonitors = filterMonitorsBySearch(monitors, searchQuery);
 
-  const sortOptions = [
-    { value: "name", label: "Name" },
-    { value: "lastCheckAt", label: "Last checked" },
-    { value: "createdAt", label: "Created" },
-    { value: "responseTime", label: "Response time" },
-    { value: "intervalMinutes", label: "Interval" },
-  ];
+  const sortOptions = useMemo(
+    () => [
+      { value: "name", label: tSort("name") },
+      { value: "lastCheckAt", label: tSort("lastCheckAt") },
+      { value: "createdAt", label: tSort("createdAt") },
+      { value: "responseTime", label: tSort("responseTime") },
+      { value: "intervalMinutes", label: tSort("intervalMinutes") },
+    ],
+    [tSort]
+  );
 
   const upCount = monitors.filter((m) => latestByMonitor[m.id]?.ok === true).length;
   const downCount = monitors.filter((m) => {
@@ -180,7 +187,7 @@ export function DashboardContent({
           className="text-2xl font-semibold tracking-tight text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Dashboard
+          {t("title")}
         </h1>
         {hasMonitors && (
           <span
@@ -194,7 +201,7 @@ export function DashboardContent({
               className="h-1.5 w-1.5 rounded-full bg-white/80 dark:bg-current"
               aria-hidden
             />
-            {allUp ? "All systems operational" : `${downCount} down`}
+            {allUp ? t("allOperational") : t("downCount", { count: downCount })}
           </span>
         )}
       </div>
@@ -202,18 +209,16 @@ export function DashboardContent({
       {/* Subtitle: inline stats or onboarding hint */}
       {hasMonitors ? (
         <p className="mt-1.5 flex items-center gap-2 text-sm text-text-muted">
-          <span>
-            {monitors.length} monitor{monitors.length !== 1 ? "s" : ""}
-          </span>
+          <span>{t("monitorCount", { count: monitors.length })}</span>
           <span aria-hidden>·</span>
           <span className="text-emerald-600 dark:text-emerald-400">
-            {upCount} up
+            {t("upCount", { count: upCount })}
           </span>
           {downCount > 0 && (
             <>
               <span aria-hidden>·</span>
               <span className="text-red-600 dark:text-red-400">
-                {downCount} down
+                {t("downLabel", { count: downCount })}
               </span>
             </>
           )}
@@ -226,14 +231,14 @@ export function DashboardContent({
                 rel="noopener noreferrer"
                 className="hover:text-text-primary"
               >
-                Status page →
+                {t("statusPageLink")}
               </Link>
             </>
           )}
         </p>
       ) : (
         <p className="mt-1 text-sm text-text-muted">
-          Add your first monitor to get started.
+          {t("addFirstMonitor")}
         </p>
       )}
 
@@ -246,7 +251,7 @@ export function DashboardContent({
                 monitors={searchItems}
                 value={searchQuery}
                 onChange={setSearchQuery}
-                placeholder="Search by name or URL…"
+                placeholder={t("searchPlaceholder")}
               />
             </div>
             <SortDropdown
@@ -264,18 +269,18 @@ export function DashboardContent({
       {!hasMonitors ? (
         <div className="mt-8 rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
           <p className="text-text-muted">
-            No monitors yet. Add one above to get started.
+            {t("noMonitorsYet")}
           </p>
         </div>
       ) : filteredMonitors.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
-          <p className="text-text-muted">No monitors match your search.</p>
+          <p className="text-text-muted">{t("noSearchMatch")}</p>
           <button
             type="button"
             onClick={() => setSearchQuery("")}
             className="mt-3 inline-block text-sm font-medium text-text-primary hover:text-text-muted"
           >
-            Clear search
+            {t("clearSearch")}
           </button>
         </div>
       ) : (

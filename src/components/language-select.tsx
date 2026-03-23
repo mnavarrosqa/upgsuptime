@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 
 export function LanguageSelect({ value, onChange, disabled, id = "language" }: Props) {
   const t = useTranslations("locale");
+  const router = useRouter();
   const [saving, setSaving] = useState(false);
 
   async function handleChange(nextValue: "en" | "es") {
@@ -23,6 +25,7 @@ export function LanguageSelect({ value, onChange, disabled, id = "language" }: P
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ locale: nextValue }),
       });
+      router.refresh();
     } finally {
       setSaving(false);
     }

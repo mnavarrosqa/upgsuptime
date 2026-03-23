@@ -2,21 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useActivity } from "@/components/activity-context";
 
 const links = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/monitors", label: "Monitors" },
-  { href: "/activity", label: "Activity" },
+  { href: "/dashboard", labelKey: "dashboard" as const },
+  { href: "/monitors", labelKey: "monitors" as const },
+  { href: "/activity", labelKey: "activity" as const },
 ] as const;
 
 export function AppNavLinks({ role }: { role?: string | null }) {
   const pathname = usePathname();
   const { unreadCount } = useActivity();
+  const t = useTranslations("nav");
 
   return (
-    <nav className="flex h-full items-stretch gap-1" aria-label="Main navigation">
-      {links.map(({ href, label }) => {
+    <nav className="flex h-full items-stretch gap-1" aria-label={t("mainNav")}>
+      {links.map(({ href, labelKey }) => {
+        const label = t(labelKey);
         const active =
           href === "/dashboard"
             ? pathname === "/dashboard"
@@ -34,7 +37,7 @@ export function AppNavLinks({ role }: { role?: string | null }) {
           >
             {label}
             {hasUnread && (
-              <span className="h-2 w-2 rounded-full bg-red-500" aria-label="Unread incidents" />
+              <span className="h-2 w-2 rounded-full bg-red-500" aria-label={t("unreadIncidents")} />
             )}
           </Link>
         );
@@ -48,7 +51,7 @@ export function AppNavLinks({ role }: { role?: string | null }) {
               : "border-transparent text-text-muted hover:text-text-primary"
           }`}
         >
-          Admin
+          {t("admin")}
         </Link>
       )}
     </nav>

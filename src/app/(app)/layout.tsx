@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 import { HeartPulse } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/user-menu";
@@ -19,6 +20,8 @@ export default async function AppLayout({
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
 
+  const t = await getTranslations("nav");
+
   return (
     <ActivityProvider>
     <div className="min-h-screen bg-bg-page text-text-primary">
@@ -31,7 +34,7 @@ export default async function AppLayout({
               style={{ fontFamily: "var(--font-display)" }}
             >
               <HeartPulse className="size-4 shrink-0" />
-              UPG Monitor
+              {t("appTitle")}
             </Link>
 
             {/* Desktop nav */}

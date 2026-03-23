@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { MoreHorizontal } from "lucide-react";
 import type { Monitor } from "@/db/schema";
@@ -67,15 +68,18 @@ type DeleteConfirmState =
   | { kind: "single"; id: string; name: string }
   | { kind: "bulk"; ids: string[] };
 
-function formatLastChecked(date: Date | null): string {
-  if (!date) return "Never";
+function formatLastChecked(
+  date: Date | null,
+  tTime: (key: string, values?: Record<string, number>) => string
+): string {
+  if (!date) return tTime("never");
   const diffMs = Date.now() - new Date(date).getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 1) return tTime("justNow");
+  if (diffMin < 60) return tTime("minutesAgo", { count: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  return `${Math.floor(diffHr / 24)}d ago`;
+  if (diffHr < 24) return tTime("hoursAgo", { count: diffHr });
+  return tTime("daysAgo", { count: Math.floor(diffHr / 24) });
 }
 
 function RowActionsMenu({
@@ -91,6 +95,7 @@ function RowActionsMenu({
   onPause: (id: string, currentlyPaused: boolean) => void;
   onDelete: (id: string, name: string) => void;
 }) {
+  const t = useTranslations("monitorsPage");
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, right: 0 });
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -133,14 +138,14 @@ function RowActionsMenu({
             className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98]"
             onClick={() => setOpen(false)}
           >
-            View
+            {t("view")}
           </Link>
           <button
             type="button"
             onClick={() => { setOpen(false); onEdit(monitor.id); }}
             className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98]"
           >
-            Edit
+            {t("edit")}
           </button>
           <button
             type="button"
@@ -149,8 +154,8 @@ function RowActionsMenu({
             className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98] disabled:opacity-50"
           >
             {isPausing
-              ? monitor.paused ? "Resuming…" : "Pausing…"
-              : monitor.paused ? "Resume" : "Pause"}
+              ? monitor.paused ? t("resuming") : t("pausing")
+              : monitor.paused ? t("resume") : t("pause")}
           </button>
           <div className="my-1 border-t border-border" />
           <button
@@ -158,7 +163,7 @@ function RowActionsMenu({
             onClick={() => { setOpen(false); onDelete(monitor.id, monitor.name); }}
             className="flex w-full items-center px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50 active:scale-[0.98] dark:text-red-400 dark:hover:bg-red-900/20"
           >
-            Delete
+            {t("delete")}
           </button>
         </div>,
         document.body
@@ -172,7 +177,7 @@ function RowActionsMenu({
         type="button"
         onClick={handleOpen}
         className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition hover:bg-bg-page hover:text-text-primary active:scale-90"
-        aria-label="Actions"
+        aria-label={t("actions")}
       >
         <MoreHorizontal className="h-4 w-4" />
       </button>
@@ -189,6 +194,9 @@ export function MonitorsPageClient({
   latestByMonitor: LatestByMonitor;
 }) {
   const router = useRouter();
+  const t = useTranslations("monitorsPage");
+  const tDash = useTranslations("dashboard");
+  const tTime = useTranslations("time");
   const [addOpen, setAddOpen] = useState(false);
   const [editMonitorId, setEditMonitorId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -315,14 +323,14 @@ export function MonitorsPageClient({
       try {
         const parsed = JSON.parse(ev.target?.result as string);
         if (!Array.isArray(parsed)) {
-          setImportParseError("File must contain a JSON array of monitors.");
+          setImportParseError(t("importJsonArray"));
           setImportData(null);
         } else {
           setImportParseError(null);
           setImportData(parsed as MonitorConfig[]);
         }
       } catch {
-        setImportParseError("Could not parse file as JSON.");
+        setImportParseError(t("importParseError"));
         setImportData(null);
       }
       setImportResult(null);
@@ -363,11 +371,11 @@ export function MonitorsPageClient({
       try {
         const res = await fetch(`/api/monitors/${id}`, { method: "DELETE" });
         if (res.ok) {
-          toast.success(`"${name}" deleted`);
+          toast.success(t("deleteSuccessSingle", { name }));
           router.refresh();
         } else {
           const data = await res.json().catch(() => ({}));
-          toast.error(data.error ?? "Delete failed");
+          toast.error(data.error ?? t("deleteFailed"));
         }
       } finally {
         setDeletingId(null);
@@ -384,7 +392,7 @@ export function MonitorsPageClient({
           fetch(`/api/monitors/${id}`, { method: "DELETE" }).then(async (res) => {
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
-              throw new Error(data.error ?? "Delete failed");
+              throw new Error(data.error ?? t("deleteFailed"));
             }
           })
         )
@@ -392,20 +400,14 @@ export function MonitorsPageClient({
       const failed = results.filter((r) => r.status === "rejected").length;
       const ok = results.length - failed;
       if (ok > 0) {
-        toast.success(
-          ok === 1 ? "1 monitor deleted" : `${ok} monitors deleted`
-        );
+        toast.success(t("deleteSuccessBulk", { count: ok }));
         if (failed > 0) {
-          toast.error(
-            failed === 1
-              ? "1 monitor could not be deleted"
-              : `${failed} monitors could not be deleted`
-          );
+          toast.error(t("deletePartialFailed", { count: failed }));
         }
         clearSelection();
         router.refresh();
       } else {
-        toast.error("Could not delete monitors");
+        toast.error(t("couldNotDelete"));
       }
     } finally {
       setBulkDeleting(false);
@@ -428,7 +430,7 @@ export function MonitorsPageClient({
           }).then(async (res) => {
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
-              throw new Error(data.error ?? "Failed to pause");
+              throw new Error(data.error ?? t("failedToPause"));
             }
           })
         )
@@ -436,17 +438,13 @@ export function MonitorsPageClient({
       const failed = results.filter((r) => r.status === "rejected").length;
       const ok = results.length - failed;
       if (ok > 0) {
-        toast.success(ok === 1 ? "Monitor paused" : `${ok} monitors paused`);
+        toast.success(ok === 1 ? t("monitorPaused") : t("monitorsPaused", { count: ok }));
         if (failed > 0) {
-          toast.error(
-            failed === 1
-              ? "1 monitor could not be paused"
-              : `${failed} monitors could not be paused`
-          );
+          toast.error(t("pausePartialFailed", { count: failed }));
         }
         router.refresh();
       } else {
-        toast.error("Could not pause monitors");
+        toast.error(t("couldNotPause"));
       }
     } finally {
       setBulkPauseBusy(false);
@@ -469,7 +467,7 @@ export function MonitorsPageClient({
           }).then(async (res) => {
             if (!res.ok) {
               const data = await res.json().catch(() => ({}));
-              throw new Error(data.error ?? "Failed to resume");
+              throw new Error(data.error ?? t("failedToResume"));
             }
           })
         )
@@ -477,17 +475,13 @@ export function MonitorsPageClient({
       const failed = results.filter((r) => r.status === "rejected").length;
       const ok = results.length - failed;
       if (ok > 0) {
-        toast.success(ok === 1 ? "Monitor resumed" : `${ok} monitors resumed`);
+        toast.success(ok === 1 ? t("monitorResumed") : t("monitorsResumed", { count: ok }));
         if (failed > 0) {
-          toast.error(
-            failed === 1
-              ? "1 monitor could not be resumed"
-              : `${failed} monitors could not be resumed`
-          );
+          toast.error(t("resumePartialFailed", { count: failed }));
         }
         router.refresh();
       } else {
-        toast.error("Could not resume monitors");
+        toast.error(t("couldNotResume"));
       }
     } finally {
       setBulkPauseBusy(false);
@@ -504,11 +498,11 @@ export function MonitorsPageClient({
         body: JSON.stringify({ paused: !currentlyPaused }),
       });
       if (res.ok) {
-        toast.success(currentlyPaused ? "Monitor resumed" : "Monitor paused");
+        toast.success(currentlyPaused ? t("monitorResumed") : t("monitorPaused"));
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed to update monitor");
+        toast.error(data.error ?? t("failedToUpdate"));
       }
     } finally {
       setPausingId(null);
@@ -523,10 +517,10 @@ export function MonitorsPageClient({
           className="text-2xl font-semibold tracking-tight text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Monitors
+          {t("title")}
         </h1>
         {monitors.length > 0 && (
-          <span className="text-sm text-text-muted">{monitors.length} total</span>
+          <span className="text-sm text-text-muted">{t("totalCount", { count: monitors.length })}</span>
         )}
       </div>
 
@@ -542,7 +536,7 @@ export function MonitorsPageClient({
               }))}
               value={searchQuery}
               onChange={setSearchQuery}
-              placeholder="Search by name or URL…"
+              placeholder={t("searchPlaceholder")}
             />
           </div>
         )}
@@ -560,7 +554,7 @@ export function MonitorsPageClient({
             disabled={exporting}
             className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card disabled:opacity-50"
           >
-            {exporting ? "Exporting…" : "Export"}
+            {exporting ? t("exporting") : t("export")}
           </button>
         )}
         <button
@@ -568,14 +562,14 @@ export function MonitorsPageClient({
           onClick={() => fileInputRef.current?.click()}
           className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card"
         >
-          Import
+          {t("import")}
         </button>
         <button
           type="button"
           onClick={() => setAddOpen(true)}
           className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
-          Add monitor
+          {t("addMonitor")}
         </button>
       </div>
 
@@ -583,14 +577,14 @@ export function MonitorsPageClient({
         <div
           className="mt-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-bg-page px-3 py-2.5"
           role="region"
-          aria-label="Bulk actions"
+          aria-label={t("bulkActions")}
         >
           <span className="text-sm font-medium text-text-primary">
-            {selectedCount} selected
+            {t("selected", { count: selectedCount })}
             {selectedCount !== selectedVisibleCount && visibleIds.length > 0 && (
               <span className="font-normal text-text-muted">
                 {" "}
-                ({selectedVisibleCount} on this page)
+                {t("selectedOnPage", { count: selectedVisibleCount })}
               </span>
             )}
           </span>
@@ -601,7 +595,7 @@ export function MonitorsPageClient({
               disabled={bulkPauseBusy || allSelectedPaused}
               className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card disabled:opacity-50"
             >
-              {bulkPauseMode === "pause" ? "Pausing…" : "Pause"}
+              {bulkPauseMode === "pause" ? t("pausing") : t("pause")}
             </button>
             <button
               type="button"
@@ -609,14 +603,14 @@ export function MonitorsPageClient({
               disabled={bulkPauseBusy || allSelectedUnpaused}
               className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card disabled:opacity-50"
             >
-              {bulkPauseMode === "resume" ? "Resuming…" : "Resume"}
+              {bulkPauseMode === "resume" ? t("resuming") : t("resume")}
             </button>
             <button
               type="button"
               onClick={() => setBulkEditOpen(true)}
               className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card"
             >
-              Edit
+              {t("edit")}
             </button>
             <button
               type="button"
@@ -628,14 +622,14 @@ export function MonitorsPageClient({
               }
               className="rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20"
             >
-              Delete
+              {t("delete")}
             </button>
             <button
               type="button"
               onClick={clearSelection}
               className="rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:text-text-primary"
             >
-              Clear
+              {t("clear")}
             </button>
           </div>
         </div>
@@ -646,8 +640,8 @@ export function MonitorsPageClient({
         open={deleteConfirm !== null}
         title={
           deleteConfirm?.kind === "bulk"
-            ? "Delete monitors"
-            : "Delete monitor"
+            ? t("deleteMonitorsTitle")
+            : t("deleteMonitorTitle")
         }
         message={
           deleteConfirm === null
@@ -663,13 +657,16 @@ export function MonitorsPageClient({
                     )
                     .map((n) => `"${n}"`)
                     .join(", ");
-                  const rest =
-                    ids.length > 3 ? ` and ${ids.length - 3} more` : "";
-                  return `Delete ${ids.length} monitors (${preview}${rest})? This cannot be undone.`;
+                  const moreSuffix =
+                    ids.length > 3 ? t("andMore", { count: ids.length - 3 }) : "";
+                  return t("deleteBulkMessage", {
+                    count: ids.length,
+                    preview: `${preview}${moreSuffix}`,
+                  });
                 })()
-              : `Delete "${deleteConfirm.name}"? This cannot be undone.`
+              : t("deleteSingleMessage", { name: deleteConfirm.name })
         }
-        confirmLabel="Delete"
+        confirmLabel={t("delete")}
         destructive
         busy={deletingId !== null || bulkDeleting}
         onConfirm={handleDeleteConfirm}
@@ -680,7 +677,7 @@ export function MonitorsPageClient({
       <Overlay
         open={addOpen}
         onClose={() => setAddOpen(false)}
-        title="Add monitor"
+        title={t("addMonitorTitle")}
       >
         <AddMonitorFlow
           onSuccess={() => {
@@ -693,7 +690,7 @@ export function MonitorsPageClient({
       <Overlay
         open={editMonitorId !== null}
         onClose={() => setEditMonitorId(null)}
-        title="Edit monitor"
+        title={t("editMonitorTitle")}
       >
         {editMonitor && (
           <EditMonitorForm
@@ -706,9 +703,7 @@ export function MonitorsPageClient({
       <Overlay
         open={bulkEditOpen}
         onClose={() => setBulkEditOpen(false)}
-        title={`Edit ${selectedMonitorsList.length} monitor${
-          selectedMonitorsList.length !== 1 ? "s" : ""
-        }`}
+        title={t("bulkEditTitle", { count: selectedMonitorsList.length })}
         panelClassName="max-w-2xl"
       >
         {bulkEditOpen && selectedMonitorsList.length > 0 && (
@@ -722,7 +717,7 @@ export function MonitorsPageClient({
       <Overlay
         open={importOpen}
         onClose={handleImportClose}
-        title="Import monitors"
+        title={t("importTitle")}
       >
         <div className="space-y-4">
           {importParseError ? (
@@ -733,19 +728,15 @@ export function MonitorsPageClient({
             <div className="space-y-3">
               <p className="text-sm text-text-primary">
                 {importResult.created > 0 ? (
-                  <>
-                    Successfully imported{" "}
-                    <span className="font-semibold">{importResult.created}</span>{" "}
-                    {importResult.created === 1 ? "monitor" : "monitors"}.
-                  </>
+                  t("importSuccess", { count: importResult.created })
                 ) : (
-                  "No monitors were imported."
+                  t("importNone")
                 )}
               </p>
               {importResult.errors.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-text-muted uppercase tracking-wider">
-                    Errors ({importResult.errors.length})
+                    {t("importErrors", { count: importResult.errors.length })}
                   </p>
                   <ul className="max-h-48 overflow-y-auto rounded-md border border-border divide-y divide-border text-sm">
                     {importResult.errors.map((e) => (
@@ -764,23 +755,19 @@ export function MonitorsPageClient({
                 onClick={handleImportClose}
                 className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
               >
-                Done
+                {t("importDone")}
               </button>
             </div>
           ) : importData ? (
             <div className="space-y-3">
               <p className="text-sm text-text-muted">
-                Ready to import{" "}
-                <span className="font-semibold text-text-primary">
-                  {importData.length}
-                </span>{" "}
-                {importData.length === 1 ? "monitor" : "monitors"}:
+                {t("importReady", { count: importData.length })}
               </p>
               <ul className="max-h-56 overflow-y-auto rounded-md border border-border divide-y divide-border text-sm">
                 {importData.map((m, i) => (
                   <li key={i} className="flex items-center gap-2 px-3 py-2">
                     <span className="font-medium text-text-primary truncate">
-                      {m.name || <span className="text-text-muted italic">unnamed</span>}
+                      {m.name || <span className="text-text-muted italic">{t("unnamed")}</span>}
                     </span>
                     <span className="text-text-muted truncate text-xs">{m.url}</span>
                   </li>
@@ -792,7 +779,7 @@ export function MonitorsPageClient({
                   onClick={handleImportClose}
                   className="flex-1 rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card"
                 >
-                  Cancel
+                  {t("importCancel")}
                 </button>
                 <button
                   type="button"
@@ -801,8 +788,8 @@ export function MonitorsPageClient({
                   className="flex-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-50"
                 >
                   {importing
-                    ? "Importing…"
-                    : `Import ${importData.length} ${importData.length === 1 ? "monitor" : "monitors"}`}
+                    ? t("importingLabel")
+                    : t("importConfirm", { count: importData.length })}
                 </button>
               </div>
             </div>
@@ -813,23 +800,23 @@ export function MonitorsPageClient({
       {/* Content */}
       {monitors.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
-          <p className="text-text-muted">No monitors yet. Add one above.</p>
+          <p className="text-text-muted">{t("noMonitorsYetShort")}</p>
         </div>
       ) : filteredMonitors.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
-          <p className="text-text-muted">No monitors match your search.</p>
+          <p className="text-text-muted">{tDash("noSearchMatch")}</p>
           <button
             type="button"
             onClick={() => setSearchQuery("")}
             className="mt-3 inline-block text-sm font-medium text-text-primary hover:text-text-muted"
           >
-            Clear search
+            {tDash("clearSearch")}
           </button>
         </div>
       ) : (
         <div className="mt-5 overflow-x-auto rounded-lg border border-border bg-bg-card">
           <table className="min-w-full divide-y divide-border">
-            <caption className="sr-only">Your monitors</caption>
+            <caption className="sr-only">{t("tableCaption")}</caption>
             <thead>
               <tr className="bg-bg-page">
                 <th className="w-10 px-3 py-2.5">
@@ -839,12 +826,12 @@ export function MonitorsPageClient({
                     checked={allVisibleSelected}
                     onChange={toggleSelectAllVisible}
                     className="h-4 w-4 rounded border-input-border accent-accent"
-                    aria-label="Select all monitors in this list"
+                    aria-label={t("selectAllAria")}
                   />
                 </th>
                 <SortableTableHeader
                   column="name"
-                  label="Monitor"
+                  label={t("colMonitor")}
                   currentSort={sortBy}
                   onSort={(field) =>
                     setSortBy((prev) => ({
@@ -855,7 +842,7 @@ export function MonitorsPageClient({
                 />
                 <SortableTableHeader
                   column="url"
-                  label="URL"
+                  label={t("colUrl")}
                   currentSort={sortBy}
                   onSort={(field) =>
                     setSortBy((prev) => ({
@@ -867,7 +854,7 @@ export function MonitorsPageClient({
                 />
                 <SortableTableHeader
                   column="status"
-                  label="Status"
+                  label={t("colStatus")}
                   currentSort={sortBy}
                   onSort={(field) =>
                     setSortBy((prev) => ({
@@ -878,7 +865,7 @@ export function MonitorsPageClient({
                 />
                 <SortableTableHeader
                   column="ssl"
-                  label="SSL"
+                  label={t("colSsl")}
                   currentSort={sortBy}
                   onSort={(field) =>
                     setSortBy((prev) => ({
@@ -890,7 +877,7 @@ export function MonitorsPageClient({
                 />
                 <SortableTableHeader
                   column="lastCheckAt"
-                  label="Last checked"
+                  label={t("colLastChecked")}
                   currentSort={sortBy}
                   onSort={(field) =>
                     setSortBy((prev) => ({
@@ -902,7 +889,7 @@ export function MonitorsPageClient({
                 />
                 <SortableTableHeader
                   column="intervalMinutes"
-                  label="Interval"
+                  label={t("colInterval")}
                   currentSort={sortBy}
                   onSort={(field) =>
                     setSortBy((prev) => ({
@@ -913,7 +900,7 @@ export function MonitorsPageClient({
                   className="hidden md:table-cell"
                 />
                 <th className="px-4 py-2.5 text-right text-xs font-medium uppercase tracking-wider text-text-muted">
-                  Actions
+                  {t("colActions")}
                 </th>
               </tr>
             </thead>
@@ -929,7 +916,7 @@ export function MonitorsPageClient({
                         checked={selectedIds.has(m.id)}
                         onChange={() => toggleSelected(m.id)}
                         className="h-4 w-4 rounded border-input-border accent-accent"
-                        aria-label={`Select ${m.name}`}
+                        aria-label={t("selectMonitorAria", { name: m.name })}
                       />
                     </td>
                     <td className="px-4 py-3">
@@ -952,7 +939,7 @@ export function MonitorsPageClient({
                         {m.url}
                       </a>
                       <p className="mt-0.5 hidden truncate text-xs text-text-muted sm:max-md:block">
-                        {formatLastChecked(m.lastCheckAt)} · every {m.intervalMinutes}m
+                        {formatLastChecked(m.lastCheckAt, tTime)} · {t("everyMinutes", { count: m.intervalMinutes })}
                       </p>
                     </td>
                     <td className="hidden max-w-[14rem] px-4 py-3 text-sm sm:table-cell">
@@ -978,10 +965,10 @@ export function MonitorsPageClient({
                       />
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-text-muted md:table-cell">
-                      {formatLastChecked(m.lastCheckAt)}
+                      {formatLastChecked(m.lastCheckAt, tTime)}
                     </td>
                     <td className="hidden whitespace-nowrap px-4 py-3 text-sm text-text-muted md:table-cell">
-                      every {m.intervalMinutes}m
+                      {t("everyMinutes", { count: m.intervalMinutes })}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <RowActionsMenu

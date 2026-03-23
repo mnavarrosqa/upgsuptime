@@ -5,12 +5,13 @@ import { Menu, X, Sun, Moon, User, LogOut } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
+import { useTranslations } from "next-intl";
 import { useActivity } from "@/components/activity-context";
 
 const navLinks = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/monitors", label: "Monitors" },
-  { href: "/activity", label: "Activity" },
+  { href: "/dashboard", labelKey: "dashboard" as const },
+  { href: "/monitors", labelKey: "monitors" as const },
+  { href: "/activity", labelKey: "activity" as const },
 ] as const;
 
 export function MobileMenu({
@@ -27,6 +28,7 @@ export function MobileMenu({
   const [mounted, setMounted] = useState(false);
   const pathname = usePathname();
   const { unreadCount } = useActivity();
+  const t = useTranslations("nav");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -72,7 +74,7 @@ export function MobileMenu({
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
-        aria-label={open ? "Close menu" : "Open menu"}
+        aria-label={open ? t("closeMenu") : t("openMenu")}
         aria-expanded={open}
       >
         {open ? (
@@ -86,7 +88,7 @@ export function MobileMenu({
         <div
           className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-bg-card py-1 shadow-lg"
           role="menu"
-          aria-label="Navigation menu"
+          aria-label={t("navMenu")}
         >
           {/* User info */}
           <div className="border-b border-border px-3 py-2.5">
@@ -101,7 +103,8 @@ export function MobileMenu({
           </div>
 
           {/* Nav links */}
-          {navLinks.map(({ href, label }) => {
+          {navLinks.map(({ href, labelKey }) => {
+            const label = t(labelKey);
             const active =
               href === "/dashboard"
                 ? pathname === "/dashboard"
@@ -123,7 +126,7 @@ export function MobileMenu({
                 {hasUnread && (
                   <span
                     className="h-2 w-2 rounded-full bg-red-500"
-                    aria-label="Unread incidents"
+                    aria-label={t("unreadIncidents")}
                   />
                 )}
               </Link>
@@ -140,7 +143,7 @@ export function MobileMenu({
                   : "text-text-muted hover:bg-bg-page hover:text-text-primary"
               }`}
             >
-              Admin
+              {t("admin")}
             </Link>
           )}
 
@@ -158,7 +161,7 @@ export function MobileMenu({
               ) : (
                 <Moon className="h-3.5 w-3.5 shrink-0" aria-hidden />
               )}
-              {dark ? "Light mode" : "Dark mode"}
+              {dark ? t("lightMode") : t("darkMode")}
             </button>
           )}
 
@@ -170,7 +173,7 @@ export function MobileMenu({
             className="flex items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
           >
             <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Account
+            {t("account")}
           </Link>
           <button
             type="button"
@@ -179,7 +182,7 @@ export function MobileMenu({
             className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
           >
             <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Sign out
+            {t("signOut")}
           </button>
         </div>
       )}

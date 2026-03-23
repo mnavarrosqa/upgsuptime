@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { ChevronDown, User, LogOut, BookOpen } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type UserMenuProps = {
   email: string;
@@ -25,6 +26,7 @@ function getInitials(name: string | null | undefined, email: string): string {
 export function UserMenu({ email, name }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const t = useTranslations("nav");
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -55,7 +57,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
         className="flex items-center gap-1.5 rounded-md px-2 py-1.5 text-sm text-text-muted hover:bg-bg-page hover:text-text-primary"
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label="Account menu"
+        aria-label={t("accountMenu")}
       >
         <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-bg-page">
           {initials}
@@ -70,7 +72,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
         <div
           className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-border bg-bg-card py-1 shadow-lg"
           role="menu"
-          aria-label="Account actions"
+          aria-label={t("accountActions")}
         >
           <div className="border-b border-border px-3 py-2.5">
             {name && (
@@ -87,7 +89,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
             onClick={() => setOpen(false)}
           >
             <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Account
+            {t("account")}
           </Link>
           <Link
             href="/account#onboarding"
@@ -96,7 +98,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
             onClick={() => setOpen(false)}
           >
             <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Onboarding guide
+            {t("onboardingGuide")}
           </Link>
           <button
             type="button"
@@ -105,7 +107,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
             className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-page hover:text-text-primary"
           >
             <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            Sign out
+            {t("signOut")}
           </button>
         </div>
       )}

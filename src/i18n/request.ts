@@ -12,9 +12,11 @@ export default getRequestConfig(async () => {
   const acceptLanguage = headerStore.get("accept-language");
   const session = await getServerSession(authOptions);
   const profileLocale = session?.user?.language;
+  // Cookie wins so changing language in the UI applies on the next request
+  // before the session JWT is refreshed (and matches LanguageSelect + /api/locale).
   const preferred =
-    profileLocale ??
     cookieLocale ??
+    profileLocale ??
     acceptLanguage?.split(",")[0]?.trim() ??
     DEFAULT_LOCALE;
   const locale = normalizeLocale(preferred);

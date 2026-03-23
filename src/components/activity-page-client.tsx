@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useActivity } from "@/components/activity-context";
+import { useLocale, useTranslations } from "next-intl";
 
 interface ActivityItem {
   /** Check result row id (unique per transition event). */
@@ -17,10 +18,10 @@ interface ActivityItem {
   at: string;
 }
 
-function formatFullTimestamp(iso: string): string {
+function formatFullTimestamp(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
-  return new Intl.DateTimeFormat(undefined, {
+  return new Intl.DateTimeFormat(locale, {
     weekday: "short",
     year: "numeric",
     month: "short",
@@ -50,6 +51,8 @@ export function ActivityPageClient({
   const { markAllRead } = useActivity();
   const router = useRouter();
   const [clearing, setClearing] = useState(false);
+  const t = useTranslations("activity");
+  const locale = useLocale();
 
   useEffect(() => {
     markAllRead();
@@ -73,11 +76,11 @@ export function ActivityPageClient({
             className="text-2xl font-semibold tracking-tight text-text-primary"
             style={{ fontFamily: "var(--font-display)" }}
           >
-            Recent Activity
+            {t("title")}
           </h1>
           {totalCount > 0 && (
             <span className="text-sm text-text-muted">
-              {totalCount} event{totalCount !== 1 ? "s" : ""}
+              {t("eventCount", { count: totalCount })}
             </span>
           )}
         </div>
@@ -87,18 +90,18 @@ export function ActivityPageClient({
             disabled={clearing}
             className="text-sm text-text-muted hover:text-text-primary disabled:opacity-50 transition-colors"
           >
-            {clearing ? "Clearing…" : "Clear all"}
+            {clearing ? t("clearing") : t("clearAll")}
           </button>
         )}
       </div>
       <p className="mt-1 text-sm text-text-muted">
-        Up to 50 status changes in the last 7 days, {pageSize} per page.
+        {t("subtitle", { pageSize })}
       </p>
 
       <div className="mt-6">
         {totalCount === 0 ? (
           <div className="rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
-            <p className="text-text-muted">No activity in the last 7 days.</p>
+            <p className="text-text-muted">{t("empty")}</p>
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg border border-border bg-bg-card">
@@ -106,13 +109,13 @@ export function ActivityPageClient({
               <thead>
                 <tr>
                   <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-                    Monitor
+                    {t("colMonitor")}
                   </th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-                    Event
+                    {t("colEvent")}
                   </th>
                   <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-                    When
+                    {t("colWhen")}
                   </th>
                 </tr>
               </thead>
@@ -147,12 +150,12 @@ export function ActivityPageClient({
                               isDown ? "bg-red-500" : "bg-emerald-500"
                             }`}
                           />
-                          {isDown ? "Went down" : "Recovered"}
+                          {isDown ? t("wentDown") : t("recovered")}
                         </span>
                       </td>
                       <td className="px-4 py-3">
                         <span className="text-sm text-text-muted tabular-nums whitespace-nowrap">
-                          {formatFullTimestamp(item.at)}
+                          {formatFullTimestamp(item.at, locale)}
                         </span>
                       </td>
                     </tr>
@@ -163,11 +166,14 @@ export function ActivityPageClient({
             {totalPages > 1 && (
               <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3">
                 <p className="text-sm text-text-muted">
-                  Page {page} of {totalPages}
+                  {t("pageOf", { page, totalPages })}
                   <span className="text-text-muted/80">
                     {" "}
-                    · {(page - 1) * pageSize + 1}–
-                    {Math.min(page * pageSize, totalCount)} of {totalCount}
+                    {t("showingRange", {
+                      from: (page - 1) * pageSize + 1,
+                      to: Math.min(page * pageSize, totalCount),
+                      total: totalCount,
+                    })}
                   </span>
                 </p>
                 <div className="flex items-center gap-2">
@@ -180,7 +186,7 @@ export function ActivityPageClient({
                         : "text-text-primary hover:bg-bg-page"
                     }`}
                   >
-                    Previous
+                    {t("previous")}
                   </Link>
                   <Link
                     href={`/activity?page=${page + 1}`}
@@ -191,7 +197,7 @@ export function ActivityPageClient({
                         : "text-text-primary hover:bg-bg-page"
                     }`}
                   >
-                    Next
+                    {t("next")}
                   </Link>
                 </div>
               </div>

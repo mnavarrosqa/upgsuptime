@@ -1,4 +1,7 @@
+"use client";
+
 import { Pause } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type MonitorStatusBadgeProps = {
   paused?: boolean | null;
@@ -6,6 +9,7 @@ type MonitorStatusBadgeProps = {
 };
 
 export function MonitorStatusBadge({ paused, latest }: MonitorStatusBadgeProps) {
+  const t = useTranslations("monitorsPage");
   if (paused) {
     return (
       <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium bg-border text-text-muted">
@@ -14,7 +18,7 @@ export function MonitorStatusBadge({ paused, latest }: MonitorStatusBadgeProps) 
           strokeWidth={2.25}
           aria-hidden
         />
-        Paused
+        {t("statusPaused")}
       </span>
     );
   }
@@ -46,7 +50,7 @@ export function MonitorStatusBadge({ paused, latest }: MonitorStatusBadgeProps) 
           <span className="relative z-10 inline-flex h-2.5 w-2.5 rounded-full bg-white dark:bg-red-400" />
         </span>
       ) : null}
-      {latest?.ok ? "Up" : latest ? "Down" : "—"}
+      {latest?.ok ? t("statusUp") : latest ? t("statusDown") : "—"}
     </span>
   );
 }

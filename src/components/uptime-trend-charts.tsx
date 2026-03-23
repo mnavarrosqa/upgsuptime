@@ -1,16 +1,15 @@
 "use client";
 
+import { useId } from "react";
+import type { TooltipProps } from "recharts";
 import {
   ResponsiveContainer,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
+  AreaChart,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
-  Cell,
 } from "recharts";
 
 export type ChartResultRow = {
@@ -22,10 +21,48 @@ export type ChartResultRow = {
 
 function formatAxisTime(iso: string) {
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function ResponseTooltip({
+  active,
+  payload,
+  label,
+}: TooltipProps<number, string>) {
+  if (!active || !payload?.length) return null;
+  const row = payload[0].payload as ChartResultRow;
+  const ms = row.responseTimeMs;
+  const timeLabel = typeof label === "string" ? formatAxisTime(label) : String(label);
+
+  return (
+    <div
+      className="rounded-md border border-border bg-bg-card px-3 py-2 text-xs shadow-sm"
+      style={{ color: "var(--color-text-primary)" }}
+    >
+      <p className="text-text-muted">{timeLabel}</p>
+      <p className="mt-1 font-medium text-text-primary">
+        {row.ok ? "Up" : "Down"}
+      </p>
+      <p className="mt-0.5 text-text-muted">
+        Response:{" "}
+        {ms != null ? (
+          <span className="font-medium text-text-primary">{ms} ms</span>
+        ) : (
+          <span className="text-text-muted">—</span>
+        )}
+      </p>
+    </div>
+  );
 }
 
 export function UptimeTrendCharts({ results }: { results: ChartResultRow[] }) {
+  const gradientId = useId().replace(/:/g, "");
+
   if (results.length === 0) {
     return (
       <div className="mt-4 rounded-lg border border-dashed border-border-muted bg-bg-page p-8 text-center text-sm text-text-muted">
@@ -35,57 +72,74 @@ export function UptimeTrendCharts({ results }: { results: ChartResultRow[] }) {
   }
 
   const chronological = [...results].reverse();
-  const chartData = chronological.map((r) => ({
-    ...r,
-    responseTimeMs: r.responseTimeMs ?? 0,
-    statusValue: 1,
-  }));
+  const upCount = chronological.filter((r) => r.ok).length;
+  const downCount = chronological.length - upCount;
+
+  const chartData: ChartResultRow[] = chronological;
 
   return (
     <div className="mt-4 space-y-6">
       <div>
-        <p className="text-xs font-medium uppercase tracking-wider text-text-muted">Status</p>
-        <div className="mt-2 h-[100px] w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
-              <XAxis
-                dataKey="createdAt"
-                tickFormatter={formatAxisTime}
-                tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                interval="preserveStartEnd"
-              />
-              <YAxis hide domain={[0, 1]} />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--color-bg-card)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "6px",
-                }}
-                labelFormatter={formatAxisTime}
-                formatter={(_value: number, _name: string, props: { payload?: ChartResultRow }) => [
-                  props.payload?.ok ? "Up" : "Down",
-                  "Status",
-                ]}
-              />
-              <Bar dataKey="statusValue" fill="transparent" isAnimationActive={false}>
-                {chartData.map((entry) => (
-                  <Cell
-                    key={entry.id}
-                    fill={entry.ok ? "#10b981" : "#ef4444"}
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+        <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          Uptime
+        </p>
+        <div
+          className="mt-2 flex h-8 w-full gap-px"
+          aria-label={`${upCount} successful checks, ${downCount} failed checks, ${chronological.length} total, oldest left to newest right`}
+        >
+          {chronological.map((r) => (
+            <span
+              key={r.id}
+              className={`min-w-[3px] flex-1 rounded-sm transition-opacity hover:opacity-70 ${
+                r.ok
+                  ? "bg-emerald-500 dark:bg-emerald-600"
+                  : "bg-red-500 dark:bg-red-600"
+              }`}
+              title={`${formatAxisTime(r.createdAt)} · ${r.ok ? "Up" : "Down"}`}
+            />
+          ))}
+        </div>
+        <div className="mt-1 flex justify-between text-[10px] text-text-muted">
+          <span>Older</span>
+          <span>Newer</span>
         </div>
       </div>
 
       <div>
-        <p className="text-xs font-medium uppercase tracking-wider text-text-muted">Response time</p>
-        <div className="mt-2 h-[140px] w-full">
+        <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          Response time
+        </p>
+        <div className="mt-2 h-[160px] w-full">
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={chartData} margin={{ top: 4, right: 4, left: 4, bottom: 4 }}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+            <AreaChart
+              data={chartData}
+              margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+            >
+              <defs>
+                <linearGradient
+                  id={gradientId}
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="var(--color-accent)"
+                    stopOpacity={0.35}
+                  />
+                  <stop
+                    offset="100%"
+                    stopColor="var(--color-accent)"
+                    stopOpacity={0}
+                  />
+                </linearGradient>
+              </defs>
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+                vertical={false}
+              />
               <XAxis
                 dataKey="createdAt"
                 tickFormatter={formatAxisTime}
@@ -95,25 +149,22 @@ export function UptimeTrendCharts({ results }: { results: ChartResultRow[] }) {
               <YAxis
                 tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
                 tickFormatter={(v) => `${v} ms`}
+                domain={[0, "auto"]}
+                width={48}
               />
-              <Tooltip
-                contentStyle={{
-                  backgroundColor: "var(--color-bg-card)",
-                  border: "1px solid var(--color-border)",
-                  borderRadius: "6px",
-                }}
-                labelFormatter={formatAxisTime}
-                formatter={(value: number) => [`${value} ms`, "Response time"]}
-              />
-              <Line
+              <Tooltip content={<ResponseTooltip />} />
+              <Area
                 type="monotone"
                 dataKey="responseTimeMs"
-                stroke="var(--color-text-muted)"
-                strokeWidth={1.5}
+                stroke="var(--color-accent)"
+                strokeWidth={2}
+                fill={`url(#${gradientId})`}
+                connectNulls={false}
                 dot={false}
+                activeDot={{ r: 4, fill: "var(--color-accent)" }}
                 isAnimationActive={false}
               />
-            </LineChart>
+            </AreaChart>
           </ResponsiveContainer>
         </div>
       </div>
