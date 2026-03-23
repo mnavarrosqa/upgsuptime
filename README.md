@@ -1,4 +1,4 @@
-# Uptime Monitor
+# UPG Monitor
 
 Multi-user uptime monitoring with Next.js. First run creates an admin account; then users sign in to manage monitors.
 

@@ -25,7 +25,7 @@ export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
           <Globe className="h-8 w-8" />
         </div>
         <h2 className="text-2xl font-semibold text-text-primary">
-          Welcome to Uptime Monitoring
+          Welcome to UPG Monitor
         </h2>
         <p className="mt-2 text-sm text-text-muted">
           Keep your websites and services online. Get notified the moment they go

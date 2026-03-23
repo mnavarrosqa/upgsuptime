@@ -29,9 +29,9 @@ try {
   console.log("SMTP connection OK");
 
   const info = await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"Uptime Monitor" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM ?? `"UPG Monitor" <${process.env.SMTP_USER}>`,
     to,
-    subject: "Uptime Monitor — SMTP test",
+    subject: "UPG Monitor — SMTP test",
     text: "If you received this, your SMTP configuration is working correctly.",
   });
 

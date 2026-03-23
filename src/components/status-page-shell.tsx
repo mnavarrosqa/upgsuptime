@@ -405,7 +405,7 @@ export function StatusPageShell({
 
         {/* ── Footer ──────────────────────────────────────────────── */}
         <p className="mt-10 flex items-center justify-center gap-1.5 text-center text-xs text-text-muted">
-          <span>Powered by Uptime Monitor</span>
+          <span>Powered by UPG Monitor</span>
           <span aria-hidden>·</span>
           <span>Refreshes every 60s</span>
         </p>
