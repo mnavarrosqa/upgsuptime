@@ -9,6 +9,7 @@ import { AppNavLinks } from "@/components/app-nav-links";
 import { MobileMenu } from "@/components/mobile-menu";
 import { IncidentPoller } from "@/components/incident-poller";
 import { ActivityProvider } from "@/components/activity-context";
+import { PullToRefresh } from "@/components/pull-to-refresh";
 
 export default async function AppLayout({
   children,
@@ -58,6 +59,7 @@ export default async function AppLayout({
           </div>
         </div>
       </header>
+      <PullToRefresh />
       <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6">{children}</main>
       <IncidentPoller />
     </div>
