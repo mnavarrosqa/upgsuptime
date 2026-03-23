@@ -11,6 +11,12 @@ const withSerwist = withSerwistInit({
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["better-sqlite3"],
+  webpack(config, { isServer }) {
+    if (isServer) {
+      config.externalsPresets = { ...config.externalsPresets, node: true };
+    }
+    return config;
+  },
   // Allow dev server to be opened by IP (e.g. http://192.168.x.x:3077) instead of only localhost
   ...(process.env.NODE_ENV !== "production"
     ? { allowedDevOrigins: ["192.168.68.114", "192.168.68.114:3077", "localhost:3077"] }
