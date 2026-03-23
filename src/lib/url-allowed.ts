@@ -37,7 +37,7 @@ function isBlockedIPv6(ip: string): boolean {
   return false;
 }
 
-function isBlockedIP(ip: string): boolean {
+export function isBlockedIP(ip: string): boolean {
   if (isIPv4(ip)) return isBlockedIPv4(ip);
   if (isIPv6(ip)) return isBlockedIPv6(ip);
   return true;

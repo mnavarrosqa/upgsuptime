@@ -39,6 +39,7 @@ export const monitor = sqliteTable("monitor", {
   sslLastCheckedAt: integer("ssl_last_checked_at", { mode: "timestamp" }),
   showOnStatusPage: integer("show_on_status_page", { mode: "boolean" }),
   paused: integer("paused", { mode: "boolean" }),
+  consecutiveFailures: integer("consecutive_failures"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 

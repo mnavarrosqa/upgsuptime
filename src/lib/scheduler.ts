@@ -26,16 +26,33 @@ export async function runDueChecks(): Promise<{ ran: number }> {
     return dueAt <= now.getTime();
   });
 
+  const MAX_CONCURRENCY = 10;
+  let active = 0;
+  const queue: Array<() => void> = [];
+
+  function acquire(): Promise<void> {
+    if (active < MAX_CONCURRENCY) { active++; return Promise.resolve(); }
+    return new Promise((resolve) => queue.push(resolve));
+  }
+  function release(): void {
+    const next = queue.shift();
+    if (next) { next(); } else { active--; }
+  }
+
   let ran = 0;
-  for (const m of due) {
+  const tasks = due.map((m) => async () => {
+    await acquire();
     const ownerEmail = emailById.get(m.userId) ?? "";
     try {
       await runCheck(m, ownerEmail);
       ran++;
     } catch (err) {
       console.error("[scheduler] check failed for monitor", m.id, err);
+    } finally {
+      release();
     }
-  }
+  });
 
+  await Promise.allSettled(tasks.map((t) => t()));
   return { ran };
 }

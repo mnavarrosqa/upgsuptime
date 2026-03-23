@@ -1,9 +1,11 @@
 import { randomUUID } from "crypto";
+import dns from "dns";
+import { Agent } from "undici";
 import { db } from "@/db";
 import { monitor, checkResult } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import type { Monitor } from "@/db/schema";
-import { getUrlNotAllowedReason } from "@/lib/url-allowed";
+import { getUrlNotAllowedReason, isBlockedIP } from "@/lib/url-allowed";
 import { sendNotifications, sendSslNotifications } from "@/lib/notify";
 import type { SslAlertType } from "@/lib/notify";
 import { checkSSL } from "@/lib/check-ssl";
@@ -15,6 +17,13 @@ export type RunCheckResult = {
   responseTimeMs: number;
   message?: string;
 };
+
+/** Number of consecutive failures required before transitioning to DOWN and alerting. */
+const CONFIRMATION_COUNT = 2;
+/** Total fetch attempts per check (1 initial + 2 retries). */
+const TOTAL_ATTEMPTS = 3;
+/** Delay between retry attempts in milliseconds. */
+const RETRY_DELAY_MS = 1000;
 
 /**
  * Parse expectedStatusCodes string into a predicate for status codes.
@@ -74,32 +83,66 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
   const method = (m.method === "HEAD" ? "HEAD" : "GET") as "GET" | "HEAD";
   const isSuccess = parseExpectedStatusCodes(m.expectedStatusCodes ?? "200-299");
 
-  const start = Date.now();
   let ok = false;
   let statusCode: number | undefined;
   let message: string | undefined;
+  let responseTimeMs = 0;
+
+  // Undici agent that re-validates DNS at connect time (eliminates TOCTOU race)
+  const ssrfGuardAgent = new Agent({
+    connect: {
+      lookup: (hostname, options, callback) => {
+        dns.lookup(
+          hostname,
+          { family: (options as { family?: 4 | 6 })?.family ?? 0 },
+          (err, address, family) => {
+            if (err) return callback(err, "", 4);
+            if (isBlockedIP(address)) {
+              return callback(
+                new Error(`Resolved IP ${address} is not allowed (SSRF protection)`),
+                "",
+                family
+              );
+            }
+            callback(null, address, family);
+          }
+        );
+      },
+    },
+  });
 
   const notAllowedReason = await getUrlNotAllowedReason(m.url);
   if (notAllowedReason) {
     message = notAllowedReason;
   } else {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
-      const res = await fetch(m.url, {
-        method,
-        signal: controller.signal,
-        headers: { "User-Agent": "UPGSMonitor/1.0" },
-      });
-      clearTimeout(timeout);
-      statusCode = res.status;
-      ok = isSuccess(res.status);
-    } catch (err) {
-      message = err instanceof Error ? err.message : String(err);
+    for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
+      if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+
+      const attemptStart = Date.now();
+      ok = false;
+      statusCode = undefined;
+      message = undefined;
+
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), timeoutMs);
+        const res = await fetch(m.url, {
+          method,
+          signal: controller.signal,
+          headers: { "User-Agent": "UPGSMonitor/1.0" },
+          dispatcher: ssrfGuardAgent,
+        } as RequestInit & { dispatcher: Agent });
+        clearTimeout(timeout);
+        statusCode = res.status;
+        ok = isSuccess(res.status);
+      } catch (err) {
+        message = err instanceof Error ? err.message : String(err);
+      }
+
+      responseTimeMs = Date.now() - attemptStart;
+      if (ok) break;
     }
   }
-
-  const responseTimeMs = Date.now() - start;
 
   // When HTTP check fails with a status code but no network error, add descriptive text
   if (!ok && statusCode != null && !message) {
@@ -120,10 +163,26 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
     createdAt: now,
   });
 
-  // Detect HTTP status transition: null (unknown) → any, or true → false, or false → true
-  const transitioned = m.currentStatus === null || m.currentStatus !== ok;
-  // Don't send UP email for the very first check — that's not a "recovery"
-  const shouldNotify = transitioned && !(m.currentStatus === null && ok);
+  // --- Confirmation window state machine ---
+  let newConsecutiveFailures: number;
+  let shouldTransition: boolean;
+  let shouldNotify: boolean;
+
+  if (ok) {
+    newConsecutiveFailures = 0;
+    shouldTransition = m.currentStatus !== true;   // null→true or false→true
+    shouldNotify = m.currentStatus === false;       // only false→true (recovery) alerts
+  } else {
+    newConsecutiveFailures = (m.consecutiveFailures ?? 0) + 1;
+    if (newConsecutiveFailures >= CONFIRMATION_COUNT) {
+      shouldTransition = m.currentStatus !== false; // null→false or true→false
+      shouldNotify = m.currentStatus === true;      // only true→false fires DOWN alert
+    } else {
+      shouldTransition = false;
+      shouldNotify = false;
+    }
+  }
+
   // True when a site that was confirmed down has just come back up
   const isHttpRecovery = m.currentStatus === false && ok === true;
 
@@ -153,12 +212,13 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
     }
   }
 
-  // Single DB update: HTTP fields + SSL fields in one round-trip
+  // Single DB update: HTTP fields + SSL fields + consecutiveFailures in one round-trip
   await db
     .update(monitor)
     .set({
       lastCheckAt: now,
-      ...(transitioned ? { currentStatus: ok, lastStatusChangedAt: now } : {}),
+      consecutiveFailures: newConsecutiveFailures,
+      ...(shouldTransition ? { currentStatus: ok, lastStatusChangedAt: now } : {}),
       ...(sslResult
         ? {
             sslValid: sslResult.valid,
