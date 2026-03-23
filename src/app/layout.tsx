@@ -32,13 +32,13 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "UPGS Monitor",
-  description: "UPGS Monitor — Multi-user uptime monitoring",
+  title: "UPG Monitor",
+  description: "UPG Monitor — Multi-user uptime monitoring",
   manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "UPGS Monitor",
+    title: "UPG Monitor",
     startupImage: pwaSplashStartupImages,
   },
   icons: {

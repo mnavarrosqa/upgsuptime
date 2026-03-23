@@ -33,7 +33,7 @@ export function AccountDataPortability() {
       const blob = await res.blob();
       const cd = res.headers.get("Content-Disposition");
       const match = cd?.match(/filename="([^"]+)"/);
-      const filename = match?.[1] ?? "upgs-account.json";
+      const filename = match?.[1] ?? "upg-account.json";
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;

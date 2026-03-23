@@ -147,7 +147,7 @@ export async function sendEmailAlert(
   );
 
   await transporter.sendMail({
-    from: process.env.SMTP_FROM ?? `"UPGS Monitor" <${process.env.SMTP_USER}>`,
+    from: process.env.SMTP_FROM ?? `"UPG Monitor" <${process.env.SMTP_USER}>`,
     to,
     subject,
     text: textLines,
@@ -235,7 +235,7 @@ export async function sendSslNotifications(
 
   try {
     await transporter.sendMail({
-      from: process.env.SMTP_FROM ?? `"UPGS Monitor" <${process.env.SMTP_USER}>`,
+      from: process.env.SMTP_FROM ?? `"UPG Monitor" <${process.env.SMTP_USER}>`,
       to,
       subject,
       text: textLines,

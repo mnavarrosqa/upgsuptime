@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { Activity } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Maintenance — UPGS Monitor",
-  description: "UPGS Monitor is temporarily down for maintenance.",
+  title: "Maintenance — UPG Monitor",
+  description: "UPG Monitor is temporarily down for maintenance.",
   robots: { index: false, follow: false },
 };
 
@@ -19,7 +19,7 @@ export default function MaintenancePage() {
             <Activity size={26} strokeWidth={2.5} aria-hidden />
           </div>
           <p className="text-xs font-semibold uppercase tracking-widest text-text-muted font-display">
-            UPGS Monitor
+            UPG Monitor
           </p>
         </div>
 

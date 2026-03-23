@@ -25,7 +25,7 @@ export default function GlobalError({
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <title>Something went wrong — UPGS Monitor</title>
+        <title>Something went wrong — UPG Monitor</title>
         <style>{`
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
           :root {
@@ -105,7 +105,7 @@ export default function GlobalError({
                 textTransform: "uppercase",
                 color: "var(--text-muted)",
               }}>
-                UPGS Monitor
+                UPG Monitor
               </p>
             </div>
 

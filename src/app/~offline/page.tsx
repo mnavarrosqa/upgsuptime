@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { HeartPulse, WifiOff } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "You're offline — UPGS Monitor",
+  title: "You're offline — UPG Monitor",
   robots: { index: false, follow: false },
 };
 
@@ -15,7 +15,7 @@ export default function OfflinePage() {
             <HeartPulse size={26} strokeWidth={2.5} aria-hidden />
           </div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] font-display">
-            UPGS Monitor
+            UPG Monitor
           </p>
         </div>
 
@@ -27,7 +27,7 @@ export default function OfflinePage() {
           You&apos;re offline
         </h1>
         <p className="mb-8 text-sm leading-relaxed text-[var(--text-muted)]">
-          UPGS Monitor needs a live connection to show uptime data.
+          UPG Monitor needs a live connection to show uptime data.
           <br />
           Check your network and try again.
         </p>

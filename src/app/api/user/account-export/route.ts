@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   }
 
   const payload: AccountExportPayload = {
-    upgsAccountExportVersion: ACCOUNT_DATA_VERSION,
+    upgAccountExportVersion: ACCOUNT_DATA_VERSION,
     exportedAt: new Date().toISOString(),
     user: {
       email: u.email,
@@ -82,7 +82,7 @@ export async function GET(request: Request) {
   };
 
   const date = new Date().toISOString().slice(0, 10);
-  const filename = `upgs-account-${date}.json`;
+  const filename = `upg-account-${date}.json`;
 
   return new Response(JSON.stringify(payload, null, 2), {
     headers: {

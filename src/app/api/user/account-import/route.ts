@@ -46,7 +46,8 @@ export async function POST(request: Request) {
   }
 
   const obj = body as Record<string, unknown>;
-  const version = obj.upgsAccountExportVersion;
+  const version =
+    obj.upgAccountExportVersion ?? obj.upgsAccountExportVersion;
   if (version !== ACCOUNT_DATA_VERSION) {
     return NextResponse.json(
       {

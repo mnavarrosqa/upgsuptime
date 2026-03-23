@@ -131,7 +131,7 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
         const res = await undiciFetch(m.url, {
           method,
           signal: controller.signal,
-          headers: { "User-Agent": "UPGSMonitor/1.0" },
+          headers: { "User-Agent": "UPGMonitor/1.0" },
           dispatcher: ssrfGuardAgent,
         });
         statusCode = res.status;

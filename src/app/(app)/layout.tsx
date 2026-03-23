@@ -31,7 +31,7 @@ export default async function AppLayout({
               style={{ fontFamily: "var(--font-display)" }}
             >
               <HeartPulse className="size-4 shrink-0" />
-              UPGS Monitor
+              UPG Monitor
             </Link>
 
             {/* Desktop nav */}

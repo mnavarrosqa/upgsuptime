@@ -40,7 +40,7 @@ export function PwaRootLoading() {
             priority
             className="h-24 w-24 rounded-2xl"
           />
-          <p className="text-lg font-semibold text-text">UPGS Monitor</p>
+          <p className="text-lg font-semibold text-text">UPG Monitor</p>
           <Spinner />
           <p className="text-sm font-medium text-text-muted">{message}</p>
         </div>

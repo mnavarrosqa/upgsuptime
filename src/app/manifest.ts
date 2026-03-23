@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "UPGS Monitor",
-    short_name: "UPGS",
+    name: "UPG Monitor",
+    short_name: "UPG",
     description: "Multi-user uptime monitoring",
     start_url: "/dashboard",
     display: "standalone",

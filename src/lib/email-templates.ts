@@ -74,7 +74,7 @@ function wrap(body: string) {
         <table width="100%" style="max-width:520px;" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
             <td style="padding-bottom:20px;">
-              <span style="font-size:12px;color:${COLORS.textFaint};font-weight:600;letter-spacing:0.1em;text-transform:uppercase;font-family:${FONT_STACK};">UPGS Monitor</span>
+              <span style="font-size:12px;color:${COLORS.textFaint};font-weight:600;letter-spacing:0.1em;text-transform:uppercase;font-family:${FONT_STACK};">UPG Monitor</span>
             </td>
           </tr>
 

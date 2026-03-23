@@ -76,7 +76,7 @@ export type AccountExportCheckResult = {
 };
 
 export type AccountExportPayload = {
-  upgsAccountExportVersion: typeof ACCOUNT_DATA_VERSION;
+  upgAccountExportVersion: typeof ACCOUNT_DATA_VERSION;
   exportedAt: string;
   user: AccountExportUser;
   monitors: AccountExportMonitor[];
