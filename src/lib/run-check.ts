@@ -44,6 +44,7 @@ const ssrfGuardAgent = new Agent({
       });
   },
 });
+
 /** Total fetch attempts per check (1 initial + 2 retries). */
 const TOTAL_ATTEMPTS = 3;
 /** Delay between retry attempts in milliseconds. */
@@ -124,20 +125,23 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
       statusCode = undefined;
       message = undefined;
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), timeoutMs);
         const res = await undiciFetch(m.url, {
           method,
           signal: controller.signal,
           headers: { "User-Agent": "UPGSMonitor/1.0" },
           dispatcher: ssrfGuardAgent,
         });
-        clearTimeout(timeout);
         statusCode = res.status;
         ok = isSuccess(res.status);
+        // Drain body so undici can reuse the connection
+        await res.body?.cancel();
       } catch (err) {
         message = err instanceof Error ? err.message : String(err);
+      } finally {
+        clearTimeout(timeout);
       }
 
       responseTimeMs = Date.now() - attemptStart;
