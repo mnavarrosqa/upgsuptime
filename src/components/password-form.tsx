@@ -2,11 +2,16 @@
 
 import { useState } from "react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { useApiErrorMessage } from "@/lib/api-errors";
 
 const inputClass =
   "w-full rounded-md border border-input-border bg-bg-card px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
 
 export function PasswordForm() {
+  const tCommon = useTranslations("common");
+  const tAccount = useTranslations("account");
+  const apiErrorMessage = useApiErrorMessage();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -25,15 +30,15 @@ export function PasswordForm() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to change password");
+        setError(apiErrorMessage(data));
         return;
       }
-      toast.success("Password changed");
+      toast.success(tAccount("passwordChanged"));
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
     } catch {
-      setError("Something went wrong");
+      setError(tCommon("somethingWentWrong"));
     } finally {
       setSaving(false);
     }
@@ -54,7 +59,7 @@ export function PasswordForm() {
           htmlFor="currentPassword"
           className="block text-sm font-medium text-text-primary mb-1.5"
         >
-          Current password
+          {tAccount("currentPassword")}
         </label>
         <input
           id="currentPassword"
@@ -71,7 +76,7 @@ export function PasswordForm() {
           htmlFor="newPassword"
           className="block text-sm font-medium text-text-primary mb-1.5"
         >
-          New password
+          {tAccount("newPassword")}
         </label>
         <input
           id="newPassword"
@@ -83,14 +88,14 @@ export function PasswordForm() {
           minLength={8}
           className={inputClass}
         />
-        <p className="mt-1.5 text-xs text-text-muted">At least 8 characters</p>
+        <p className="mt-1.5 text-xs text-text-muted">{tCommon("atLeast8Chars")}</p>
       </div>
       <div>
         <label
           htmlFor="confirmPassword"
           className="block text-sm font-medium text-text-primary mb-1.5"
         >
-          Confirm new password
+          {tAccount("confirmNewPassword")}
         </label>
         <input
           id="confirmPassword"
@@ -108,7 +113,7 @@ export function PasswordForm() {
           disabled={saving}
           className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
-          {saving ? "Saving…" : "Change password"}
+          {saving ? tAccount("saving") : tAccount("changePassword")}
         </button>
       </div>
     </form>

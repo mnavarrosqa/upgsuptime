@@ -9,6 +9,7 @@ import { user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AccountOnboardingSection } from "@/components/account-onboarding-section";
 import { AccountDataPortability } from "@/components/account-data-portability";
+import { getTranslations } from "next-intl/server";
 
 function getInitials(name: string | null | undefined, email: string): string {
   if (name) {
@@ -23,6 +24,8 @@ function getInitials(name: string | null | undefined, email: string): string {
 }
 
 export default async function AccountPage() {
+  const tAccount = await getTranslations("account");
+  const tCommon = await getTranslations("common");
   const session = await getServerSession(authOptions);
   if (!session?.user) redirect("/login");
 
@@ -30,7 +33,7 @@ export default async function AccountPage() {
   const initials = getInitials(name, email ?? "");
 
   const [userOnboarding] = await db
-    .select({ onboardingCompleted: user.onboardingCompleted, onboardingStep: user.onboardingStep })
+    .select({ onboardingCompleted: user.onboardingCompleted, onboardingStep: user.onboardingStep, language: user.language })
     .from(user)
     .where(eq(user.id, id));
 
@@ -40,10 +43,10 @@ export default async function AccountPage() {
         className="text-2xl font-semibold tracking-tight text-text-primary"
         style={{ fontFamily: "var(--font-display)" }}
       >
-        Account
+        {tAccount("title")}
       </h1>
       <p className="mt-1 text-sm text-text-muted">
-        Manage your account details and security settings.
+        {tAccount("subtitle")}
       </p>
 
       {/* Identity card */}
@@ -77,10 +80,10 @@ export default async function AccountPage() {
           <User className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
-              Username
+              {tCommon("username")}
             </p>
             <p className="mt-0.5 text-sm text-text-primary">
-              {name ?? <span className="italic text-text-muted">Not set</span>}
+              {name ?? <span className="italic text-text-muted">{tAccount("notSet")}</span>}
             </p>
           </div>
         </div>
@@ -88,7 +91,7 @@ export default async function AccountPage() {
           <Mail className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
-              Email
+              {tCommon("email")}
             </p>
             <p className="mt-0.5 truncate text-sm text-text-primary">
               {email ?? "—"}
@@ -99,7 +102,7 @@ export default async function AccountPage() {
           <Shield className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
           <div className="min-w-0 flex-1">
             <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
-              Role
+              {tAccount("role")}
             </p>
             <p className="mt-0.5 capitalize text-sm text-text-primary">
               {role ?? "—"}
@@ -114,13 +117,13 @@ export default async function AccountPage() {
           className="text-base font-semibold text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Profile
+          {tAccount("profileTitle")}
         </h2>
         <p className="mt-0.5 text-sm text-text-muted">
-          Update your username. Email cannot be changed.
+          {tAccount("profileSubtitle")}
         </p>
         <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
-          <ProfileForm username={name} />
+          <ProfileForm username={name} language={userOnboarding?.language ?? "en"} />
         </div>
       </div>
 
@@ -130,10 +133,10 @@ export default async function AccountPage() {
           className="text-base font-semibold text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Security
+          {tAccount("securityTitle")}
         </h2>
         <p className="mt-0.5 text-sm text-text-muted">
-          Change your password. You&apos;ll stay signed in after changing it.
+          {tAccount("securitySubtitle")}
         </p>
         <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
           <PasswordForm />

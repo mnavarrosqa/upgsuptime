@@ -4,6 +4,7 @@ import { user } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
 import { randomUUID } from "crypto";
+import { LOCALE_COOKIE, normalizeLocale } from "@/i18n/config";
 
 const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_MAX_ATTEMPTS = 5;
@@ -46,13 +47,13 @@ function recordAttempt(key: string): void {
 
 export async function POST(request: Request) {
   if (process.env.DISABLE_SETUP === "true") {
-    return NextResponse.json({ error: "Setup is disabled" }, { status: 404 });
+    return NextResponse.json({ errorCode: "SETUP_DISABLED" }, { status: 404 });
   }
 
   const clientKey = getClientKey(request);
   if (isRateLimited(clientKey)) {
     return NextResponse.json(
-      { error: "Too many setup attempts. Try again later." },
+      { errorCode: "RATE_LIMITED_SETUP" },
       { status: 429 }
     );
   }
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
   const [row] = await db.select({ count: count() }).from(user);
   if (row.count > 0) {
     return NextResponse.json(
-      { error: "Setup already completed" },
+      { errorCode: "SETUP_COMPLETED" },
       { status: 403 }
     );
   }
@@ -73,37 +74,40 @@ export async function POST(request: Request) {
   const password = typeof body.password === "string" ? body.password : "";
   const confirmPassword =
     typeof body.confirmPassword === "string" ? body.confirmPassword : "";
+  const language = normalizeLocale(
+    typeof body.language === "string" ? body.language : undefined
+  );
 
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json(
-      { error: "Valid email is required" },
+      { errorCode: "EMAIL_INVALID" },
       { status: 400 }
     );
   }
   if (username !== null) {
     if (!/^[a-zA-Z0-9_]+$/.test(username) || username.length < 2) {
       return NextResponse.json(
-        { error: "Username must be at least 2 characters and only letters, numbers, and underscores" },
+        { errorCode: "USERNAME_INVALID" },
         { status: 400 }
       );
     }
     const [existing] = await db.select({ id: user.id }).from(user).where(eq(user.username, username));
     if (existing) {
       return NextResponse.json(
-        { error: "Username is already taken" },
+        { errorCode: "USERNAME_TAKEN" },
         { status: 400 }
       );
     }
   }
   if (password.length < 8) {
     return NextResponse.json(
-      { error: "Password must be at least 8 characters" },
+      { errorCode: "PASSWORD_TOO_SHORT" },
       { status: 400 }
     );
   }
   if (password !== confirmPassword) {
     return NextResponse.json(
-      { error: "Passwords do not match" },
+      { errorCode: "PASSWORDS_DO_NOT_MATCH" },
       { status: 400 }
     );
   }
@@ -118,13 +122,21 @@ export async function POST(request: Request) {
     username,
     passwordHash,
     role: "admin",
+    language,
     createdAt: now,
   });
 
-  return NextResponse.json({
+  const response = NextResponse.json({
     success: true,
     userId: id,
     email,
     username: username ?? undefined,
+    language,
   });
+  response.cookies.set(LOCALE_COOKIE, language, {
+    path: "/",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  return response;
 }

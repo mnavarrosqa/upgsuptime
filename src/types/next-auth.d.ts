@@ -7,6 +7,7 @@ declare module "next-auth" {
       email?: string | null;
       name?: string | null;
       role?: string;
+      language?: "en" | "es";
     };
   }
 }
@@ -16,5 +17,6 @@ declare module "next-auth/jwt" {
     id?: string;
     name?: string;
     role?: string;
+    language?: "en" | "es";
   }
 }

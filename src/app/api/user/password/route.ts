@@ -9,7 +9,7 @@ import bcrypt from "bcrypt";
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ errorCode: "UNAUTHORIZED" }, { status: 401 });
   }
 
   const [row] = await db
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
     .where(eq(user.id, session.user.id));
 
   if (!row) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+    return NextResponse.json({ errorCode: "USER_NOT_FOUND" }, { status: 404 });
   }
 
   const body = await request.json();
@@ -32,28 +32,28 @@ export async function POST(request: Request) {
   const valid = await bcrypt.compare(currentPassword, row.passwordHash);
   if (!valid) {
     return NextResponse.json(
-      { error: "Current password is incorrect" },
+      { errorCode: "CURRENT_PASSWORD_INCORRECT" },
       { status: 400 }
     );
   }
 
   if (newPassword.length < 8) {
     return NextResponse.json(
-      { error: "New password must be at least 8 characters" },
+      { errorCode: "PASSWORD_TOO_SHORT" },
       { status: 400 }
     );
   }
 
   if (newPassword !== confirmPassword) {
     return NextResponse.json(
-      { error: "Passwords do not match" },
+      { errorCode: "PASSWORDS_DO_NOT_MATCH" },
       { status: 400 }
     );
   }
 
   if (newPassword === currentPassword) {
     return NextResponse.json(
-      { error: "New password must be different from your current password" },
+      { errorCode: "NEW_PASSWORD_SAME_AS_CURRENT" },
       { status: 400 }
     );
   }

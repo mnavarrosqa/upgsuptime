@@ -4,6 +4,7 @@ import bcrypt from "bcrypt";
 import { db } from "@/db";
 import { user as userTable } from "@/db/schema";
 import { eq, sql } from "drizzle-orm";
+import { normalizeLocale } from "@/i18n/config";
 
 const secret = process.env.NEXTAUTH_SECRET;
 if (process.env.NODE_ENV === "production" && (typeof secret !== "string" || secret.length === 0)) {
@@ -27,7 +28,16 @@ export const authOptions: NextAuthOptions = {
         }
         if (!identifier || !password) return null;
         const isEmail = identifier.includes("@");
-        let u: { id: string; email: string; username: string | null; passwordHash: string; role: string } | undefined;
+        let u:
+          | {
+              id: string;
+              email: string;
+              username: string | null;
+              passwordHash: string;
+              role: string;
+              language: "en" | "es";
+            }
+          | undefined;
         if (isEmail) {
           [u] = await db
             .select()
@@ -60,6 +70,7 @@ export const authOptions: NextAuthOptions = {
           email: u.email,
           name: u.username ?? undefined,
           role: u.role,
+          language: normalizeLocale(u.language ?? "en"),
         };
       },
     }),
@@ -70,13 +81,17 @@ export const authOptions: NextAuthOptions = {
         token.id = user.id;
         token.role = (user as { role?: string }).role;
         token.name = (user as { name?: string }).name;
+        token.language = normalizeLocale((user as { language?: string }).language);
       }
       if (trigger === "update" && token.id) {
         const [row] = await db
-          .select({ username: userTable.username })
+          .select({ username: userTable.username, language: userTable.language })
           .from(userTable)
           .where(eq(userTable.id, token.id as string));
-        if (row) token.name = row.username ?? undefined;
+        if (row) {
+          token.name = row.username ?? undefined;
+          token.language = normalizeLocale(row.language ?? "en");
+        }
       }
       return token;
     },
@@ -85,6 +100,7 @@ export const authOptions: NextAuthOptions = {
         (session.user as { id?: string }).id = token.id as string;
         (session.user as { role?: string }).role = token.role as string;
         (session.user as { name?: string }).name = token.name as string | undefined;
+        (session.user as { language?: "en" | "es" }).language = normalizeLocale(token.language as string);
       }
       return session;
     },

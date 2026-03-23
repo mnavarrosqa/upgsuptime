@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
+import createNextIntlPlugin from "next-intl/plugin";
 
 const withSerwist = withSerwistInit({
   swSrc: "src/app/sw.ts",
@@ -8,6 +9,7 @@ const withSerwist = withSerwistInit({
   additionalPrecacheEntries: [{ url: "/~offline", revision: "1" }],
   reloadOnOnline: false,
 });
+const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["better-sqlite3"],
@@ -81,4 +83,4 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default withSerwist(nextConfig);
+export default withNextIntl(withSerwist(nextConfig));

@@ -5,8 +5,22 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, HeartPulse } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { LanguageSelect } from "@/components/language-select";
+
+function LoadingFallback() {
+  const tCommon = useTranslations("common");
+  return (
+    <div className="flex min-h-screen items-center justify-center">
+      <p className="text-text-muted">{tCommon("loading")}</p>
+    </div>
+  );
+}
 
 function LoginForm() {
+  const tCommon = useTranslations("common");
+  const tAuth = useTranslations("auth");
+  const locale = useLocale();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [login, setLogin] = useState("");
@@ -15,6 +29,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
+  const [language, setLanguage] = useState<"en" | "es">((locale === "es" ? "es" : "en"));
 
   const expired = searchParams.get("expired") === "1";
   const rateLimited = searchParams.get("error") === "rate_limit";
@@ -37,13 +52,13 @@ function LoginForm() {
         redirect: false,
       });
       if (res?.error) {
-        setError("Invalid email, username, or password");
+        setError(tAuth("invalidCredentials"));
         return;
       }
       router.replace("/dashboard");
       router.refresh();
     } catch {
-      setError("Something went wrong");
+      setError(tCommon("somethingWentWrong"));
     } finally {
       setSubmitting(false);
     }
@@ -60,10 +75,10 @@ function LoginForm() {
           className="text-2xl font-semibold tracking-tight text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Sign in
+          {tAuth("signInTitle")}
         </h1>
         <p className="mt-1.5 text-sm text-text-muted">
-          Use your admin or user account to manage monitors.
+          {tAuth("signInSubtitle")}
         </p>
       </div>
 
@@ -75,7 +90,7 @@ function LoginForm() {
               className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
               role="alert"
             >
-              Too many sign-in attempts. Try again in 15 minutes.
+              {tAuth("tooManyAttempts")}
             </div>
           )}
           {expired && !rateLimited && (
@@ -83,7 +98,7 @@ function LoginForm() {
               className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
               role="alert"
             >
-              Your session expired. Please sign in again.
+              {tAuth("sessionExpired")}
             </div>
           )}
           {error && (
@@ -97,7 +112,7 @@ function LoginForm() {
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="login" className="text-sm font-medium text-text-primary">
-              Email or username
+              {tAuth("emailOrUsername")}
             </label>
             <input
               id="login"
@@ -113,7 +128,7 @@ function LoginForm() {
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="password" className="text-sm font-medium text-text-primary">
-              Password
+              {tCommon("password")}
             </label>
             <div className="relative">
               <input
@@ -130,7 +145,7 @@ function LoginForm() {
                 tabIndex={-1}
                 onClick={() => setShowPassword((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? tCommon("hidePassword") : tCommon("showPassword")}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -142,8 +157,9 @@ function LoginForm() {
             disabled={submitting}
             className="mt-1 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60 transition-opacity"
           >
-            {submitting ? "Signing in…" : "Sign in"}
+            {submitting ? tAuth("signingIn") : tCommon("signIn")}
           </button>
+          <LanguageSelect value={language} onChange={setLanguage} disabled={submitting} id="language-login" />
         </form>
       </div>
 
@@ -151,13 +167,13 @@ function LoginForm() {
       <div className="mt-5 text-center text-sm text-text-muted">
         {needsSetup === true && (
           <Link href="/setup" className="hover:text-text-primary transition-colors">
-            First time? Create admin account →
+            {tAuth("firstTimeSetup")}
           </Link>
         )}
         {needsSetup === false && (
           <Link href="/register" className="hover:text-text-primary transition-colors">
-            Don&apos;t have an account?{" "}
-            <span className="font-medium text-text-primary">Register</span>
+            {tAuth("noAccount")}{" "}
+            <span className="font-medium text-text-primary">{tAuth("registerCta")}</span>
           </Link>
         )}
       </div>
@@ -167,11 +183,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-text-muted">Loading…</p>
-      </div>
-    }>
+    <Suspense fallback={<LoadingFallback />}>
       <LoginForm />
     </Suspense>
   );

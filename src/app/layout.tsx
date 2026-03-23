@@ -4,6 +4,7 @@ import { Instrument_Sans, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { pwaSplashStartupImages } from "@/lib/pwa-splash-startup.generated";
+import { getLocale, getMessages } from "next-intl/server";
 
 const themeScript = `
 (function() {
@@ -46,16 +47,19 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const locale = await getLocale();
+  const messages = await getMessages();
+
   return (
-    <html lang="en" className={`${instrumentSans.variable} ${dmSans.variable}`} suppressHydrationWarning>
+    <html lang={locale} className={`${instrumentSans.variable} ${dmSans.variable}`} suppressHydrationWarning>
       <body className="font-sans antialiased">
         <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <Providers>{children}</Providers>
+        <Providers locale={locale} messages={messages}>{children}</Providers>
       </body>
     </html>
   );

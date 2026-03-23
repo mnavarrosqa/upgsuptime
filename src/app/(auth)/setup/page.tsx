@@ -4,8 +4,15 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff, HeartPulse } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
+import { LanguageSelect } from "@/components/language-select";
+import { useApiErrorMessage } from "@/lib/api-errors";
 
 export default function SetupPage() {
+  const tCommon = useTranslations("common");
+  const tAuth = useTranslations("auth");
+  const locale = useLocale();
+  const apiErrorMessage = useApiErrorMessage();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
@@ -17,6 +24,7 @@ export default function SetupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [language, setLanguage] = useState<"en" | "es">((locale === "es" ? "es" : "en"));
 
   useEffect(() => {
     fetch("/api/setup/status")
@@ -44,16 +52,17 @@ export default function SetupPage() {
           username: username.trim() || undefined,
           password,
           confirmPassword,
+          language,
         }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Setup failed");
+        setError(apiErrorMessage(data));
         return;
       }
       router.replace("/login");
     } catch {
-      setError("Something went wrong");
+      setError(tCommon("somethingWentWrong"));
     } finally {
       setSubmitting(false);
     }
@@ -65,7 +74,7 @@ export default function SetupPage() {
   if (loading || needsSetup === null) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <p className="text-text-muted">Checking setup status…</p>
+        <p className="text-text-muted">{tAuth("checkingSetupStatus")}</p>
       </div>
     );
   }
@@ -85,10 +94,10 @@ export default function SetupPage() {
           className="text-2xl font-semibold tracking-tight text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Create admin account
+          {tAuth("createAdminTitle")}
         </h1>
         <p className="mt-1.5 text-sm text-text-muted">
-          First run — create the initial administrator to manage uptime monitors.
+          {tAuth("createAdminSubtitle")}
         </p>
       </div>
 
@@ -106,7 +115,7 @@ export default function SetupPage() {
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="email" className="text-sm font-medium text-text-primary">
-              Email
+              {tCommon("email")}
             </label>
             <input
               id="email"
@@ -122,8 +131,8 @@ export default function SetupPage() {
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="username" className="text-sm font-medium text-text-primary">
-              Username{" "}
-              <span className="font-normal text-text-muted">(optional)</span>
+              {tCommon("username")}{" "}
+              <span className="font-normal text-text-muted">({tCommon("optional")})</span>
             </label>
             <input
               id="username"
@@ -131,15 +140,15 @@ export default function SetupPage() {
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Letters, numbers, underscores"
+              placeholder={tCommon("lettersNumbersUnderscores")}
               className="w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-2 focus:ring-input-focus/20"
             />
-            <p className="text-xs text-text-muted">You can sign in with email or username</p>
+            <p className="text-xs text-text-muted">{tAuth("usernameSigninHint")}</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="password" className="text-sm font-medium text-text-primary">
-              Password
+              {tCommon("password")}
             </label>
             <div className="relative">
               <input
@@ -157,17 +166,17 @@ export default function SetupPage() {
                 tabIndex={-1}
                 onClick={() => setShowPassword((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-label={showPassword ? tCommon("hidePassword") : tCommon("showPassword")}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
-            <p className="text-xs text-text-muted">At least 8 characters</p>
+            <p className="text-xs text-text-muted">{tCommon("atLeast8Chars")}</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label htmlFor="confirmPassword" className="text-sm font-medium text-text-primary">
-              Confirm password
+              {tCommon("confirmPassword")}
             </label>
             <div className="relative">
               <input
@@ -188,22 +197,24 @@ export default function SetupPage() {
                 tabIndex={-1}
                 onClick={() => setShowConfirm((v) => !v)}
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-                aria-label={showConfirm ? "Hide password" : "Show password"}
+                aria-label={showConfirm ? tCommon("hidePassword") : tCommon("showPassword")}
               >
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
             </div>
             {passwordMismatch && (
-              <p className="text-xs text-red-600 dark:text-red-400">Passwords don&apos;t match</p>
+              <p className="text-xs text-red-600 dark:text-red-400">{tAuth("passwordsDontMatch")}</p>
             )}
           </div>
+
+          <LanguageSelect value={language} onChange={setLanguage} disabled={submitting} id="language-setup" />
 
           <button
             type="submit"
             disabled={submitting || passwordMismatch}
             className="mt-1 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60 transition-opacity"
           >
-            {submitting ? "Creating account…" : "Create admin account"}
+            {submitting ? tAuth("creatingAccount") : tAuth("createAdminTitle")}
           </button>
         </form>
       </div>
@@ -211,8 +222,8 @@ export default function SetupPage() {
       {/* Footer link */}
       <div className="mt-5 text-center text-sm text-text-muted">
         <Link href="/login" className="hover:text-text-primary transition-colors">
-          Already have an account?{" "}
-          <span className="font-medium text-text-primary">Sign in</span>
+          {tAuth("alreadyHaveAccount")}{" "}
+          <span className="font-medium text-text-primary">{tCommon("signIn")}</span>
         </Link>
       </div>
     </div>

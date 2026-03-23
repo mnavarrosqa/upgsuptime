@@ -4,18 +4,26 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
+import { useApiErrorMessage } from "@/lib/api-errors";
+import { LanguageSelect } from "@/components/language-select";
 
 type ProfileFormProps = {
   username: string | null | undefined;
+  language: "en" | "es";
 };
 
 const inputClass =
   "w-full rounded-md border border-input-border bg-bg-card px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
 
-export function ProfileForm({ username }: ProfileFormProps) {
+export function ProfileForm({ username, language }: ProfileFormProps) {
+  const tCommon = useTranslations("common");
+  const tAccount = useTranslations("account");
+  const apiErrorMessage = useApiErrorMessage();
   const router = useRouter();
   const { update } = useSession();
   const [value, setValue] = useState(username ?? "");
+  const [selectedLanguage, setSelectedLanguage] = useState<"en" | "es">(language);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,18 +35,21 @@ export function ProfileForm({ username }: ProfileFormProps) {
       const res = await fetch("/api/user/profile", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username: value.trim() || null }),
+        body: JSON.stringify({
+          username: value.trim() || null,
+          language: selectedLanguage,
+        }),
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to save");
+        setError(apiErrorMessage(data));
         return;
       }
-      toast.success("Username updated");
+      toast.success(tAccount("usernameUpdated"));
       await update();
       router.refresh();
     } catch {
-      setError("Something went wrong");
+      setError(tCommon("somethingWentWrong"));
     } finally {
       setSaving(false);
     }
@@ -59,8 +70,8 @@ export function ProfileForm({ username }: ProfileFormProps) {
           htmlFor="username"
           className="block text-sm font-medium text-text-primary mb-1.5"
         >
-          Username{" "}
-          <span className="font-normal text-text-muted">(optional)</span>
+          {tCommon("username")}{" "}
+          <span className="font-normal text-text-muted">({tCommon("optional")})</span>
         </label>
         <input
           id="username"
@@ -68,20 +79,21 @@ export function ProfileForm({ username }: ProfileFormProps) {
           autoComplete="username"
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Letters, numbers, underscores"
+          placeholder={tCommon("lettersNumbersUnderscores")}
           className={inputClass}
         />
         <p className="mt-1.5 text-xs text-text-muted">
-          2+ characters. Used to sign in instead of email.
+          {tAccount("usernameHelp")}
         </p>
       </div>
+      <LanguageSelect value={selectedLanguage} onChange={setSelectedLanguage} disabled={saving} id="language-profile" />
       <div>
         <button
           type="submit"
           disabled={saving}
           className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
-          {saving ? "Saving…" : "Save username"}
+          {saving ? tAccount("saving") : tAccount("saveUsername")}
         </button>
       </div>
     </form>
