@@ -113,7 +113,7 @@ function RowActionsMenu({
 
   useEffect(() => {
     if (!open) return;
-    function onClickOutside(e: MouseEvent) {
+    function onClickOutside(e: PointerEvent) {
       if (
         menuRef.current &&
         !menuRef.current.contains(e.target as Node) &&
@@ -122,8 +122,8 @@ function RowActionsMenu({
         setOpen(false);
       }
     }
-    document.addEventListener("mousedown", onClickOutside);
-    return () => document.removeEventListener("mousedown", onClickOutside);
+    document.addEventListener("pointerdown", onClickOutside);
+    return () => document.removeEventListener("pointerdown", onClickOutside);
   }, [open]);
 
   const menu = open
@@ -176,10 +176,10 @@ function RowActionsMenu({
         ref={btnRef}
         type="button"
         onClick={handleOpen}
-        className="flex h-8 w-8 items-center justify-center rounded-md text-text-muted transition hover:bg-bg-page hover:text-text-primary active:scale-90"
+        className="flex h-11 w-11 items-center justify-center rounded-md text-text-muted transition hover:bg-bg-page hover:text-text-primary active:scale-90"
         aria-label={t("actions")}
       >
-        <MoreHorizontal className="h-4 w-4" />
+        <MoreHorizontal className="h-5 w-5" />
       </button>
       {menu}
     </>

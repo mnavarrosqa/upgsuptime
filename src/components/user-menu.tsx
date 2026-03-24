@@ -29,7 +29,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
   const t = useTranslations("nav");
 
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
+    function handleClickOutside(event: PointerEvent) {
       if (ref.current && !ref.current.contains(event.target as Node)) {
         setOpen(false);
       }
@@ -38,11 +38,11 @@ export function UserMenu({ email, name }: UserMenuProps) {
       if (event.key === "Escape") setOpen(false);
     }
     if (open) {
-      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("pointerdown", handleClickOutside);
       document.addEventListener("keydown", handleEscape);
     }
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("pointerdown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
   }, [open]);

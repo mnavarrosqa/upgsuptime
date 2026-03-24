@@ -93,14 +93,14 @@ export function CheckResultsTable({
             <button
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="rounded border border-border px-3 py-1 text-xs hover:bg-bg-page disabled:opacity-40"
+              className="inline-flex min-h-11 items-center justify-center rounded border border-border px-4 py-2 text-sm hover:bg-bg-page disabled:opacity-40"
             >
               Previous
             </button>
             <button
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="rounded border border-border px-3 py-1 text-xs hover:bg-bg-page disabled:opacity-40"
+              className="inline-flex min-h-11 items-center justify-center rounded border border-border px-4 py-2 text-sm hover:bg-bg-page disabled:opacity-40"
             >
               Next
             </button>

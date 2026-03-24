@@ -50,14 +50,14 @@ export function MobileMenu({
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") setOpen(false);
     }
-    function onClickOutside(e: MouseEvent) {
+    function onClickOutside(e: PointerEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
     document.addEventListener("keydown", onKey);
-    document.addEventListener("mousedown", onClickOutside);
+    document.addEventListener("pointerdown", onClickOutside);
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.removeEventListener("mousedown", onClickOutside);
+      document.removeEventListener("pointerdown", onClickOutside);
     };
   }, [open]);
 
@@ -73,7 +73,7 @@ export function MobileMenu({
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-9 w-9 items-center justify-center rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
+        className="flex h-11 w-11 items-center justify-center rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
         aria-label={open ? t("closeMenu") : t("openMenu")}
         aria-expanded={open}
       >

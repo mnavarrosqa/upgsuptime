@@ -189,28 +189,28 @@ export function MonitorCard({
         </div>
       </div>
 
-      {/* Hover quick-actions */}
-      <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+      {/* Quick actions are always visible on touch-sized screens and enhanced on hover for larger screens */}
+      <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
         <button
           type="button"
           onClick={handleCheckNow}
           title="Check now"
           disabled={checking || !!paused}
-          className="rounded border border-border bg-bg-card p-1.5 text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded border border-border bg-bg-card text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40"
         >
-          <RefreshCw className={`h-3.5 w-3.5 ${checking ? "animate-spin" : ""}`} aria-hidden />
+          <RefreshCw className={`h-4 w-4 ${checking ? "animate-spin" : ""}`} aria-hidden />
         </button>
         <button
           type="button"
           onClick={handlePauseToggle}
           title={paused ? "Resume" : "Pause"}
           disabled={loading}
-          className="rounded border border-border bg-bg-card p-1.5 text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40"
+          className="flex h-11 w-11 items-center justify-center rounded border border-border bg-bg-card text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40"
         >
           {paused ? (
-            <Play className="h-3.5 w-3.5" aria-hidden />
+            <Play className="h-4 w-4" aria-hidden />
           ) : (
-            <Pause className="h-3.5 w-3.5" aria-hidden />
+            <Pause className="h-4 w-4" aria-hidden />
           )}
         </button>
       </div>

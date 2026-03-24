@@ -228,7 +228,7 @@ export function BulkEditMonitorsForm({
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <label htmlFor="bulk-interval" className={labelClass}>
             Interval (min)
