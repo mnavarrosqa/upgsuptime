@@ -190,13 +190,13 @@ export function MonitorCard({
       </div>
 
       {/* Quick actions are always visible on touch-sized screens and enhanced on hover for larger screens */}
-      <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex gap-1 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+      <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex gap-1 opacity-90 transition-opacity md:opacity-0 md:group-hover:opacity-100">
         <button
           type="button"
           onClick={handleCheckNow}
           title="Check now"
           disabled={checking || !!paused}
-          className="flex h-11 w-11 items-center justify-center rounded border border-border bg-bg-card text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40"
+          className="flex h-9 w-9 items-center justify-center rounded border border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40 md:h-11 md:w-11 md:bg-bg-card"
         >
           <RefreshCw className={`h-4 w-4 ${checking ? "animate-spin" : ""}`} aria-hidden />
         </button>
@@ -205,7 +205,7 @@ export function MonitorCard({
           onClick={handlePauseToggle}
           title={paused ? "Resume" : "Pause"}
           disabled={loading}
-          className="flex h-11 w-11 items-center justify-center rounded border border-border bg-bg-card text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40"
+          className="flex h-9 w-9 items-center justify-center rounded border border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40 md:h-11 md:w-11 md:bg-bg-card"
         >
           {paused ? (
             <Play className="h-4 w-4" aria-hidden />
