@@ -1,16 +1,42 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
-import { validateMonitorUrl } from "@/lib/validate-monitor";
+import { deriveMonitorNameFromUrl } from "@/lib/derive-monitor-name";
+import {
+  parseSitesFromFile,
+  parseSitesFromPlainText,
+  parseSitesFromCsvString,
+  splitCsvLine,
+} from "@/lib/parse-site-file";
+import {
+  validateMonitorName,
+  validateMonitorUrl,
+} from "@/lib/validate-monitor";
 
 const inputClass =
   "w-full rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
 
 const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 const hintClass = "mt-1.5 text-xs text-text-muted";
+
+const MAX_SITES = 100;
+
+type PreviewRow = { id: string; name: string; url: string };
+
+function newRowId(): string {
+  return crypto.randomUUID();
+}
+
+function parsePastedList(text: string) {
+  const first = text.split(/\r?\n/)[0] ?? "";
+  if (first.includes(",") && splitCsvLine(first).length >= 2) {
+    return parseSitesFromCsvString(text);
+  }
+  return parseSitesFromPlainText(text);
+}
 
 export function AddBulkMonitorsForm({
   onSuccess,
@@ -22,7 +48,12 @@ export function AddBulkMonitorsForm({
   onBack?: () => void;
 }) {
   const router = useRouter();
-  const [urlsText, setUrlsText] = useState("");
+  const fileInputId = useId();
+
+  const [rows, setRows] = useState<PreviewRow[]>([]);
+  const [pasteText, setPasteText] = useState("");
+  const [parsingFile, setParsingFile] = useState(false);
+
   const [intervalMinutes, setIntervalMinutes] = useState(5);
   const [timeoutSeconds, setTimeoutSeconds] = useState(15);
   const [method, setMethod] = useState<"GET" | "HEAD">("GET");
@@ -34,40 +65,90 @@ export function AddBulkMonitorsForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const urls = urlsText
-    .split("\n")
-    .map((s) => s.trim())
-    .filter(Boolean);
-  const validCount = urls.filter((url) => !validateMonitorUrl(url)).length;
-  const invalidCount = urls.length - validCount;
+  const rowIssues = useMemo(() => {
+    return rows.map((r) => {
+      const url = r.url.trim();
+      const name = r.name.trim() || deriveMonitorNameFromUrl(url);
+      return {
+        urlError: url ? validateMonitorUrl(url) : "URL is required",
+        nameError: validateMonitorName(name),
+      };
+    });
+  }, [rows]);
+
+  const allValid =
+    rows.length > 0 &&
+    rowIssues.every((i) => i.urlError === null && i.nameError === null);
+
+  const setRowsFromParsed = useCallback((parsed: { name: string; url: string }[]) => {
+    if (parsed.length === 0) {
+      setError("No sites found in that file or list.");
+      setRows([]);
+      return;
+    }
+    if (parsed.length > MAX_SITES) {
+      setError(
+        `Found ${parsed.length} sites; only the first ${MAX_SITES} are loaded.`
+      );
+    } else {
+      setError(null);
+    }
+    setRows(
+      parsed.slice(0, MAX_SITES).map((p) => ({
+        id: newRowId(),
+        name: p.name,
+        url: p.url,
+      }))
+    );
+  }, []);
+
+  async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError(null);
+    setParsingFile(true);
+    try {
+      const parsed = await parseSitesFromFile(file);
+      setRowsFromParsed(parsed);
+    } catch (err) {
+      setRows([]);
+      setError(err instanceof Error ? err.message : "Could not read file");
+    } finally {
+      setParsingFile(false);
+    }
+  }
+
+  function loadFromPaste() {
+    setError(null);
+    const parsed = parsePastedList(pasteText);
+    setRowsFromParsed(parsed);
+  }
+
+  function updateRow(id: string, patch: Partial<Pick<PreviewRow, "name" | "url">>) {
+    setRows((prev) =>
+      prev.map((r) => (r.id === id ? { ...r, ...patch } : r))
+    );
+  }
+
+  function removeRow(id: string) {
+    setRows((prev) => prev.filter((r) => r.id !== id));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
 
-    const parsed = urlsText
-      .split("\n")
-      .map((s) => s.trim())
-      .filter(Boolean);
-
-    if (parsed.length === 0) {
-      setError("Enter at least one URL.");
+    if (!allValid) {
+      setError("Fix or remove rows with errors before saving.");
       return;
     }
 
-    const invalidDetails: Array<{ index: number; url: string; error: string }> = [];
-    for (let i = 0; i < parsed.length; i++) {
-      const err = validateMonitorUrl(parsed[i]);
-      if (err) invalidDetails.push({ index: i + 1, url: parsed[i], error: err });
-    }
-    if (invalidDetails.length > 0) {
-      setError(
-        invalidDetails
-          .map((d) => `Row ${d.index}: ${d.error}`)
-          .join(" ")
-      );
-      return;
-    }
+    const items = rows.map((r) => {
+      const url = r.url.trim();
+      const name = r.name.trim() || deriveMonitorNameFromUrl(url);
+      return { url, name };
+    });
 
     setSubmitting(true);
     try {
@@ -75,7 +156,7 @@ export function AddBulkMonitorsForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          urls: parsed,
+          items,
           intervalMinutes,
           timeoutSeconds,
           method,
@@ -102,9 +183,10 @@ export function AddBulkMonitorsForm({
         }
         return;
       }
-      const count = data.created ?? parsed.length;
+      const count = data.created ?? items.length;
       toast.success(`${count} monitor${count !== 1 ? "s" : ""} added`);
-      setUrlsText("");
+      setRows([]);
+      setPasteText("");
       router.refresh();
       onSuccess?.();
     } catch {
@@ -133,31 +215,162 @@ export function AddBulkMonitorsForm({
         </div>
       )}
 
+      <div className="rounded-md border border-border bg-bg-elevated/30 p-4">
+        <p className={labelClass}>Import from file</p>
+        <p className={hintClass}>
+          .txt (one URL per line), .csv, or .xlsx with columns{" "}
+          <span className="font-mono">name</span> and{" "}
+          <span className="font-mono">url</span>, or URL only. Up to{" "}
+          {MAX_SITES} sites.
+        </p>
+        <div className="mt-3 flex flex-wrap items-center gap-2">
+          <input
+            id={fileInputId}
+            type="file"
+            accept=".txt,.csv,.xlsx,.xls,text/plain,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+            className="sr-only"
+            onChange={onFileChange}
+            disabled={parsingFile || submitting}
+          />
+          <label
+            htmlFor={fileInputId}
+            className={`inline-flex items-center justify-center rounded-md border border-border bg-bg-page px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-bg-page/80 ${
+              parsingFile || submitting
+                ? "pointer-events-none cursor-not-allowed opacity-60"
+                : "cursor-pointer"
+            }`}
+          >
+            {parsingFile ? (
+              <>
+                <Spinner size="sm" className="mr-2" />
+                Reading…
+              </>
+            ) : (
+              "Choose file"
+            )}
+          </label>
+          <span className="text-xs text-text-muted">
+            {parsingFile ? "" : "txt, csv, xlsx"}
+          </span>
+        </div>
+      </div>
+
       <div>
-        <label htmlFor="bulk-urls" className={labelClass}>
-          URLs
+        <label htmlFor="bulk-paste" className={labelClass}>
+          Or paste a list
         </label>
         <textarea
-          id="bulk-urls"
-          value={urlsText}
-          onChange={(e) => setUrlsText(e.target.value)}
+          id="bulk-paste"
+          value={pasteText}
+          onChange={(e) => setPasteText(e.target.value)}
           placeholder="https://example.com"
-          rows={5}
-          className={`${inputClass} min-h-[120px] resize-y`}
-          aria-describedby="bulk-urls-hint"
+          rows={4}
+          className={`${inputClass} min-h-[96px] resize-y`}
+          aria-describedby="bulk-paste-hint"
         />
-        <p id="bulk-urls-hint" className={hintClass}>
-          One URL per line (up to 100). Names will be derived from each URL’s hostname.
+        <p id="bulk-paste-hint" className={hintClass}>
+          One URL per line, or CSV / spreadsheet-style rows. Load into the
+          preview below.
         </p>
-        {urls.length > 0 && (
-          <p className={hintClass}>
-            {urls.length} URL{urls.length !== 1 ? "s" : ""}
-            {invalidCount > 0
-              ? ` (${invalidCount} invalid — fix before adding)`
-              : " — ready to add"}
-          </p>
-        )}
+        <button
+          type="button"
+          onClick={loadFromPaste}
+          disabled={
+            submitting || parsingFile || !pasteText.trim()
+          }
+          className="mt-2 rounded-md border border-border bg-bg-page px-3 py-2 text-sm font-medium text-text-primary hover:bg-bg-elevated disabled:opacity-60"
+        >
+          Load into preview
+        </button>
       </div>
+
+      {rows.length > 0 && (
+        <div>
+          <p className={labelClass}>
+            Sites to add ({rows.length}
+            {allValid ? "" : " — fix errors before saving"})
+          </p>
+          <div className="max-h-64 overflow-auto rounded-md border border-border">
+            <table className="w-full min-w-[520px] border-collapse text-left text-sm">
+              <thead className="sticky top-0 z-10 bg-bg-page">
+                <tr className="border-b border-border">
+                  <th className="px-3 py-2 font-medium text-text-primary">#</th>
+                  <th className="px-3 py-2 font-medium text-text-primary">
+                    Name
+                  </th>
+                  <th className="px-3 py-2 font-medium text-text-primary">
+                    URL
+                  </th>
+                  <th className="px-3 py-2 font-medium text-text-primary w-24">
+                    <span className="sr-only">Remove</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((r, idx) => {
+                  const issues = rowIssues[idx];
+                  const urlBad = issues?.urlError !== null;
+                  const nameBad = issues?.nameError !== null;
+                  return (
+                    <tr
+                      key={r.id}
+                      className="border-b border-border last:border-0"
+                    >
+                      <td className="px-3 py-2 align-top text-text-muted">
+                        {idx + 1}
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <input
+                          type="text"
+                          value={r.name}
+                          onChange={(e) =>
+                            updateRow(r.id, { name: e.target.value })
+                          }
+                          aria-invalid={nameBad}
+                          className={`${inputClass} ${nameBad ? "border-red-400 dark:border-red-600" : ""}`}
+                          placeholder={deriveMonitorNameFromUrl(r.url.trim())}
+                        />
+                        {nameBad && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                            {issues.nameError}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <input
+                          type="url"
+                          value={r.url}
+                          onChange={(e) =>
+                            updateRow(r.id, { url: e.target.value })
+                          }
+                          aria-invalid={urlBad}
+                          className={`${inputClass} ${urlBad ? "border-red-400 dark:border-red-600" : ""}`}
+                          placeholder="https://"
+                        />
+                        {urlBad && (
+                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                            {issues.urlError}
+                          </p>
+                        )}
+                      </td>
+                      <td className="px-3 py-2 align-top">
+                        <button
+                          type="button"
+                          onClick={() => removeRow(r.id)}
+                          disabled={submitting}
+                          className="rounded-md text-sm text-text-muted hover:text-red-600 dark:hover:text-red-400"
+                        >
+                          Remove
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
@@ -314,17 +527,15 @@ export function AddBulkMonitorsForm({
         )}
         <button
           type="submit"
-          disabled={
-            submitting || urls.length === 0 || invalidCount > 0
-          }
+          disabled={submitting || !allValid}
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
           {submitting
-            ? "Adding…"
-            : urls.length > 0
-              ? `Add ${urls.length} monitor${urls.length !== 1 ? "s" : ""}`
-              : "Add monitors"}
+            ? "Saving…"
+            : rows.length > 0
+              ? `Save ${rows.length} monitor${rows.length !== 1 ? "s" : ""}`
+              : "Save monitors"}
         </button>
       </div>
     </form>
