@@ -65,6 +65,56 @@ export function AddBulkMonitorsForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  function downloadTextFile(filename: string, content: string, mime: string) {
+    const blob = new Blob([content], { type: mime });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadSampleCsv() {
+    const content = [
+      "name,url",
+      "My API,https://api.example.com",
+      "Homepage,https://example.com",
+    ].join("\n");
+    downloadTextFile(
+      "upgs-uptime-sites-sample.csv",
+      content,
+      "text/csv;charset=utf-8"
+    );
+  }
+
+  async function downloadSampleXlsx() {
+    const XLSX = await import("xlsx");
+    const aoa = [
+      ["name", "url"],
+      ["My API", "https://api.example.com"],
+      ["Homepage", "https://example.com"],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Sites");
+    const arrayBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+
+    const blob = new Blob([arrayBuffer], {
+      type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "upgs-uptime-sites-sample.xlsx";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   const rowIssues = useMemo(() => {
     return rows.map((r) => {
       const url = r.url.trim();
@@ -223,6 +273,34 @@ export function AddBulkMonitorsForm({
           <span className="font-mono">url</span>, or URL only. Up to{" "}
           {MAX_SITES} sites.
         </p>
+        <div className="mt-3">
+          <p className="text-xs font-medium text-text-muted">
+            Sample format (recommended)
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={downloadSampleCsv}
+              disabled={parsingFile || submitting}
+              className="rounded-md border border-border bg-bg-page px-3 py-2 text-xs font-medium text-text-primary hover:bg-bg-elevated disabled:opacity-60"
+            >
+              Download CSV sample
+            </button>
+            <button
+              type="button"
+              onClick={() => downloadSampleXlsx()}
+              disabled={parsingFile || submitting}
+              className="rounded-md border border-border bg-bg-page px-3 py-2 text-xs font-medium text-text-primary hover:bg-bg-elevated disabled:opacity-60"
+            >
+              Download XLSX sample
+            </button>
+          </div>
+          <pre className="mt-2 whitespace-pre-wrap rounded-md border border-border bg-bg-page px-3 py-2 text-xs text-text-primary font-mono">
+            name,url{"\n"}
+            My API,https://api.example.com{"\n"}
+            Homepage,https://example.com
+          </pre>
+        </div>
         <div className="mt-3 flex flex-wrap items-center gap-2">
           <input
             id={fileInputId}
