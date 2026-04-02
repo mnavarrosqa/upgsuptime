@@ -1,10 +1,11 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Instrument_Sans, DM_Sans } from "next/font/google";
+import { Instrument_Sans, DM_Sans, Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { pwaSplashStartupImages } from "@/lib/pwa-splash-startup.generated";
 import { getLocale, getMessages } from "next-intl/server";
+import { cn } from "@/lib/utils";
 
 const themeScript = `
 (function() {
@@ -20,10 +21,7 @@ const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
 });
 
-const dmSans = DM_Sans({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
+const inter = Inter({subsets:['latin'],variable:'--font-sans'});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -63,7 +61,7 @@ export default async function RootLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className={`${instrumentSans.variable} ${dmSans.variable}`} suppressHydrationWarning>
+    <html lang={locale} className={cn(instrumentSans.variable, "font-sans", inter.variable)} suppressHydrationWarning>
       <body className="font-sans antialiased">
         <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
         <Providers locale={locale} messages={messages}>{children}</Providers>
