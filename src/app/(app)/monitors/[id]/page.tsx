@@ -12,7 +12,8 @@ import { UptimeTrendCharts } from "@/components/uptime-trend-charts";
 import { SslBadge } from "@/components/ssl-badge";
 import { AutoRefresh } from "@/components/auto-refresh";
 
-function getFaviconUrl(url: string): string {
+function getFaviconUrl(url: string, monitorType?: string | null): string {
+  if (monitorType === "dns") return "";
   try {
     const host = new URL(url).hostname;
     return `/api/favicon?domain=${host}`;
@@ -73,7 +74,8 @@ export default async function MonitorDetailPage({
       ? Math.round((results.filter((r) => r.ok).length / results.length) * 100)
       : null;
 
-  const favicon = getFaviconUrl(m.url);
+  const monitorType = m.type ?? "http";
+  const favicon = getFaviconUrl(m.url, monitorType);
   const allMessagesNull = serializedResults.every((r) => r.message === null);
 
   return (
@@ -124,18 +126,45 @@ export default async function MonitorDetailPage({
               </span>
             )}
           </div>
-          <p className="mt-1 break-all text-sm text-text-muted">{m.url}</p>
+          {monitorType === "dns" ? (
+            <p className="mt-1 break-all font-mono text-sm text-text-muted">{m.url}</p>
+          ) : (
+            <p className="mt-1 break-all text-sm text-text-muted">{m.url}</p>
+          )}
           {/* Config meta */}
           <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
-            <span>{m.method}</span>
-            <span aria-hidden>·</span>
+            {monitorType !== "dns" && (
+              <>
+                <span>{monitorType === "keyword" ? "GET" : m.method}</span>
+                <span aria-hidden>·</span>
+              </>
+            )}
             <span>Every {m.intervalMinutes} min</span>
-            <span aria-hidden>·</span>
-            <span>Timeout {m.timeoutSeconds}s</span>
-            <span aria-hidden>·</span>
-            <span>Expect {m.expectedStatusCodes}</span>
-            <span aria-hidden>·</span>
-            <span>SSL {m.sslMonitoring ? "on" : "off"}</span>
+            {monitorType !== "dns" && (
+              <>
+                <span aria-hidden>·</span>
+                <span>Timeout {m.timeoutSeconds}s</span>
+                <span aria-hidden>·</span>
+                <span>Expect {m.expectedStatusCodes}</span>
+                <span aria-hidden>·</span>
+                <span>SSL {m.sslMonitoring ? "on" : "off"}</span>
+              </>
+            )}
+            {monitorType === "keyword" && m.keywordContains && (
+              <>
+                <span aria-hidden>·</span>
+                <span>
+                  Keyword: &ldquo;{m.keywordContains}&rdquo;{" "}
+                  ({m.keywordShouldExist !== false ? "must contain" : "must not contain"})
+                </span>
+              </>
+            )}
+            {monitorType === "dns" && (
+              <>
+                <span aria-hidden>·</span>
+                <span>{m.dnsRecordType} → {m.dnsExpectedValue}</span>
+              </>
+            )}
           </div>
         </div>
         <MonitorDetailActions monitor={m} />

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { lookup as dnsLookup } from "dns/promises";
+import { lookup as dnsLookup, resolve as dnsResolve } from "dns/promises";
 import { fetch as undiciFetch, buildConnector, Agent } from "undici";
 import { db } from "@/db";
 import { monitor, checkResult } from "@/db/schema";
@@ -49,6 +49,8 @@ const ssrfGuardAgent = new Agent({
 const TOTAL_ATTEMPTS = 3;
 /** Delay between retry attempts in milliseconds. */
 const RETRY_DELAY_MS = 1000;
+/** Maximum body bytes to read for keyword checks (2 MB). */
+const KEYWORD_BODY_LIMIT_BYTES = 2 * 1024 * 1024;
 
 /**
  * Parse expectedStatusCodes string into a predicate for status codes.
@@ -97,66 +99,22 @@ function daysUntil(date: Date | null | undefined): number | null {
   return Math.ceil((new Date(date).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
 }
 
+// ─── Shared state machine ─────────────────────────────────────────────────────
+
 /**
- * Run a single uptime check for a monitor: fetch URL, record result, update lastCheckAt.
- * Detects status transitions (up↔down) and fires notifications when they occur.
- * If SSL monitoring is enabled, also checks the certificate and fires SSL alerts.
+ * Applies a raw check result to the DB state machine, updates the monitor row,
+ * and fires notifications on status transitions. Returns the RunCheckResult.
  */
-export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+async function applyCheckResult(
+  m: Monitor,
+  ok: boolean,
+  statusCode: number | undefined,
+  responseTimeMs: number,
+  message: string | undefined,
+  sslPromise: Promise<import("@/lib/check-ssl").SslCheckResult | null>,
+  ownerEmail: string
+): Promise<RunCheckResult> {
   const now = new Date();
-  const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
-  const method = (m.method === "HEAD" ? "HEAD" : "GET") as "GET" | "HEAD";
-  const isSuccess = parseExpectedStatusCodes(m.expectedStatusCodes ?? "200-299");
-
-  let ok = false;
-  let statusCode: number | undefined;
-  let message: string | undefined;
-  let responseTimeMs = 0;
-
-  const notAllowedReason = await getUrlNotAllowedReason(m.url);
-  if (notAllowedReason) {
-    message = notAllowedReason;
-  } else {
-    for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
-      if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
-
-      const attemptStart = Date.now();
-      ok = false;
-      statusCode = undefined;
-      message = undefined;
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), timeoutMs);
-      try {
-        const res = await undiciFetch(m.url, {
-          method,
-          signal: controller.signal,
-          headers: { "User-Agent": "UPGMonitor/1.0" },
-          dispatcher: ssrfGuardAgent,
-        });
-        statusCode = res.status;
-        ok = isSuccess(res.status);
-        // Drain body so undici can reuse the connection
-        await res.body?.cancel();
-      } catch (err) {
-        message = err instanceof Error ? err.message : String(err);
-      } finally {
-        clearTimeout(timeout);
-      }
-
-      responseTimeMs = Date.now() - attemptStart;
-      if (ok) break;
-    }
-  }
-
-  // When HTTP check fails with a status code but no network error, add descriptive text
-  if (!ok && statusCode != null && !message) {
-    message = httpStatusText(statusCode);
-  }
-
-  // SSL check only when URL is allowed for HTTP (same SSRF policy); runs while we insert the check row
-  const sslPromise =
-    m.sslMonitoring && !notAllowedReason ? checkSSL(m.url, 10_000) : Promise.resolve(null);
 
   const id = randomUUID();
   await db.insert(checkResult).values({
@@ -192,7 +150,7 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
   // True when a site that was confirmed down has just come back up
   const isHttpRecovery = m.currentStatus === false && ok === true;
 
-  // Await SSL result (likely already done by now)
+  // Await SSL result (likely already done by now); DNS monitors always pass null
   const sslResult = await sslPromise;
 
   // Detect SSL alert type by comparing new state to stored values
@@ -203,13 +161,10 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
     const wasValid = m.sslValid; // null = first ever SSL check
 
     if (!sslResult.valid && wasValid !== false) {
-      // Just became invalid (or first check and already invalid)
       sslAlertType = "invalid";
     } else if (sslResult.valid && wasValid === false) {
-      // Cert recovered
       sslAlertType = "recovered";
     } else if (sslResult.valid && newDays !== null) {
-      // Check expiry threshold crossings — fire only when first crossing
       if (newDays <= 7 && (oldDays === null || oldDays > 7)) {
         sslAlertType = "critical";
       } else if (newDays <= 30 && (oldDays === null || oldDays > 30)) {
@@ -281,4 +236,232 @@ export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheck
   }
 
   return result;
+}
+
+// ─── HTTP check ───────────────────────────────────────────────────────────────
+
+async function runCheckHttp(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+  const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
+  const method = (m.method === "HEAD" ? "HEAD" : "GET") as "GET" | "HEAD";
+  const isSuccess = parseExpectedStatusCodes(m.expectedStatusCodes ?? "200-299");
+
+  let ok = false;
+  let statusCode: number | undefined;
+  let message: string | undefined;
+  let responseTimeMs = 0;
+
+  const notAllowedReason = await getUrlNotAllowedReason(m.url);
+  if (notAllowedReason) {
+    message = notAllowedReason;
+  } else {
+    for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
+      if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+
+      const attemptStart = Date.now();
+      ok = false;
+      statusCode = undefined;
+      message = undefined;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await undiciFetch(m.url, {
+          method,
+          signal: controller.signal,
+          headers: { "User-Agent": "UPGMonitor/1.0" },
+          dispatcher: ssrfGuardAgent,
+        });
+        statusCode = res.status;
+        ok = isSuccess(res.status);
+        // Drain body so undici can reuse the connection
+        await res.body?.cancel();
+      } catch (err) {
+        message = err instanceof Error ? err.message : String(err);
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      responseTimeMs = Date.now() - attemptStart;
+      if (ok) break;
+    }
+  }
+
+  if (!ok && statusCode != null && !message) {
+    message = httpStatusText(statusCode);
+  }
+
+  // SSL check runs in parallel (only when URL is allowed and type is not dns)
+  const sslPromise =
+    m.sslMonitoring && !notAllowedReason
+      ? checkSSL(m.url, 10_000)
+      : Promise.resolve(null);
+
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, ownerEmail);
+}
+
+// ─── Keyword check ────────────────────────────────────────────────────────────
+
+async function runCheckKeyword(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+  const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
+  const isSuccess = parseExpectedStatusCodes(m.expectedStatusCodes ?? "200-299");
+  const keyword = (m.keywordContains ?? "").toLowerCase();
+  const shouldExist = m.keywordShouldExist !== false; // default true
+
+  let ok = false;
+  let statusCode: number | undefined;
+  let message: string | undefined;
+  let responseTimeMs = 0;
+
+  const notAllowedReason = await getUrlNotAllowedReason(m.url);
+  if (notAllowedReason) {
+    message = notAllowedReason;
+  } else {
+    for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
+      if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+
+      const attemptStart = Date.now();
+      ok = false;
+      statusCode = undefined;
+      message = undefined;
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await undiciFetch(m.url, {
+          method: "GET", // keyword monitors always use GET
+          signal: controller.signal,
+          headers: { "User-Agent": "UPGMonitor/1.0" },
+          dispatcher: ssrfGuardAgent,
+        });
+        statusCode = res.status;
+        const statusOk = isSuccess(res.status);
+
+        // Read body up to KEYWORD_BODY_LIMIT_BYTES
+        let bodyText = "";
+        if (res.body) {
+          const reader = res.body.getReader();
+          let bytesRead = 0;
+          const chunks: Uint8Array[] = [];
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              bytesRead += value.byteLength;
+              if (bytesRead > KEYWORD_BODY_LIMIT_BYTES) {
+                await reader.cancel();
+                break;
+              }
+              chunks.push(value);
+            }
+          } catch {
+            // partial read is fine — work with what we have
+          }
+          if (chunks.length > 0) {
+            const total = chunks.reduce((acc, c) => acc + c.length, 0);
+            const merged = new Uint8Array(total);
+            let offset = 0;
+            for (const chunk of chunks) {
+              merged.set(chunk, offset);
+              offset += chunk.length;
+            }
+            bodyText = new TextDecoder().decode(merged);
+          }
+        } else {
+          // No body — nothing to drain
+        }
+
+        const found = bodyText.toLowerCase().includes(keyword);
+        const keywordOk = shouldExist ? found : !found;
+        ok = statusOk && keywordOk;
+
+        if (!statusOk) {
+          message = httpStatusText(statusCode);
+        } else if (!keywordOk) {
+          message = shouldExist
+            ? `Keyword "${m.keywordContains}" not found in response`
+            : `Keyword "${m.keywordContains}" found in response (expected absent)`;
+        }
+      } catch (err) {
+        message = err instanceof Error ? err.message : String(err);
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      responseTimeMs = Date.now() - attemptStart;
+      if (ok) break;
+    }
+  }
+
+  // SSL check in parallel (keyword monitors can be HTTPS)
+  const sslPromise =
+    m.sslMonitoring && !notAllowedReason
+      ? checkSSL(m.url, 10_000)
+      : Promise.resolve(null);
+
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, ownerEmail);
+}
+
+// ─── DNS check ────────────────────────────────────────────────────────────────
+
+async function runCheckDns(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+  const hostname = m.url; // DNS monitors store bare hostname in url column
+  const recordType = (m.dnsRecordType ?? "A") as "A" | "AAAA" | "CNAME" | "MX" | "TXT" | "NS";
+  const expected = (m.dnsExpectedValue ?? "").trim().toLowerCase();
+
+  let ok = false;
+  let message: string | undefined;
+  const start = Date.now();
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const records = await (dnsResolve as any)(hostname, recordType);
+    const responseTimeMs = Date.now() - start;
+
+    // Normalise records to strings for comparison
+    let resolved: string[] = [];
+    if (recordType === "MX") {
+      resolved = (records as Array<{ exchange: string }>).map((r) =>
+        r.exchange.toLowerCase()
+      );
+    } else if (recordType === "TXT") {
+      // TXT: string[][] — each record is an array of chunks; join chunks
+      resolved = (records as string[][]).map((chunks) =>
+        chunks.join("").toLowerCase()
+      );
+    } else {
+      resolved = (records as string[]).map((r) => r.toLowerCase());
+    }
+
+    // TXT uses substring match; all others use exact match
+    if (recordType === "TXT") {
+      ok = resolved.some((r) => r.includes(expected));
+    } else {
+      ok = resolved.some((r) => r === expected);
+    }
+
+    if (!ok) {
+      const found = resolved.join(", ") || "(none)";
+      message = `No ${recordType} record matches "${m.dnsExpectedValue}". Found: ${found}`;
+    }
+
+    // DNS monitors never run SSL checks
+    return applyCheckResult(m, ok, undefined, responseTimeMs, message, Promise.resolve(null), ownerEmail);
+  } catch (err) {
+    const responseTimeMs = Date.now() - start;
+    message = err instanceof Error ? err.message : String(err);
+    return applyCheckResult(m, false, undefined, responseTimeMs, message, Promise.resolve(null), ownerEmail);
+  }
+}
+
+// ─── Public entry point ───────────────────────────────────────────────────────
+
+/**
+ * Run a single uptime check for a monitor. Dispatches to the appropriate
+ * check handler based on monitor type (http | keyword | dns).
+ */
+export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+  const monitorType = m.type ?? "http";
+  if (monitorType === "dns") return runCheckDns(m, ownerEmail);
+  if (monitorType === "keyword") return runCheckKeyword(m, ownerEmail);
+  return runCheckHttp(m, ownerEmail);
 }

@@ -1,4 +1,29 @@
 {
+  "monitorTypes": {
+    "typeLabel": "Tipo de monitor",
+    "http": "HTTP – verificar codigo de estado",
+    "keyword": "Palabra clave – verificar cuerpo de respuesta",
+    "dns": "DNS – verificar resolucion de registro",
+    "typeBadgeKeyword": "Palabra clave",
+    "typeBadgeDns": "DNS",
+    "hostnameLabel": "Nombre de host",
+    "hostnamePlaceholder": "ejemplo.com",
+    "hostnameHint": "Introduce el nombre de host sin https://",
+    "keywordSectionTitle": "Verificacion de palabra clave",
+    "keywordLabel": "Palabra clave",
+    "keywordShouldContain": "Debe contener",
+    "keywordShouldNotContain": "No debe contener",
+    "keywordHint": "Busqueda sin distinguir mayusculas en el cuerpo (se leen hasta 2 MB)",
+    "methodLockedToGet": "Los monitores de palabra clave siempre usan GET.",
+    "dnsSectionTitle": "Verificacion DNS",
+    "dnsRecordTypeLabel": "Tipo de registro",
+    "dnsExpectedValueLabel": "Valor esperado",
+    "dnsExpectedHintExact": "Coincidencia exacta (sin distinguir mayusculas)",
+    "dnsExpectedHintSubstring": "Coincidencia parcial para TXT (sin distinguir mayusculas)",
+    "typeReadOnly": "El tipo de monitor no se puede cambiar despues de crearlo",
+    "detailKeywordMode": "debe contener",
+    "detailKeywordModeAbsent": "no debe contener"
+  },
   "common": {
     "loading": "Cargando…",
     "somethingWentWrong": "Algo salio mal",
@@ -19,7 +44,8 @@
   "locale": {
     "label": "Idioma",
     "english": "Ingles",
-    "spanish": "Espanol"
+    "spanish": "Espanol",
+    "switchLanguage": "Cambiar idioma"
   },
   "auth": {
     "signInTitle": "Iniciar sesion",

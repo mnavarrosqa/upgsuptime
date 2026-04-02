@@ -65,6 +65,53 @@ export function validateEmail(email: string): string | null {
   return null;
 }
 
+/** Maximum hostname length per RFC 1035 */
+export const MAX_HOSTNAME_LENGTH = 253;
+/** Maximum keyword length for keyword monitors */
+export const MAX_KEYWORD_LENGTH = 500;
+
+/** Allowed DNS record types */
+export const DNS_RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "TXT", "NS"] as const;
+export type DnsRecordType = (typeof DNS_RECORD_TYPES)[number];
+
+/**
+ * Validates a bare hostname for DNS monitors (no protocol).
+ * Returns error message or null.
+ */
+export function validateMonitorHostname(hostname: string): string | null {
+  if (!hostname || hostname.trim().length === 0) return "Hostname is required";
+  if (hostname.length > MAX_HOSTNAME_LENGTH)
+    return `Hostname must be at most ${MAX_HOSTNAME_LENGTH} characters`;
+  if (/^https?:\/\//i.test(hostname))
+    return "Enter a hostname only, without https://";
+  const labels = hostname.split(".");
+  const labelRe = /^[a-zA-Z0-9]([a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?$|^[a-zA-Z0-9]$/;
+  for (const label of labels) {
+    if (!labelRe.test(label))
+      return `Invalid hostname: "${label}" is not a valid label`;
+  }
+  return null;
+}
+
+/**
+ * Validates a DNS record type. Returns error message or null.
+ */
+export function validateDnsRecordType(value: string): string | null {
+  if (!DNS_RECORD_TYPES.includes(value as DnsRecordType))
+    return `Record type must be one of: ${DNS_RECORD_TYPES.join(", ")}`;
+  return null;
+}
+
+/**
+ * Validates the keyword for keyword monitors. Returns error message or null.
+ */
+export function validateKeywordContains(value: string): string | null {
+  if (!value || value.trim().length === 0) return "Keyword is required";
+  if (value.length > MAX_KEYWORD_LENGTH)
+    return `Keyword must be at most ${MAX_KEYWORD_LENGTH} characters`;
+  return null;
+}
+
 /**
  * Max request body size for bulk monitor creation (one request, many URLs).
  */

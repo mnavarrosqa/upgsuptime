@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Menu, X, Sun, Moon, User, LogOut, CircleHelp } from "lucide-react";
+import { Menu, X, Sun, Moon, User, LogOut, CircleHelp, Globe } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useActivity } from "@/components/activity-context";
 
 const navLinks = [
@@ -26,9 +26,13 @@ export function MobileMenu({
   const [open, setOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [switchingLocale, setSwitchingLocale] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
+  const locale = useLocale();
   const { unreadCount } = useActivity();
   const t = useTranslations("nav");
+  const tLocale = useTranslations("locale");
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -60,6 +64,21 @@ export function MobileMenu({
       document.removeEventListener("pointerdown", onClickOutside);
     };
   }, [open]);
+
+  async function switchLanguage() {
+    const next = locale === "en" ? "es" : "en";
+    setSwitchingLocale(true);
+    try {
+      await fetch("/api/locale", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ locale: next }),
+      });
+      router.refresh();
+    } finally {
+      setSwitchingLocale(false);
+    }
+  }
 
   function toggleTheme() {
     const next = !document.documentElement.classList.contains("dark");
@@ -164,6 +183,17 @@ export function MobileMenu({
               {dark ? t("lightMode") : t("darkMode")}
             </button>
           )}
+
+          {/* Language toggle */}
+          <button
+            type="button"
+            onClick={switchLanguage}
+            disabled={switchingLocale}
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary disabled:opacity-50"
+          >
+            <Globe className="h-3.5 w-3.5 shrink-0" aria-hidden />
+            {locale === "en" ? tLocale("spanish") : tLocale("english")}
+          </button>
 
           {/* Account & sign out */}
           <Link

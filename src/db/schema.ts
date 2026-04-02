@@ -41,6 +41,11 @@ export const monitor = sqliteTable("monitor", {
   showOnStatusPage: integer("show_on_status_page", { mode: "boolean" }),
   paused: integer("paused", { mode: "boolean" }),
   consecutiveFailures: integer("consecutive_failures"),
+  type: text("type", { enum: ["http", "keyword", "dns"] }).notNull().default("http"),
+  keywordContains: text("keyword_contains"),
+  keywordShouldExist: integer("keyword_should_exist", { mode: "boolean" }).default(true),
+  dnsRecordType: text("dns_record_type"),
+  dnsExpectedValue: text("dns_expected_value"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 

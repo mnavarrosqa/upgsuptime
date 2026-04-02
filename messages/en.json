@@ -1,4 +1,29 @@
 {
+  "monitorTypes": {
+    "typeLabel": "Monitor type",
+    "http": "HTTP – check status code",
+    "keyword": "Keyword – check response body",
+    "dns": "DNS – check record resolution",
+    "typeBadgeKeyword": "Keyword",
+    "typeBadgeDns": "DNS",
+    "hostnameLabel": "Hostname",
+    "hostnamePlaceholder": "example.com",
+    "hostnameHint": "Enter a hostname without https://",
+    "keywordSectionTitle": "Keyword check",
+    "keywordLabel": "Keyword",
+    "keywordShouldContain": "Should contain",
+    "keywordShouldNotContain": "Should not contain",
+    "keywordHint": "Case-insensitive search in response body (up to 2 MB)",
+    "methodLockedToGet": "Keyword monitors always use GET.",
+    "dnsSectionTitle": "DNS check",
+    "dnsRecordTypeLabel": "Record type",
+    "dnsExpectedValueLabel": "Expected value",
+    "dnsExpectedHintExact": "Exact match (case-insensitive)",
+    "dnsExpectedHintSubstring": "Substring match for TXT (case-insensitive)",
+    "typeReadOnly": "Monitor type cannot be changed after creation",
+    "detailKeywordMode": "must contain",
+    "detailKeywordModeAbsent": "must not contain"
+  },
   "common": {
     "loading": "Loading…",
     "somethingWentWrong": "Something went wrong",
@@ -19,7 +44,8 @@
   "locale": {
     "label": "Language",
     "english": "English",
-    "spanish": "Spanish"
+    "spanish": "Spanish",
+    "switchLanguage": "Switch language"
   },
   "auth": {
     "signInTitle": "Sign in",

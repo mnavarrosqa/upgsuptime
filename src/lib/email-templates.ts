@@ -142,9 +142,17 @@ export function buildUptimeAlertHtml(
     ? badge("● Up", COLORS.upBg, COLORS.upText)
     : badge("● Down", COLORS.downBg, COLORS.downText);
 
+  const monitorType = m.type ?? "http";
+  const downHeadline =
+    monitorType === "dns"
+      ? `DNS check for <span style="color:${COLORS.down};">${escHtml(m.name)}</span> failed`
+      : monitorType === "keyword"
+        ? `<span style="color:${COLORS.down};">${escHtml(m.name)}</span> — keyword check failed`
+        : `<span style="color:${COLORS.down};">${escHtml(m.name)}</span> is unreachable`;
+
   const headline = isUp
     ? `<span style="color:${COLORS.up};">${escHtml(m.name)}</span> is back online`
-    : `<span style="color:${COLORS.down};">${escHtml(m.name)}</span> is unreachable`;
+    : downHeadline;
 
   const rows: string[] = [];
   if (result.statusCode != null)
@@ -204,7 +212,7 @@ export function buildUptimeAlertHtml(
     <h1 style="margin:0 0 6px;font-size:21px;font-weight:700;color:${COLORS.textPrimary};line-height:1.3;font-family:${FONT_STACK};">
       ${headline}
     </h1>
-    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">${escHtml(m.url)}</p>
+    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">${monitorType === "dns" ? escHtml(m.url) : escHtml(m.url)}</p>
 
     <!-- Divider -->
     <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>

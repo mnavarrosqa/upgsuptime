@@ -12,6 +12,7 @@ type MonitorCardProps = {
   id: string;
   name: string;
   url: string;
+  monitorType?: "http" | "keyword" | "dns" | null;
   paused?: boolean | null;
   latest: { ok: boolean; responseTimeMs: number | null; message?: string | null } | undefined;
   trendResults: TrendPoint[];
@@ -21,7 +22,8 @@ type MonitorCardProps = {
   sslExpiresAt: Date | string | null;
 };
 
-function getFaviconUrl(url: string): string {
+function getFaviconUrl(url: string, monitorType?: "http" | "keyword" | "dns" | null): string {
+  if (monitorType === "dns") return "";
   try {
     const host = new URL(url).hostname;
     return `/api/favicon?domain=${host}`;
@@ -45,6 +47,7 @@ export function MonitorCard({
   id,
   name,
   url,
+  monitorType,
   paused,
   latest,
   trendResults,
@@ -57,7 +60,8 @@ export function MonitorCard({
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
 
-  const favicon = getFaviconUrl(url);
+  const type = monitorType ?? "http";
+  const favicon = getFaviconUrl(url, type);
   const uptimePct =
     trendResults.length > 0
       ? Math.round(
@@ -113,25 +117,41 @@ export function MonitorCard({
               className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-border text-xs text-text-muted"
               aria-hidden
             >
-              •
+              {type === "dns" ? "D" : type === "keyword" ? "K" : "•"}
             </span>
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
-              <span className="truncate font-medium leading-snug text-text-primary">
-                {name}
-              </span>
+              <div className="flex min-w-0 items-center gap-1.5">
+                <span className="truncate font-medium leading-snug text-text-primary">
+                  {name}
+                </span>
+                {type !== "http" && (
+                  <span className="shrink-0 rounded-full bg-border px-2 py-0.5 text-xs font-medium text-text-muted">
+                    {type === "dns" ? "DNS" : "Keyword"}
+                  </span>
+                )}
+              </div>
               <MonitorStatusBadge paused={paused} latest={latest} />
             </div>
-            <a
-              href={url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="pointer-events-auto mt-0.5 truncate text-xs text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
-              title={url}
-            >
-              {url}
-            </a>
+            {type === "dns" ? (
+              <span
+                className="mt-0.5 block truncate font-mono text-xs text-text-muted"
+                title={url}
+              >
+                {url}
+              </span>
+            ) : (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="pointer-events-auto mt-0.5 truncate text-xs text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
+                title={url}
+              >
+                {url}
+              </a>
+            )}
             {latest && !latest.ok && latest.message && (
               <p
                 className="mt-0.5 truncate text-xs text-red-500 dark:text-red-400"
@@ -172,7 +192,7 @@ export function MonitorCard({
                 <span>{latest.responseTimeMs}ms</span>
               </>
             )}
-            {sslMonitoring && (
+            {sslMonitoring && type !== "dns" && (
               <>
                 <span aria-hidden>·</span>
                 <SslBadge

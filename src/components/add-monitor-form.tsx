@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
+import { DNS_RECORD_TYPES } from "@/lib/validate-monitor";
 
 const inputClass =
   "w-full rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
@@ -21,45 +22,86 @@ export function AddMonitorForm({
   onBack?: () => void;
 }) {
   const router = useRouter();
+
+  // Monitor type
+  const [monitorType, setMonitorType] = useState<"http" | "keyword" | "dns">("http");
+
+  // Common fields
   const [name, setName] = useState("");
   const [url, setUrl] = useState("");
   const [intervalMinutes, setIntervalMinutes] = useState(5);
+  const [alertEmail, setAlertEmail] = useState(false);
+  const [alertEmailTo, setAlertEmailTo] = useState("");
+  const [showOnStatusPage, setShowOnStatusPage] = useState(true);
+
+  // HTTP / keyword fields
   const [timeoutSeconds, setTimeoutSeconds] = useState(15);
   const [method, setMethod] = useState<"GET" | "HEAD">("GET");
   const [expectedStatusCodes, setExpectedStatusCodes] = useState("200-299");
-  const [alertEmail, setAlertEmail] = useState(false);
-  const [alertEmailTo, setAlertEmailTo] = useState("");
   const [sslMonitoring, setSslMonitoring] = useState(false);
-  const [showOnStatusPage, setShowOnStatusPage] = useState(true);
+
+  // Keyword-specific
+  const [keywordContains, setKeywordContains] = useState("");
+  const [keywordShouldExist, setKeywordShouldExist] = useState(true);
+
+  // DNS-specific
+  const [dnsRecordType, setDnsRecordType] = useState("A");
+  const [dnsExpectedValue, setDnsExpectedValue] = useState("");
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  function handleTypeChange(newType: "http" | "keyword" | "dns") {
+    setMonitorType(newType);
+    // Reset URL when switching to/from DNS to avoid confusion
+    setUrl("");
+    setSslMonitoring(false);
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
+      const bodyObj: Record<string, unknown> = {
+        type: monitorType,
+        name,
+        url,
+        intervalMinutes,
+        alertEmail,
+        alertEmailTo: alertEmailTo.trim() || null,
+        showOnStatusPage,
+      };
+
+      if (!isDns) {
+        bodyObj.timeoutSeconds = timeoutSeconds;
+        bodyObj.method = isKeyword ? "GET" : method;
+        bodyObj.expectedStatusCodes = expectedStatusCodes.trim() || "200-299";
+        bodyObj.sslMonitoring = sslMonitoring;
+      }
+
+      if (monitorType === "keyword") {
+        bodyObj.keywordContains = keywordContains;
+        bodyObj.keywordShouldExist = keywordShouldExist;
+      }
+
+      if (monitorType === "dns") {
+        bodyObj.dnsRecordType = dnsRecordType;
+        bodyObj.dnsExpectedValue = dnsExpectedValue;
+      }
+
       const res = await fetch("/api/monitors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          url,
-          intervalMinutes,
-          timeoutSeconds,
-          method,
-          expectedStatusCodes: expectedStatusCodes.trim() || "200-299",
-          alertEmail,
-          alertEmailTo: alertEmailTo.trim() || null,
-          sslMonitoring,
-          showOnStatusPage,
-        }),
+        body: JSON.stringify(bodyObj),
       });
       const data = await res.json();
       if (!res.ok) {
         setError(data.error ?? "Failed to add monitor");
         return;
       }
+
+      // Reset all fields
       setName("");
       setUrl("");
       setIntervalMinutes(5);
@@ -70,6 +112,11 @@ export function AddMonitorForm({
       setAlertEmailTo("");
       setSslMonitoring(false);
       setShowOnStatusPage(true);
+      setKeywordContains("");
+      setKeywordShouldExist(true);
+      setDnsRecordType("A");
+      setDnsExpectedValue("");
+
       toast.success("Monitor added");
       router.refresh();
       onSuccess?.();
@@ -79,6 +126,9 @@ export function AddMonitorForm({
       setSubmitting(false);
     }
   }
+
+  const isDns = monitorType === "dns";
+  const isKeyword = monitorType === "keyword";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -91,6 +141,24 @@ export function AddMonitorForm({
         </div>
       )}
 
+      {/* Monitor type selector */}
+      <div>
+        <label htmlFor="add-type" className={labelClass}>
+          Monitor type
+        </label>
+        <select
+          id="add-type"
+          value={monitorType}
+          onChange={(e) => handleTypeChange(e.target.value as "http" | "keyword" | "dns")}
+          className={inputClass}
+        >
+          <option value="http">HTTP – check status code</option>
+          <option value="keyword">Keyword – check response body</option>
+          <option value="dns">DNS – check record resolution</option>
+        </select>
+      </div>
+
+      {/* Name */}
       <div>
         <label htmlFor="add-name" className={labelClass}>
           Name
@@ -106,23 +174,29 @@ export function AddMonitorForm({
         />
       </div>
 
+      {/* URL / Hostname */}
       <div>
         <label htmlFor="add-url" className={labelClass}>
-          URL
+          {isDns ? "Hostname" : "URL"}
         </label>
         <input
           id="add-url"
-          type="url"
+          type={isDns ? "text" : "url"}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com"
+          placeholder={isDns ? "example.com" : "https://example.com"}
           required
           className={inputClass}
         />
-        <p className={hintClass}>Must be a valid HTTP or HTTPS URL.</p>
+        <p className={hintClass}>
+          {isDns
+            ? "Enter a hostname without https://"
+            : "Must be a valid HTTP or HTTPS URL."}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* HTTP/Keyword options: interval + method + timeout + status codes */}
+      {isDns ? (
         <div>
           <label htmlFor="add-interval" className={labelClass}>
             Interval (min)
@@ -137,49 +211,168 @@ export function AddMonitorForm({
             className={inputClass}
           />
         </div>
-        <div>
-          <label htmlFor="add-method" className={labelClass}>
-            Method
-          </label>
-          <select
-            id="add-method"
-            value={method}
-            onChange={(e) => setMethod(e.target.value as "GET" | "HEAD")}
-            className={inputClass}
-          >
-            <option value="GET">GET</option>
-            <option value="HEAD">HEAD</option>
-          </select>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label htmlFor="add-interval" className={labelClass}>
+              Interval (min)
+            </label>
+            <input
+              id="add-interval"
+              type="number"
+              min={1}
+              max={60}
+              value={intervalMinutes}
+              onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="add-method" className={labelClass}>
+              Method
+            </label>
+            <select
+              id="add-method"
+              value={isKeyword ? "GET" : method}
+              onChange={(e) => setMethod(e.target.value as "GET" | "HEAD")}
+              disabled={isKeyword}
+              className={inputClass}
+            >
+              <option value="GET">GET</option>
+              <option value="HEAD">HEAD</option>
+            </select>
+            {isKeyword && (
+              <p className={hintClass}>Keyword monitors always use GET.</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="add-timeout" className={labelClass}>
+              Timeout (sec)
+            </label>
+            <input
+              id="add-timeout"
+              type="number"
+              min={5}
+              max={120}
+              value={timeoutSeconds}
+              onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="add-expectedCodes" className={labelClass}>
+              Status codes
+            </label>
+            <input
+              id="add-expectedCodes"
+              type="text"
+              value={expectedStatusCodes}
+              onChange={(e) => setExpectedStatusCodes(e.target.value)}
+              placeholder="200-299"
+              className={inputClass}
+            />
+          </div>
         </div>
-        <div>
-          <label htmlFor="add-timeout" className={labelClass}>
-            Timeout (sec)
-          </label>
-          <input
-            id="add-timeout"
-            type="number"
-            min={5}
-            max={120}
-            value={timeoutSeconds}
-            onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label htmlFor="add-expectedCodes" className={labelClass}>
-            Status codes
-          </label>
-          <input
-            id="add-expectedCodes"
-            type="text"
-            value={expectedStatusCodes}
-            onChange={(e) => setExpectedStatusCodes(e.target.value)}
-            placeholder="200-299"
-            className={inputClass}
-          />
-        </div>
-      </div>
+      )}
 
+      {/* Keyword section */}
+      {isKeyword && (
+        <div className="border-t border-border pt-4">
+          <p className="mb-3 text-sm font-medium text-text-primary">Keyword check</p>
+          <div>
+            <label htmlFor="add-keyword" className={labelClass}>
+              Keyword
+            </label>
+            <input
+              id="add-keyword"
+              type="text"
+              value={keywordContains}
+              onChange={(e) => setKeywordContains(e.target.value)}
+              placeholder="expected text"
+              required
+              className={inputClass}
+            />
+            <p className={hintClass}>Case-insensitive search in response body (up to 2 MB read).</p>
+          </div>
+          <div className="mt-3 flex gap-4">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="add-keywordMode"
+                checked={keywordShouldExist}
+                onChange={() => setKeywordShouldExist(true)}
+                className="h-4 w-4 accent-accent"
+              />
+              <span className="text-sm text-text-primary">Should contain</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="add-keywordMode"
+                checked={!keywordShouldExist}
+                onChange={() => setKeywordShouldExist(false)}
+                className="h-4 w-4 accent-accent"
+              />
+              <span className="text-sm text-text-primary">Should not contain</span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* DNS section */}
+      {isDns && (
+        <div className="border-t border-border pt-4">
+          <p className="mb-3 text-sm font-medium text-text-primary">DNS check</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="add-dns-record-type" className={labelClass}>
+                Record type
+              </label>
+              <select
+                id="add-dns-record-type"
+                value={dnsRecordType}
+                onChange={(e) => setDnsRecordType(e.target.value)}
+                className={inputClass}
+              >
+                {DNS_RECORD_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="add-dns-expected" className={labelClass}>
+                Expected value
+              </label>
+              <input
+                id="add-dns-expected"
+                type="text"
+                value={dnsExpectedValue}
+                onChange={(e) => setDnsExpectedValue(e.target.value)}
+                placeholder={
+                  dnsRecordType === "A"
+                    ? "93.184.216.34"
+                    : dnsRecordType === "MX"
+                      ? "mail.example.com"
+                      : dnsRecordType === "TXT"
+                        ? "v=spf1"
+                        : "value"
+                }
+                required
+                className={inputClass}
+              />
+              <p className={hintClass}>
+                {dnsRecordType === "TXT"
+                  ? "Substring match (case-insensitive)"
+                  : "Exact match (case-insensitive)"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications */}
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">Notifications</p>
         <label className="flex cursor-pointer items-center gap-2.5">
@@ -208,7 +401,8 @@ export function AddMonitorForm({
         )}
       </div>
 
-      {url.startsWith("https://") && (
+      {/* SSL monitoring — only for HTTP/keyword HTTPS */}
+      {!isDns && url.startsWith("https://") && (
         <div className="border-t border-border pt-4">
           <p className="mb-3 text-sm font-medium text-text-primary">SSL monitoring</p>
           <label className="flex cursor-pointer items-center gap-2.5">
@@ -228,6 +422,7 @@ export function AddMonitorForm({
         </div>
       )}
 
+      {/* Status page */}
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">Status page</p>
         <label className="flex cursor-pointer items-center gap-2.5">

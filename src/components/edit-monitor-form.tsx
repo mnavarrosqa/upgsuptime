@@ -5,12 +5,19 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Monitor } from "@/db/schema";
 import { Spinner } from "@/components/spinner";
+import { DNS_RECORD_TYPES } from "@/lib/validate-monitor";
 
 const inputClass =
   "w-full rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
 
 const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 const hintClass = "mt-1.5 text-xs text-text-muted";
+
+const TYPE_LABELS: Record<string, string> = {
+  http: "HTTP – check status code",
+  keyword: "Keyword – check response body",
+  dns: "DNS – check record resolution",
+};
 
 export function EditMonitorForm({
   monitor,
@@ -22,9 +29,20 @@ export function EditMonitorForm({
   onCancel?: () => void;
 }) {
   const router = useRouter();
+
+  // Type is read-only after creation
+  const monitorType = (monitor.type ?? "http") as "http" | "keyword" | "dns";
+
   const [name, setName] = useState(monitor.name);
   const [url, setUrl] = useState(monitor.url);
   const [intervalMinutes, setIntervalMinutes] = useState(monitor.intervalMinutes);
+  const [alertEmail, setAlertEmail] = useState(!!monitor.alertEmail);
+  const [alertEmailTo, setAlertEmailTo] = useState(monitor.alertEmailTo ?? "");
+  const [showOnStatusPage, setShowOnStatusPage] = useState(
+    monitor.showOnStatusPage !== false
+  );
+
+  // HTTP / keyword fields
   const [timeoutSeconds, setTimeoutSeconds] = useState(monitor.timeoutSeconds ?? 15);
   const [method, setMethod] = useState<"GET" | "HEAD">(
     monitor.method === "HEAD" ? "HEAD" : "GET"
@@ -32,35 +50,59 @@ export function EditMonitorForm({
   const [expectedStatusCodes, setExpectedStatusCodes] = useState(
     monitor.expectedStatusCodes ?? "200-299"
   );
-  const [alertEmail, setAlertEmail] = useState(!!monitor.alertEmail);
-  const [alertEmailTo, setAlertEmailTo] = useState(monitor.alertEmailTo ?? "");
   const [sslMonitoring, setSslMonitoring] = useState(!!monitor.sslMonitoring);
-  const [showOnStatusPage, setShowOnStatusPage] = useState(
-    monitor.showOnStatusPage !== false
+
+  // Keyword-specific
+  const [keywordContains, setKeywordContains] = useState(monitor.keywordContains ?? "");
+  const [keywordShouldExist, setKeywordShouldExist] = useState(
+    monitor.keywordShouldExist !== false
   );
+
+  // DNS-specific
+  const [dnsRecordType, setDnsRecordType] = useState(monitor.dnsRecordType ?? "A");
+  const [dnsExpectedValue, setDnsExpectedValue] = useState(monitor.dnsExpectedValue ?? "");
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isDns = monitorType === "dns";
+  const isKeyword = monitorType === "keyword";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setSubmitting(true);
     try {
+      const bodyObj: Record<string, unknown> = {
+        name,
+        url,
+        intervalMinutes,
+        alertEmail,
+        alertEmailTo: alertEmailTo.trim() || null,
+        showOnStatusPage,
+      };
+
+      if (!isDns) {
+        bodyObj.timeoutSeconds = timeoutSeconds;
+        bodyObj.method = isKeyword ? "GET" : method;
+        bodyObj.expectedStatusCodes = expectedStatusCodes.trim() || "200-299";
+        bodyObj.sslMonitoring = sslMonitoring;
+      }
+
+      if (isKeyword) {
+        bodyObj.keywordContains = keywordContains;
+        bodyObj.keywordShouldExist = keywordShouldExist;
+      }
+
+      if (isDns) {
+        bodyObj.dnsRecordType = dnsRecordType;
+        bodyObj.dnsExpectedValue = dnsExpectedValue;
+      }
+
       const res = await fetch(`/api/monitors/${monitor.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name,
-          url,
-          intervalMinutes,
-          timeoutSeconds,
-          method,
-          expectedStatusCodes: expectedStatusCodes.trim() || "200-299",
-          alertEmail,
-          alertEmailTo: alertEmailTo.trim() || null,
-          sslMonitoring,
-          showOnStatusPage,
-        }),
+        body: JSON.stringify(bodyObj),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -88,6 +130,16 @@ export function EditMonitorForm({
         </div>
       )}
 
+      {/* Monitor type — read-only */}
+      <div>
+        <p className={labelClass}>Monitor type</p>
+        <p className="rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-muted">
+          {TYPE_LABELS[monitorType] ?? monitorType}
+        </p>
+        <p className={hintClass}>Monitor type cannot be changed after creation.</p>
+      </div>
+
+      {/* Name */}
       <div>
         <label htmlFor="edit-name" className={labelClass}>
           Name
@@ -103,23 +155,29 @@ export function EditMonitorForm({
         />
       </div>
 
+      {/* URL / Hostname */}
       <div>
         <label htmlFor="edit-url" className={labelClass}>
-          URL
+          {isDns ? "Hostname" : "URL"}
         </label>
         <input
           id="edit-url"
-          type="url"
+          type={isDns ? "text" : "url"}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder="https://example.com"
+          placeholder={isDns ? "example.com" : "https://example.com"}
           required
           className={inputClass}
         />
-        <p className={hintClass}>Must be a valid HTTP or HTTPS URL.</p>
+        <p className={hintClass}>
+          {isDns
+            ? "Enter a hostname without https://"
+            : "Must be a valid HTTP or HTTPS URL."}
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* HTTP/Keyword options */}
+      {isDns ? (
         <div>
           <label htmlFor="edit-interval" className={labelClass}>
             Interval (min)
@@ -134,49 +192,168 @@ export function EditMonitorForm({
             className={inputClass}
           />
         </div>
-        <div>
-          <label htmlFor="edit-method" className={labelClass}>
-            Method
-          </label>
-          <select
-            id="edit-method"
-            value={method}
-            onChange={(e) => setMethod(e.target.value as "GET" | "HEAD")}
-            className={inputClass}
-          >
-            <option value="GET">GET</option>
-            <option value="HEAD">HEAD</option>
-          </select>
+      ) : (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div>
+            <label htmlFor="edit-interval" className={labelClass}>
+              Interval (min)
+            </label>
+            <input
+              id="edit-interval"
+              type="number"
+              min={1}
+              max={60}
+              value={intervalMinutes}
+              onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-method" className={labelClass}>
+              Method
+            </label>
+            <select
+              id="edit-method"
+              value={isKeyword ? "GET" : method}
+              onChange={(e) => setMethod(e.target.value as "GET" | "HEAD")}
+              disabled={isKeyword}
+              className={inputClass}
+            >
+              <option value="GET">GET</option>
+              <option value="HEAD">HEAD</option>
+            </select>
+            {isKeyword && (
+              <p className={hintClass}>Keyword monitors always use GET.</p>
+            )}
+          </div>
+          <div>
+            <label htmlFor="edit-timeout" className={labelClass}>
+              Timeout (sec)
+            </label>
+            <input
+              id="edit-timeout"
+              type="number"
+              min={5}
+              max={120}
+              value={timeoutSeconds}
+              onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <label htmlFor="edit-expectedCodes" className={labelClass}>
+              Status codes
+            </label>
+            <input
+              id="edit-expectedCodes"
+              type="text"
+              value={expectedStatusCodes}
+              onChange={(e) => setExpectedStatusCodes(e.target.value)}
+              placeholder="200-299"
+              className={inputClass}
+            />
+          </div>
         </div>
-        <div>
-          <label htmlFor="edit-timeout" className={labelClass}>
-            Timeout (sec)
-          </label>
-          <input
-            id="edit-timeout"
-            type="number"
-            min={5}
-            max={120}
-            value={timeoutSeconds}
-            onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label htmlFor="edit-expectedCodes" className={labelClass}>
-            Status codes
-          </label>
-          <input
-            id="edit-expectedCodes"
-            type="text"
-            value={expectedStatusCodes}
-            onChange={(e) => setExpectedStatusCodes(e.target.value)}
-            placeholder="200-299"
-            className={inputClass}
-          />
-        </div>
-      </div>
+      )}
 
+      {/* Keyword section */}
+      {isKeyword && (
+        <div className="border-t border-border pt-4">
+          <p className="mb-3 text-sm font-medium text-text-primary">Keyword check</p>
+          <div>
+            <label htmlFor="edit-keyword" className={labelClass}>
+              Keyword
+            </label>
+            <input
+              id="edit-keyword"
+              type="text"
+              value={keywordContains}
+              onChange={(e) => setKeywordContains(e.target.value)}
+              placeholder="expected text"
+              required
+              className={inputClass}
+            />
+            <p className={hintClass}>Case-insensitive search in response body (up to 2 MB read).</p>
+          </div>
+          <div className="mt-3 flex gap-4">
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="edit-keywordMode"
+                checked={keywordShouldExist}
+                onChange={() => setKeywordShouldExist(true)}
+                className="h-4 w-4 accent-accent"
+              />
+              <span className="text-sm text-text-primary">Should contain</span>
+            </label>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="radio"
+                name="edit-keywordMode"
+                checked={!keywordShouldExist}
+                onChange={() => setKeywordShouldExist(false)}
+                className="h-4 w-4 accent-accent"
+              />
+              <span className="text-sm text-text-primary">Should not contain</span>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* DNS section */}
+      {isDns && (
+        <div className="border-t border-border pt-4">
+          <p className="mb-3 text-sm font-medium text-text-primary">DNS check</p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="edit-dns-record-type" className={labelClass}>
+                Record type
+              </label>
+              <select
+                id="edit-dns-record-type"
+                value={dnsRecordType}
+                onChange={(e) => setDnsRecordType(e.target.value)}
+                className={inputClass}
+              >
+                {DNS_RECORD_TYPES.map((t) => (
+                  <option key={t} value={t}>
+                    {t}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="edit-dns-expected" className={labelClass}>
+                Expected value
+              </label>
+              <input
+                id="edit-dns-expected"
+                type="text"
+                value={dnsExpectedValue}
+                onChange={(e) => setDnsExpectedValue(e.target.value)}
+                placeholder={
+                  dnsRecordType === "A"
+                    ? "93.184.216.34"
+                    : dnsRecordType === "MX"
+                      ? "mail.example.com"
+                      : dnsRecordType === "TXT"
+                        ? "v=spf1"
+                        : "value"
+                }
+                required
+                className={inputClass}
+              />
+              <p className={hintClass}>
+                {dnsRecordType === "TXT"
+                  ? "Substring match (case-insensitive)"
+                  : "Exact match (case-insensitive)"}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Notifications */}
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">Notifications</p>
         <label className="flex cursor-pointer items-center gap-2.5">
@@ -205,7 +382,8 @@ export function EditMonitorForm({
         )}
       </div>
 
-      {url.startsWith("https://") && (
+      {/* SSL monitoring — only for HTTP/keyword HTTPS */}
+      {!isDns && url.startsWith("https://") && (
         <div className="border-t border-border pt-4">
           <p className="mb-3 text-sm font-medium text-text-primary">SSL monitoring</p>
           <label className="flex cursor-pointer items-center gap-2.5">
@@ -225,6 +403,7 @@ export function EditMonitorForm({
         </div>
       )}
 
+      {/* Status page */}
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">Status page</p>
         <label className="flex cursor-pointer items-center gap-2.5">

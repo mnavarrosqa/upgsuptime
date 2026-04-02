@@ -77,6 +77,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
         id={m.id}
         name={m.name}
         url={m.url}
+        monitorType={m.type ?? "http"}
         paused={m.paused}
         latest={latestByMonitor[m.id]}
         trendResults={trendByMonitor[m.id] ?? []}

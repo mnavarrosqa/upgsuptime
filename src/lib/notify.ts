@@ -75,10 +75,13 @@ export async function sendEmailAlert(
   const to = m.alertEmailTo ?? ownerEmail;
   const statusLabel = newStatus ? "UP" : "DOWN";
 
+  const monitorType = m.type ?? "http";
+
   let subject: string;
   if (newStatus) {
     subject = `📶 ${m.name} — back online`;
   } else if (
+    monitorType === "http" &&
     sslResult &&
     mergedSslAlertType &&
     mergedSslAlertType !== "recovered"
@@ -96,6 +99,10 @@ export async function sendEmailAlert(
       default:
         subject = `📴 ${m.name} — unreachable`;
     }
+  } else if (monitorType === "dns") {
+    subject = `📴 ${m.name} — DNS check failed`;
+  } else if (monitorType === "keyword") {
+    subject = `📴 ${m.name} — keyword check failed`;
   } else {
     subject = `📴 ${m.name} — unreachable`;
   }
@@ -124,7 +131,7 @@ export async function sendEmailAlert(
   }
   const textLines = [
     `Monitor: ${m.name}`,
-    `URL: ${m.url}`,
+    `${(m.type ?? "http") === "dns" ? "Host" : "URL"}: ${m.url}`,
     `Status: ${statusLabel}`,
     ``,
     result.statusCode != null ? `Status code: ${result.statusCode}` : null,

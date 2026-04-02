@@ -5,6 +5,7 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { HeartPulse } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 import { UserMenu } from "@/components/user-menu";
 import { AppNavLinks } from "@/components/app-nav-links";
 import { MobileMenu } from "@/components/mobile-menu";
@@ -42,6 +43,7 @@ export default async function AppLayout({
             <div className="hidden sm:flex sm:flex-1 sm:items-stretch">
               <AppNavLinks role={session.user.role} />
               <div className="ml-auto flex items-center gap-1">
+                <LanguageToggle />
                 <ThemeToggle />
                 <span className="h-4 w-px bg-border" aria-hidden />
                 <UserMenu

@@ -11,6 +11,9 @@ import {
   validateExpectedStatusCodes,
   validateMonitorName,
   validateMonitorUrl,
+  validateMonitorHostname,
+  validateDnsRecordType,
+  validateKeywordContains,
 } from "@/lib/validate-monitor";
 import { runCheck } from "@/lib/run-check";
 
@@ -38,6 +41,10 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
+
+  // Determine monitor type
+  const type = ["keyword", "dns"].includes(body.type) ? (body.type as "keyword" | "dns") : "http";
+
   const name = typeof body.name === "string" ? body.name.trim() : "";
   const url = typeof body.url === "string" ? body.url.trim() : "";
   const intervalMinutes =
@@ -48,8 +55,8 @@ export async function POST(request: Request) {
     typeof body.timeoutSeconds === "number" && body.timeoutSeconds >= 5
       ? Math.min(body.timeoutSeconds, 120)
       : 15;
-  const method =
-    body.method === "HEAD" ? "HEAD" : "GET";
+  // Keyword monitors always use GET
+  const method = type === "keyword" ? "GET" : (body.method === "HEAD" ? "HEAD" : "GET");
   const expectedStatusCodes =
     typeof body.expectedStatusCodes === "string" && body.expectedStatusCodes.trim()
       ? body.expectedStatusCodes.trim()
@@ -59,34 +66,81 @@ export async function POST(request: Request) {
     typeof body.alertEmailTo === "string" && body.alertEmailTo.trim()
       ? body.alertEmailTo.trim()
       : null;
-  const sslMonitoring = body.sslMonitoring === true;
+  // DNS monitors never use SSL monitoring
+  const sslMonitoring = type === "dns" ? false : body.sslMonitoring === true;
   const showOnStatusPage =
     typeof body.showOnStatusPage === "boolean" ? body.showOnStatusPage : true;
 
+  // Keyword-specific fields
+  const keywordContains =
+    type === "keyword" && typeof body.keywordContains === "string"
+      ? body.keywordContains.trim() || null
+      : null;
+  const keywordShouldExist =
+    type === "keyword"
+      ? typeof body.keywordShouldExist === "boolean"
+        ? body.keywordShouldExist
+        : true
+      : null;
+
+  // DNS-specific fields
+  const dnsRecordType =
+    type === "dns" && typeof body.dnsRecordType === "string"
+      ? body.dnsRecordType.trim()
+      : null;
+  const dnsExpectedValue =
+    type === "dns" && typeof body.dnsExpectedValue === "string"
+      ? body.dnsExpectedValue.trim() || null
+      : null;
+
+  // --- Validation ---
   if (!name) {
-    return NextResponse.json(
-      { error: "Name is required" },
-      { status: 400 }
-    );
+    return NextResponse.json({ error: "Name is required" }, { status: 400 });
   }
   const nameError = validateMonitorName(name);
   if (nameError) {
     return NextResponse.json({ error: nameError }, { status: 400 });
   }
-  if (!url) {
-    return NextResponse.json(
-      { error: "URL is required" },
-      { status: 400 }
-    );
+
+  if (type === "dns") {
+    if (!url) {
+      return NextResponse.json({ error: "Hostname is required" }, { status: 400 });
+    }
+    const hostnameError = validateMonitorHostname(url);
+    if (hostnameError) {
+      return NextResponse.json({ error: hostnameError }, { status: 400 });
+    }
+    if (!dnsRecordType) {
+      return NextResponse.json({ error: "DNS record type is required" }, { status: 400 });
+    }
+    const recordTypeError = validateDnsRecordType(dnsRecordType);
+    if (recordTypeError) {
+      return NextResponse.json({ error: recordTypeError }, { status: 400 });
+    }
+    if (!dnsExpectedValue) {
+      return NextResponse.json({ error: "Expected value is required for DNS monitors" }, { status: 400 });
+    }
+  } else {
+    if (!url) {
+      return NextResponse.json({ error: "URL is required" }, { status: 400 });
+    }
+    const urlError = validateMonitorUrl(url);
+    if (urlError) {
+      return NextResponse.json({ error: urlError }, { status: 400 });
+    }
+    const codesError = validateExpectedStatusCodes(expectedStatusCodes);
+    if (codesError) {
+      return NextResponse.json({ error: codesError }, { status: 400 });
+    }
   }
-  const urlError = validateMonitorUrl(url);
-  if (urlError) {
-    return NextResponse.json({ error: urlError }, { status: 400 });
+
+  if (type === "keyword") {
+    const kwError = validateKeywordContains(keywordContains ?? "");
+    if (kwError) {
+      return NextResponse.json({ error: kwError }, { status: 400 });
+    }
   }
-  const codesError = validateExpectedStatusCodes(expectedStatusCodes);
-  if (codesError) {
-    return NextResponse.json({ error: codesError }, { status: 400 });
-  }
+
   if (alertEmailTo) {
     const emailError = validateEmail(alertEmailTo);
     if (emailError) {
@@ -109,6 +163,11 @@ export async function POST(request: Request) {
     alertEmailTo,
     sslMonitoring,
     showOnStatusPage,
+    type,
+    keywordContains,
+    keywordShouldExist,
+    dnsRecordType,
+    dnsExpectedValue,
     createdAt: now,
   });
 
