@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { Activity } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -49,12 +50,12 @@ export default function MaintenancePage() {
         </div>
 
         <p className="mt-8 text-sm text-text-muted">
-          <a
+          <Link
             href="/"
             className="font-medium text-text-primary underline-offset-4 hover:underline transition-colors"
           >
             Try again
-          </a>
+          </Link>
         </p>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import type { AdminUser } from "./page";
@@ -109,22 +110,28 @@ export function AdminUsersClient({
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
-                      <button
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
                         onClick={() => toggleRole(u)}
                         disabled={isSelf || isBusy}
                         className="rounded px-2 py-1 text-xs font-medium text-text-muted hover:bg-bg-page disabled:cursor-not-allowed disabled:opacity-40"
                         title={isSelf ? "Cannot change your own role" : `Make ${u.role === "admin" ? "user" : "admin"}`}
                       >
                         {isBusy ? "…" : u.role === "admin" ? "Demote" : "Make admin"}
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="xs"
                         onClick={() => setConfirmDelete(u)}
                         disabled={isSelf || isBusy}
                         className="rounded px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400 dark:hover:bg-red-950"
                         title={isSelf ? "Cannot delete your own account" : "Delete user"}
                       >
                         Delete
-                      </button>
+                      </Button>
                     </div>
                   </td>
                 </tr>

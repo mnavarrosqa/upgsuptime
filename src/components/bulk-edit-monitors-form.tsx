@@ -5,9 +5,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import type { Monitor } from "@/db/schema";
 import { Spinner } from "@/components/spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const inputClass =
-  "w-full rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
+  "h-9 w-full min-w-0 rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus";
+
+const selectClass = inputClass;
 
 const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 const hintClass = "mt-1.5 text-xs text-text-muted";
@@ -230,10 +235,10 @@ export function BulkEditMonitorsForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label htmlFor="bulk-interval" className={labelClass}>
+          <Label htmlFor="bulk-interval" className={labelClass}>
             Interval (min)
-          </label>
-          <input
+          </Label>
+          <Input
             id="bulk-interval"
             type="number"
             min={1}
@@ -245,16 +250,16 @@ export function BulkEditMonitorsForm({
           />
         </div>
         <div>
-          <label htmlFor="bulk-method" className={labelClass}>
+          <Label htmlFor="bulk-method" className={labelClass}>
             Method
-          </label>
+          </Label>
           <select
             id="bulk-method"
             value={method}
             onChange={(e) =>
               setMethod(e.target.value as "GET" | "HEAD" | "mixed")
             }
-            className={inputClass}
+            className={selectClass}
           >
             <option value="mixed">Various</option>
             <option value="GET">GET</option>
@@ -262,10 +267,10 @@ export function BulkEditMonitorsForm({
           </select>
         </div>
         <div>
-          <label htmlFor="bulk-timeout" className={labelClass}>
+          <Label htmlFor="bulk-timeout" className={labelClass}>
             Timeout (sec)
-          </label>
-          <input
+          </Label>
+          <Input
             id="bulk-timeout"
             type="number"
             min={5}
@@ -277,10 +282,10 @@ export function BulkEditMonitorsForm({
           />
         </div>
         <div>
-          <label htmlFor="bulk-expectedCodes" className={labelClass}>
+          <Label htmlFor="bulk-expectedCodes" className={labelClass}>
             Status codes
-          </label>
-          <input
+          </Label>
+          <Input
             id="bulk-expectedCodes"
             type="text"
             value={expectedStatusCodes}
@@ -311,13 +316,13 @@ export function BulkEditMonitorsForm({
         </label>
         {alertEmail === true && (
           <div className="mt-3">
-            <label htmlFor="bulk-alertEmailTo" className={labelClass}>
+            <Label htmlFor="bulk-alertEmailTo" className={labelClass}>
               Alert email{" "}
               <span className="font-normal text-text-muted">
                 (leave blank to use account email)
               </span>
-            </label>
-            <input
+            </Label>
+            <Input
               id="bulk-alertEmailTo"
               type="email"
               value={alertEmailTo}
@@ -374,23 +379,25 @@ export function BulkEditMonitorsForm({
 
       <div className="flex flex-wrap justify-end gap-2 border-t border-border pt-4">
         {onCancel && (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onCancel}
             disabled={submitting}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
+            className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
           >
             Cancel
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="submit"
           disabled={submitting}
+          variant="default"
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
           {submitting ? "Saving…" : "Apply to all"}
-        </button>
+        </Button>
       </div>
     </form>
   );

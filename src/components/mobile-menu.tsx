@@ -7,6 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useActivity } from "@/components/activity-context";
+import { Button } from "@/components/ui/button";
 
 const navLinks = [
   { href: "/dashboard", labelKey: "dashboard" as const },
@@ -89,10 +90,12 @@ export function MobileMenu({
 
   return (
     <div ref={ref} className="relative">
-      <button
+      <Button
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={() => setOpen((o) => !o)}
-        className="flex h-11 w-11 items-center justify-center rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
+        className="h-11 w-11 rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
         aria-label={open ? t("closeMenu") : t("openMenu")}
         aria-expanded={open}
       >
@@ -101,7 +104,7 @@ export function MobileMenu({
         ) : (
           <Menu className="h-5 w-5" aria-hidden />
         )}
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -170,10 +173,11 @@ export function MobileMenu({
 
           {/* Theme toggle */}
           {mounted && (
-            <button
+            <Button
               type="button"
+              variant="ghost"
               onClick={toggleTheme}
-              className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
+              className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
             >
               {dark ? (
                 <Sun className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -181,19 +185,20 @@ export function MobileMenu({
                 <Moon className="h-3.5 w-3.5 shrink-0" aria-hidden />
               )}
               {dark ? t("lightMode") : t("darkMode")}
-            </button>
+            </Button>
           )}
 
           {/* Language toggle */}
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={switchLanguage}
             disabled={switchingLocale}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary disabled:opacity-50"
+            className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
           >
             <Globe className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {locale === "en" ? tLocale("spanish") : tLocale("english")}
-          </button>
+          </Button>
 
           {/* Account & sign out */}
           <Link
@@ -214,15 +219,16 @@ export function MobileMenu({
             <CircleHelp className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {t("help")}
           </Link>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             role="menuitem"
             onClick={() => signOut({ callbackUrl: "/login" })}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
+            className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
           >
             <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
             {t("signOut")}
-          </button>
+          </Button>
         </div>
       )}
     </div>

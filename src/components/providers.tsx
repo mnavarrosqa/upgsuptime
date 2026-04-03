@@ -19,8 +19,8 @@ export function Providers({ children, locale, messages }: ProvidersProps) {
           position="bottom-right"
           toastOptions={{
             style: {
-              background: "var(--bg-card)",
-              color: "var(--text-primary)",
+              background: "var(--card)",
+              color: "var(--card-foreground)",
               border: "1px solid var(--border)",
             },
           }}

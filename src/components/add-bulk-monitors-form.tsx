@@ -4,6 +4,10 @@ import { useCallback, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import { deriveMonitorNameFromUrl } from "@/lib/derive-monitor-name";
 import {
   parseSitesFromFile,
@@ -17,7 +21,11 @@ import {
 } from "@/lib/validate-monitor";
 
 const inputClass =
-  "w-full rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
+  "h-9 w-full min-w-0 rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus";
+
+const selectClass = inputClass;
+
+const textareaClass = `${inputClass} min-h-[96px] resize-y`;
 
 const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 const hintClass = "mt-1.5 text-xs text-text-muted";
@@ -278,22 +286,24 @@ export function AddBulkMonitorsForm({
             Sample format (recommended)
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={downloadSampleCsv}
               disabled={parsingFile || submitting}
-              className="rounded-md border border-border bg-bg-page px-3 py-2 text-xs font-medium text-text-primary hover:bg-bg-elevated disabled:opacity-60"
+              className="rounded-md border-border bg-bg-page px-3 py-2 text-xs font-medium text-text-primary hover:bg-bg-elevated"
             >
               Download CSV sample
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => downloadSampleXlsx()}
               disabled={parsingFile || submitting}
-              className="rounded-md border border-border bg-bg-page px-3 py-2 text-xs font-medium text-text-primary hover:bg-bg-elevated disabled:opacity-60"
+              className="rounded-md border-border bg-bg-page px-3 py-2 text-xs font-medium text-text-primary hover:bg-bg-elevated"
             >
               Download XLSX sample
-            </button>
+            </Button>
           </div>
           <pre className="mt-2 whitespace-pre-wrap rounded-md border border-border bg-bg-page px-3 py-2 text-xs text-text-primary font-mono">
             name,url{"\n"}
@@ -310,13 +320,14 @@ export function AddBulkMonitorsForm({
             onChange={onFileChange}
             disabled={parsingFile || submitting}
           />
-          <label
+          <Label
             htmlFor={fileInputId}
-            className={`inline-flex items-center justify-center rounded-md border border-border bg-bg-page px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-bg-page/80 ${
+            className={cn(
+              "inline-flex items-center justify-center rounded-md border border-border bg-bg-page px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-bg-page/80",
               parsingFile || submitting
                 ? "pointer-events-none cursor-not-allowed opacity-60"
                 : "cursor-pointer"
-            }`}
+            )}
           >
             {parsingFile ? (
               <>
@@ -326,7 +337,7 @@ export function AddBulkMonitorsForm({
             ) : (
               "Choose file"
             )}
-          </label>
+          </Label>
           <span className="text-xs text-text-muted">
             {parsingFile ? "" : "txt, csv, xlsx"}
           </span>
@@ -334,32 +345,33 @@ export function AddBulkMonitorsForm({
       </div>
 
       <div>
-        <label htmlFor="bulk-paste" className={labelClass}>
+        <Label htmlFor="bulk-paste" className={labelClass}>
           Or paste a list
-        </label>
+        </Label>
         <textarea
           id="bulk-paste"
           value={pasteText}
           onChange={(e) => setPasteText(e.target.value)}
           placeholder="https://example.com"
           rows={4}
-          className={`${inputClass} min-h-[96px] resize-y`}
+          className={textareaClass}
           aria-describedby="bulk-paste-hint"
         />
         <p id="bulk-paste-hint" className={hintClass}>
           One URL per line, or CSV / spreadsheet-style rows. Load into the
           preview below.
         </p>
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={loadFromPaste}
           disabled={
             submitting || parsingFile || !pasteText.trim()
           }
-          className="mt-2 rounded-md border border-border bg-bg-page px-3 py-2 text-sm font-medium text-text-primary hover:bg-bg-elevated disabled:opacity-60"
+          className="mt-2 rounded-md border-border bg-bg-page px-3 py-2 text-sm font-medium text-text-primary hover:bg-bg-elevated"
         >
           Load into preview
-        </button>
+        </Button>
       </div>
 
       {rows.length > 0 && (
@@ -398,14 +410,17 @@ export function AddBulkMonitorsForm({
                         {idx + 1}
                       </td>
                       <td className="px-3 py-2 align-top">
-                        <input
+                        <Input
                           type="text"
                           value={r.name}
                           onChange={(e) =>
                             updateRow(r.id, { name: e.target.value })
                           }
                           aria-invalid={nameBad}
-                          className={`${inputClass} ${nameBad ? "border-red-400 dark:border-red-600" : ""}`}
+                          className={cn(
+                            inputClass,
+                            nameBad && "border-red-400 dark:border-red-600"
+                          )}
                           placeholder={deriveMonitorNameFromUrl(r.url.trim())}
                         />
                         {nameBad && (
@@ -415,14 +430,17 @@ export function AddBulkMonitorsForm({
                         )}
                       </td>
                       <td className="px-3 py-2 align-top">
-                        <input
+                        <Input
                           type="url"
                           value={r.url}
                           onChange={(e) =>
                             updateRow(r.id, { url: e.target.value })
                           }
                           aria-invalid={urlBad}
-                          className={`${inputClass} ${urlBad ? "border-red-400 dark:border-red-600" : ""}`}
+                          className={cn(
+                            inputClass,
+                            urlBad && "border-red-400 dark:border-red-600"
+                          )}
                           placeholder="https://"
                         />
                         {urlBad && (
@@ -432,14 +450,15 @@ export function AddBulkMonitorsForm({
                         )}
                       </td>
                       <td className="px-3 py-2 align-top">
-                        <button
+                        <Button
                           type="button"
+                          variant="ghost"
                           onClick={() => removeRow(r.id)}
                           disabled={submitting}
-                          className="rounded-md text-sm text-text-muted hover:text-red-600 dark:hover:text-red-400"
+                          className="rounded-md px-2 text-sm text-text-muted hover:bg-transparent hover:text-red-600 dark:hover:text-red-400"
                         >
                           Remove
-                        </button>
+                        </Button>
                       </td>
                     </tr>
                   );
@@ -452,10 +471,10 @@ export function AddBulkMonitorsForm({
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
-          <label htmlFor="bulk-interval" className={labelClass}>
+          <Label htmlFor="bulk-interval" className={labelClass}>
             Interval (min)
-          </label>
-          <input
+          </Label>
+          <Input
             id="bulk-interval"
             type="number"
             min={1}
@@ -466,24 +485,24 @@ export function AddBulkMonitorsForm({
           />
         </div>
         <div>
-          <label htmlFor="bulk-method" className={labelClass}>
+          <Label htmlFor="bulk-method" className={labelClass}>
             Method
-          </label>
+          </Label>
           <select
             id="bulk-method"
             value={method}
             onChange={(e) => setMethod(e.target.value as "GET" | "HEAD")}
-            className={inputClass}
+            className={selectClass}
           >
             <option value="GET">GET</option>
             <option value="HEAD">HEAD</option>
           </select>
         </div>
         <div>
-          <label htmlFor="bulk-timeout" className={labelClass}>
+          <Label htmlFor="bulk-timeout" className={labelClass}>
             Timeout (sec)
-          </label>
-          <input
+          </Label>
+          <Input
             id="bulk-timeout"
             type="number"
             min={5}
@@ -494,10 +513,10 @@ export function AddBulkMonitorsForm({
           />
         </div>
         <div>
-          <label htmlFor="bulk-expectedCodes" className={labelClass}>
+          <Label htmlFor="bulk-expectedCodes" className={labelClass}>
             Status codes
-          </label>
-          <input
+          </Label>
+          <Input
             id="bulk-expectedCodes"
             type="text"
             value={expectedStatusCodes}
@@ -523,13 +542,13 @@ export function AddBulkMonitorsForm({
         </label>
         {alertEmail && (
           <div className="mt-3">
-            <label htmlFor="bulk-alertEmailTo" className={labelClass}>
+            <Label htmlFor="bulk-alertEmailTo" className={labelClass}>
               Alert email{" "}
               <span className="font-normal text-text-muted">
                 (leave blank to use account email)
               </span>
-            </label>
-            <input
+            </Label>
+            <Input
               id="bulk-alertEmailTo"
               type="email"
               value={alertEmailTo}
@@ -584,28 +603,31 @@ export function AddBulkMonitorsForm({
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
         {onBack && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onBack}
             disabled={submitting}
-            className="mr-auto rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+            className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
           >
             Back
-          </button>
+          </Button>
         )}
         {onCancel && (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onCancel}
             disabled={submitting}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
+            className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
           >
             Cancel
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="submit"
           disabled={submitting || !allValid}
+          variant="default"
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
@@ -614,7 +636,7 @@ export function AddBulkMonitorsForm({
             : rows.length > 0
               ? `Save ${rows.length} monitor${rows.length !== 1 ? "s" : ""}`
               : "Save monitors"}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -4,9 +4,12 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useApiErrorMessage } from "@/lib/api-errors";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const inputClass =
-  "w-full rounded-md border border-input-border bg-bg-card px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
+  "h-auto min-h-10 w-full rounded-md border border-input-border bg-bg-card px-3.5 py-2.5 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus";
 
 export function PasswordForm() {
   const tCommon = useTranslations("common");
@@ -55,13 +58,13 @@ export function PasswordForm() {
         </div>
       )}
       <div>
-        <label
+        <Label
           htmlFor="currentPassword"
-          className="block text-sm font-medium text-text-primary mb-1.5"
+          className="mb-1.5 block text-sm font-medium text-text-primary"
         >
           {tAccount("currentPassword")}
-        </label>
-        <input
+        </Label>
+        <Input
           id="currentPassword"
           type="password"
           autoComplete="current-password"
@@ -72,13 +75,13 @@ export function PasswordForm() {
         />
       </div>
       <div>
-        <label
+        <Label
           htmlFor="newPassword"
-          className="block text-sm font-medium text-text-primary mb-1.5"
+          className="mb-1.5 block text-sm font-medium text-text-primary"
         >
           {tAccount("newPassword")}
-        </label>
-        <input
+        </Label>
+        <Input
           id="newPassword"
           type="password"
           autoComplete="new-password"
@@ -91,13 +94,13 @@ export function PasswordForm() {
         <p className="mt-1.5 text-xs text-text-muted">{tCommon("atLeast8Chars")}</p>
       </div>
       <div>
-        <label
+        <Label
           htmlFor="confirmPassword"
-          className="block text-sm font-medium text-text-primary mb-1.5"
+          className="mb-1.5 block text-sm font-medium text-text-primary"
         >
           {tAccount("confirmNewPassword")}
-        </label>
-        <input
+        </Label>
+        <Input
           id="confirmPassword"
           type="password"
           autoComplete="new-password"
@@ -108,13 +111,14 @@ export function PasswordForm() {
         />
       </div>
       <div>
-        <button
+        <Button
           type="submit"
           disabled={saving}
+          variant="default"
           className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {saving ? tAccount("saving") : tAccount("changePassword")}
-        </button>
+        </Button>
       </div>
     </form>
   );

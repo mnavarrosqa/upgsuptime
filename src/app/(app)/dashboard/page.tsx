@@ -31,21 +31,26 @@ export default async function DashboardPage() {
     if (latest) latestByMonitor[m.id] = { ok: latest.ok, responseTimeMs: latest.responseTimeMs, message: latest.message };
   }
 
-  let trendByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null }[]> = {};
+  let trendByMonitor: Record<string, { id: string; ok: boolean; responseTimeMs: number | null }[]> = {};
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
     const limit = Math.min(monitorIds.length * 24, 500);
     const recentResults = await db
-      .select({ monitorId: checkResult.monitorId, ok: checkResult.ok, responseTimeMs: checkResult.responseTimeMs })
+      .select({
+        id: checkResult.id,
+        monitorId: checkResult.monitorId,
+        ok: checkResult.ok,
+        responseTimeMs: checkResult.responseTimeMs,
+      })
       .from(checkResult)
       .where(inArray(checkResult.monitorId, monitorIds))
       .orderBy(desc(checkResult.createdAt))
       .limit(limit);
-    const grouped = new Map<string, { ok: boolean; responseTimeMs: number | null }[]>();
+    const grouped = new Map<string, { id: string; ok: boolean; responseTimeMs: number | null }[]>();
     for (const r of recentResults) {
       const list = grouped.get(r.monitorId) ?? [];
       if (list.length < 24) {
-        list.push({ ok: r.ok, responseTimeMs: r.responseTimeMs });
+        list.push({ id: r.id, ok: r.ok, responseTimeMs: r.responseTimeMs });
         grouped.set(r.monitorId, list);
       }
     }

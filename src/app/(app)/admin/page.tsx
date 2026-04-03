@@ -3,9 +3,10 @@ import { db } from "@/db";
 import { user, monitor, checkResult } from "@/db/schema";
 import { count, eq, gte } from "drizzle-orm";
 import { AdminSubNav } from "@/components/admin-sub-nav";
+import { hoursAgoUtc } from "@/lib/server-relative-time";
 
 export default async function AdminPage() {
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const since = hoursAgoUtc(24);
 
   const [[{ totalUsers }], [{ totalMonitors }], [{ checksLast24h }], [{ monitorsUp }], [{ monitorsDown }]] =
     await Promise.all([

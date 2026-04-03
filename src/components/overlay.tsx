@@ -6,6 +6,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
+import { Button } from "@/components/ui/button";
 
 export function Overlay({
   open,
@@ -73,10 +74,11 @@ export function Overlay({
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
       aria-hidden={!open}
     >
-      <button
+      <Button
         type="button"
+        variant="ghost"
         onClick={onClose}
-        className="absolute inset-0 bg-black/50"
+        className="absolute inset-0 h-full min-h-0 w-full rounded-none border-0 bg-black/50 p-0 hover:bg-black/50 focus-visible:ring-0"
         aria-label="Close"
         tabIndex={-1}
       />

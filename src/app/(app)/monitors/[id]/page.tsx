@@ -9,8 +9,8 @@ import { MonitorDetailActions } from "@/components/monitor-detail-actions";
 import { CheckResultsTable } from "@/components/check-results-table";
 import { RecentIncidentsList } from "@/components/recent-incidents-list";
 import { UptimeTrendCharts } from "@/components/uptime-trend-charts";
-import { SslBadge } from "@/components/ssl-badge";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { unixNowMs } from "@/lib/server-relative-time";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns") return "";
@@ -225,7 +225,10 @@ export default async function MonitorDetailPage({
 
           {m.sslMonitoring && (() => {
             const sslDays = m.sslExpiresAt
-              ? Math.ceil((new Date(m.sslExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24))
+              ? Math.ceil(
+                  (new Date(m.sslExpiresAt).getTime() - unixNowMs()) /
+                    (1000 * 60 * 60 * 24)
+                )
               : null;
             const sslColor =
               m.sslValid === null

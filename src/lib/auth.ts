@@ -23,7 +23,6 @@ export const authOptions: NextAuthOptions = {
         const identifier = credentials?.login?.trim();
         const password = credentials?.password;
         if (process.env.NODE_ENV !== "production") {
-          // eslint-disable-next-line no-console -- dev-only debug for login 401
           console.log("[auth] credentials:", identifier ? "identifier present" : "missing identifier", password ? "password present" : "missing password");
         }
         if (!identifier || !password) return null;
@@ -55,13 +54,11 @@ export const authOptions: NextAuthOptions = {
           }
         }
         if (process.env.NODE_ENV !== "production") {
-          // eslint-disable-next-line no-console -- dev-only debug for login 401
           console.log("[auth] user lookup:", u ? `found user id=${u.id}` : "no user found");
         }
         if (!u) return null;
         const ok = await bcrypt.compare(password, u.passwordHash);
         if (process.env.NODE_ENV !== "production" && !ok) {
-          // eslint-disable-next-line no-console -- dev-only debug for login 401
           console.log("[auth] password mismatch for user id=", u.id);
         }
         if (!ok) return null;

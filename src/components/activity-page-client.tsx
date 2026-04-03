@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useActivity } from "@/components/activity-context";
 import { useLocale, useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 
 interface ActivityItem {
   /** Check result row id (unique per transition event). */
@@ -85,13 +86,15 @@ export function ActivityPageClient({
           )}
         </div>
         {totalCount > 0 && (
-          <button
+          <Button
+            type="button"
+            variant="ghost"
             onClick={handleClear}
             disabled={clearing}
-            className="text-sm text-text-muted hover:text-text-primary disabled:opacity-50 transition-colors"
+            className="h-auto p-0 text-sm font-normal text-text-muted hover:bg-transparent hover:text-text-primary"
           >
             {clearing ? t("clearing") : t("clearAll")}
-          </button>
+          </Button>
         )}
       </div>
       <p className="mt-1 text-sm text-text-muted">

@@ -4,6 +4,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function LanguageToggle() {
   const locale = useLocale();
@@ -27,15 +28,16 @@ export function LanguageToggle() {
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
       onClick={toggle}
       disabled={switching}
-      className="flex items-center gap-1 rounded-md px-2 py-2 text-text-muted hover:bg-bg-page hover:text-text-primary disabled:opacity-50"
+      className="h-auto gap-1 rounded-md px-2 py-2 text-text-muted hover:bg-bg-page hover:text-text-primary"
       aria-label={t("switchLanguage")}
     >
       <Globe className="h-4 w-4" aria-hidden />
       <span className="text-xs font-medium uppercase">{locale}</span>
-    </button>
+    </Button>
   );
 }

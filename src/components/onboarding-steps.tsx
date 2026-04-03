@@ -3,9 +3,12 @@
 import { useState } from "react";
 import { CheckCircle, Globe, Mail, ArrowRight } from "lucide-react";
 import { Spinner } from "@/components/spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const inputClass =
-  "w-full rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
+  "h-9 w-full min-w-0 rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus";
 const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 const hintClass = "mt-1.5 text-xs text-text-muted";
 
@@ -39,7 +42,7 @@ export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
           <div className="text-sm">
             <p className="font-medium text-text-primary">Monitor your sites</p>
             <p className="text-text-muted">
-              Add URLs and we'll check them every few minutes
+              Add URLs and we&apos;ll check them every few minutes
             </p>
           </div>
         </div>
@@ -57,28 +60,30 @@ export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
           <div className="text-sm">
             <p className="font-medium text-text-primary">Share status pages</p>
             <p className="text-text-muted">
-              Public pages showing your services' uptime
+              Public pages showing your services&apos; uptime
             </p>
           </div>
         </div>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onSkip}
-          className="rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+          className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
           Skip for now
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="default"
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
           Get Started
           <ArrowRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -134,7 +139,8 @@ export function AddMonitorStep({
           Add Your First Monitor
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Enter the URL you want to monitor and we'll check it every few minutes.
+          Enter the URL you want to monitor and we&apos;ll check it every few
+          minutes.
         </p>
       </div>
 
@@ -148,10 +154,10 @@ export function AddMonitorStep({
       )}
 
       <div>
-        <label htmlFor="onboarding-name" className={labelClass}>
+        <Label htmlFor="onboarding-name" className={labelClass}>
           Name
-        </label>
-        <input
+        </Label>
+        <Input
           id="onboarding-name"
           type="text"
           value={name}
@@ -163,10 +169,10 @@ export function AddMonitorStep({
       </div>
 
       <div>
-        <label htmlFor="onboarding-url" className={labelClass}>
+        <Label htmlFor="onboarding-url" className={labelClass}>
           URL
-        </label>
-        <input
+        </Label>
+        <Input
           id="onboarding-url"
           type="url"
           value={url}
@@ -181,10 +187,10 @@ export function AddMonitorStep({
       </div>
 
       <div>
-        <label htmlFor="onboarding-interval" className={labelClass}>
+        <Label htmlFor="onboarding-interval" className={labelClass}>
           Check interval (minutes)
-        </label>
-        <input
+        </Label>
+        <Input
           id="onboarding-interval"
           type="number"
           min={1}
@@ -194,35 +200,39 @@ export function AddMonitorStep({
           className={inputClass}
         />
         <p className={hintClass}>
-          We'll check this URL every {intervalMinutes} minute{intervalMinutes !== 1 ? "s" : ""}.
+          We&apos;ll check this URL every {intervalMinutes} minute
+          {intervalMinutes !== 1 ? "s" : ""}.
         </p>
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onBack}
           disabled={submitting}
-          className="mr-auto rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+          className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
           Back
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
           onClick={onSkip}
           disabled={submitting}
-          className="rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+          className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
           Skip this step
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
           disabled={submitting}
+          variant="default"
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
           {submitting ? "Adding…" : "Add Monitor"}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -254,7 +264,7 @@ export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
         <div className="flex items-start gap-3">
           <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
           <p className="text-sm text-text-muted">
-            You'll receive emails at your account address or a custom email
+            You&apos;ll receive emails at your account address or a custom email
           </p>
         </div>
         <div className="flex items-start gap-3">
@@ -266,28 +276,31 @@ export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onBack}
-          className="mr-auto rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+          className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
           Back
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
           onClick={onSkip}
-          className="rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+          className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
           Skip this step
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="default"
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
           I understand
           <ArrowRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -309,8 +322,8 @@ export function StatusPageStep({
           Public Status Pages
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Share a public page showing your services' uptime history and current
-          status.
+          Share a public page showing your services&apos; uptime history and
+          current status.
         </p>
       </div>
 
@@ -343,28 +356,31 @@ export function StatusPageStep({
       </div>
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onBack}
-          className="mr-auto rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+          className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
           Back
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
           onClick={onSkip}
-          className="rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+          className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
           Skip this step
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="default"
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
           Done
           <ArrowRight className="h-4 w-4" />
-        </button>
+        </Button>
       </div>
     </div>
   );
@@ -381,10 +397,10 @@ export function CompleteStep({
           <CheckCircle className="h-9 w-9" />
         </div>
         <h2 className="text-2xl font-semibold text-text-primary">
-          You're All Set!
+          You&apos;re All Set!
         </h2>
         <p className="mt-2 text-sm text-text-muted">
-          You've learned the basics of uptime monitoring.
+          You&apos;ve learned the basics of uptime monitoring.
         </p>
       </div>
 
@@ -415,20 +431,22 @@ export function CompleteStep({
       </p>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
-        <button
+        <Button
           type="button"
+          variant="ghost"
           onClick={onSkip}
-          className="rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+          className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
           Close
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="default"
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
           Go to Dashboard
-        </button>
+        </Button>
       </div>
     </div>
   );

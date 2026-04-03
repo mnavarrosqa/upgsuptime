@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { monitor, user, checkResult } from "@/db/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { StatusPageShell } from "@/components/status-page-shell";
+import { daysAgoUtc, unixNowMs } from "@/lib/server-relative-time";
 
 export async function generateMetadata({
   params,
@@ -37,7 +38,7 @@ export default async function StatusPage({
 
   const publicMonitors = allMonitors.filter((m) => m.showOnStatusPage !== false);
 
-  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
+  const ninetyDaysAgo = daysAgoUtc(90);
   const bucketMs = 3 * 24 * 60 * 60 * 1000; // 3 days per bucket
 
   const monitorsWithStats = await Promise.all(
@@ -75,7 +76,7 @@ export default async function StatusPage({
         { length: 30 },
         () => ({ ok: 0, total: 0 })
       );
-      const now = Date.now();
+      const now = unixNowMs();
       for (const r of rows) {
         const age = now - new Date(r.createdAt).getTime();
         const rawIdx = Math.floor(age / bucketMs);

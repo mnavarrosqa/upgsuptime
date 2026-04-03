@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { monitor, user, checkResult } from "@/db/schema";
 import { eq, and, gte, gt, lt, inArray, max, asc } from "drizzle-orm";
 import { ActivityPageClient } from "@/components/activity-page-client";
+import { daysAgoUtc } from "@/lib/server-relative-time";
 
 const MAX_EVENTS = 50;
 const PAGE_SIZE = 20;
@@ -18,7 +19,7 @@ export default async function ActivityPage({
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const since = daysAgoUtc(7);
 
   const [currentUser] = await db
     .select({ activityClearedAt: user.activityClearedAt })

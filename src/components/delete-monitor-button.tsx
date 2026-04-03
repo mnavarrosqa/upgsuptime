@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { Button } from "@/components/ui/button";
 
 export function DeleteMonitorButton({
   monitorId,
@@ -37,15 +38,16 @@ export function DeleteMonitorButton({
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setConfirmOpen(true)}
         disabled={deleting}
-        className="inline-flex items-center justify-center gap-2 rounded-md border border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30 disabled:opacity-60"
+        className="inline-flex items-center justify-center gap-2 rounded-md border-red-200 px-4 py-2 text-sm font-medium text-red-700 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-900/30"
       >
         {deleting && <Spinner size="sm" />}
         {deleting ? "Deleting…" : "Delete"}
-      </button>
+      </Button>
       <ConfirmDialog
         open={confirmOpen}
         title="Delete monitor"

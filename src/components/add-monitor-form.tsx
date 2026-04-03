@@ -4,10 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { DNS_RECORD_TYPES } from "@/lib/validate-monitor";
 
 const inputClass =
-  "w-full rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
+  "h-9 w-full min-w-0 rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus";
+
+const selectClass = inputClass;
 
 const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 const hintClass = "mt-1.5 text-xs text-text-muted";
@@ -143,14 +148,14 @@ export function AddMonitorForm({
 
       {/* Monitor type selector */}
       <div>
-        <label htmlFor="add-type" className={labelClass}>
+        <Label htmlFor="add-type" className={labelClass}>
           Monitor type
-        </label>
+        </Label>
         <select
           id="add-type"
           value={monitorType}
           onChange={(e) => handleTypeChange(e.target.value as "http" | "keyword" | "dns")}
-          className={inputClass}
+          className={selectClass}
         >
           <option value="http">HTTP – check status code</option>
           <option value="keyword">Keyword – check response body</option>
@@ -160,10 +165,10 @@ export function AddMonitorForm({
 
       {/* Name */}
       <div>
-        <label htmlFor="add-name" className={labelClass}>
+        <Label htmlFor="add-name" className={labelClass}>
           Name
-        </label>
-        <input
+        </Label>
+        <Input
           id="add-name"
           type="text"
           value={name}
@@ -176,10 +181,10 @@ export function AddMonitorForm({
 
       {/* URL / Hostname */}
       <div>
-        <label htmlFor="add-url" className={labelClass}>
+        <Label htmlFor="add-url" className={labelClass}>
           {isDns ? "Hostname" : "URL"}
-        </label>
-        <input
+        </Label>
+        <Input
           id="add-url"
           type={isDns ? "text" : "url"}
           value={url}
@@ -198,10 +203,10 @@ export function AddMonitorForm({
       {/* HTTP/Keyword options: interval + method + timeout + status codes */}
       {isDns ? (
         <div>
-          <label htmlFor="add-interval" className={labelClass}>
+          <Label htmlFor="add-interval" className={labelClass}>
             Interval (min)
-          </label>
-          <input
+          </Label>
+          <Input
             id="add-interval"
             type="number"
             min={1}
@@ -214,10 +219,10 @@ export function AddMonitorForm({
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
-            <label htmlFor="add-interval" className={labelClass}>
+            <Label htmlFor="add-interval" className={labelClass}>
               Interval (min)
-            </label>
-            <input
+            </Label>
+            <Input
               id="add-interval"
               type="number"
               min={1}
@@ -228,15 +233,15 @@ export function AddMonitorForm({
             />
           </div>
           <div>
-            <label htmlFor="add-method" className={labelClass}>
+            <Label htmlFor="add-method" className={labelClass}>
               Method
-            </label>
+            </Label>
             <select
               id="add-method"
               value={isKeyword ? "GET" : method}
               onChange={(e) => setMethod(e.target.value as "GET" | "HEAD")}
               disabled={isKeyword}
-              className={inputClass}
+              className={selectClass}
             >
               <option value="GET">GET</option>
               <option value="HEAD">HEAD</option>
@@ -246,10 +251,10 @@ export function AddMonitorForm({
             )}
           </div>
           <div>
-            <label htmlFor="add-timeout" className={labelClass}>
+            <Label htmlFor="add-timeout" className={labelClass}>
               Timeout (sec)
-            </label>
-            <input
+            </Label>
+            <Input
               id="add-timeout"
               type="number"
               min={5}
@@ -260,10 +265,10 @@ export function AddMonitorForm({
             />
           </div>
           <div>
-            <label htmlFor="add-expectedCodes" className={labelClass}>
+            <Label htmlFor="add-expectedCodes" className={labelClass}>
               Status codes
-            </label>
-            <input
+            </Label>
+            <Input
               id="add-expectedCodes"
               type="text"
               value={expectedStatusCodes}
@@ -280,10 +285,10 @@ export function AddMonitorForm({
         <div className="border-t border-border pt-4">
           <p className="mb-3 text-sm font-medium text-text-primary">Keyword check</p>
           <div>
-            <label htmlFor="add-keyword" className={labelClass}>
+            <Label htmlFor="add-keyword" className={labelClass}>
               Keyword
-            </label>
-            <input
+            </Label>
+            <Input
               id="add-keyword"
               type="text"
               value={keywordContains}
@@ -325,14 +330,14 @@ export function AddMonitorForm({
           <p className="mb-3 text-sm font-medium text-text-primary">DNS check</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
-              <label htmlFor="add-dns-record-type" className={labelClass}>
+              <Label htmlFor="add-dns-record-type" className={labelClass}>
                 Record type
-              </label>
+              </Label>
               <select
                 id="add-dns-record-type"
                 value={dnsRecordType}
                 onChange={(e) => setDnsRecordType(e.target.value)}
-                className={inputClass}
+                className={selectClass}
               >
                 {DNS_RECORD_TYPES.map((t) => (
                   <option key={t} value={t}>
@@ -342,10 +347,10 @@ export function AddMonitorForm({
               </select>
             </div>
             <div>
-              <label htmlFor="add-dns-expected" className={labelClass}>
+              <Label htmlFor="add-dns-expected" className={labelClass}>
                 Expected value
-              </label>
-              <input
+              </Label>
+              <Input
                 id="add-dns-expected"
                 type="text"
                 value={dnsExpectedValue}
@@ -386,10 +391,10 @@ export function AddMonitorForm({
         </label>
         {alertEmail && (
           <div className="mt-3">
-            <label htmlFor="add-alertEmailTo" className={labelClass}>
+            <Label htmlFor="add-alertEmailTo" className={labelClass}>
               Alert email <span className="font-normal text-text-muted">(leave blank to use account email)</span>
-            </label>
-            <input
+            </Label>
+            <Input
               id="add-alertEmailTo"
               type="email"
               value={alertEmailTo}
@@ -442,33 +447,36 @@ export function AddMonitorForm({
 
       <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
         {onBack && (
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={onBack}
             disabled={submitting}
-            className="mr-auto rounded-md text-sm font-medium text-text-muted hover:text-text-primary"
+            className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
           >
             Back
-          </button>
+          </Button>
         )}
         {onCancel && (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={onCancel}
             disabled={submitting}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
+            className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
           >
             Cancel
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="submit"
           disabled={submitting}
+          variant="default"
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
           {submitting ? "Adding…" : "Add monitor"}
-        </button>
+        </Button>
       </div>
     </form>
   );

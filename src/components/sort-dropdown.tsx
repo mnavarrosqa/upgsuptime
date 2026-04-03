@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, startTransition } from "react";
 import { ChevronDown, ChevronUp, Check } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface SortOption {
   value: string;
@@ -51,7 +52,7 @@ export function SortDropdown({
   }, [open]);
 
   useEffect(() => {
-    setHighlightedIndex(-1);
+    startTransition(() => setHighlightedIndex(-1));
   }, [open]);
 
   function handleKeyDown(event: React.KeyboardEvent) {
@@ -103,11 +104,12 @@ export function SortDropdown({
 
   return (
     <div className="relative" ref={ref}>
-      <button
+      <Button
         type="button"
+        variant="outline"
         onClick={() => setOpen((o) => !o)}
         onKeyDown={handleKeyDown}
-        className="flex items-center gap-1.5 rounded-md border border-border px-3 py-2 text-sm text-text-muted hover:bg-bg-page hover:text-text-primary"
+        className="h-auto gap-1.5 rounded-md border-border px-3 py-2 text-sm font-normal text-text-muted hover:bg-bg-page hover:text-text-primary"
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={`${label} by ${displayLabel}, ${direction === "asc" ? "ascending" : "descending"}`}
@@ -124,7 +126,7 @@ export function SortDropdown({
         ) : (
           <ChevronDown className="h-3.5 w-3.5 shrink-0" aria-hidden />
         )}
-      </button>
+      </Button>
 
       {open && (
         <div
@@ -135,14 +137,15 @@ export function SortDropdown({
           {options.map((option, index) => {
             const isActive = option.value === value;
             return (
-              <button
+              <Button
                 key={option.value}
                 ref={(el) => {
                   optionRefs.current[index] = el;
                 }}
                 type="button"
+                variant="ghost"
                 role="menuitem"
-                className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-bg-page ${
+                className={`h-auto w-full justify-between gap-2 rounded-none border-0 px-3 py-2 text-left text-sm font-normal shadow-none hover:bg-bg-page ${
                   index === highlightedIndex ? "bg-bg-page" : ""
                 } ${isActive ? "font-medium text-text-primary" : "text-text-muted"}`}
                 onClick={() => handleSelect(option.value)}
@@ -159,16 +162,17 @@ export function SortDropdown({
                     <Check className="h-3 w-3" aria-hidden />
                   </span>
                 )}
-              </button>
+              </Button>
             );
           })}
 
           <div className="my-1 border-t border-border" />
 
-          <button
+          <Button
             type="button"
+            variant="ghost"
             role="menuitem"
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-page"
+            className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-left text-sm font-normal text-text-muted shadow-none hover:bg-bg-page"
             onClick={toggleDirection}
           >
             {direction === "asc" ? (
@@ -182,7 +186,7 @@ export function SortDropdown({
                 <span>Descending</span>
               </>
             )}
-          </button>
+          </Button>
         </div>
       )}
     </div>

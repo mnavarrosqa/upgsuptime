@@ -7,6 +7,7 @@ import { Pause, Play, RefreshCw } from "lucide-react";
 import { MonitorCardTrend, type TrendPoint } from "@/components/monitor-card-trend";
 import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { SslBadge } from "@/components/ssl-badge";
+import { Button } from "@/components/ui/button";
 
 type MonitorCardProps = {
   id: string;
@@ -211,28 +212,32 @@ export function MonitorCard({
 
       {/* Quick actions are always visible on touch-sized screens and enhanced on hover for larger screens */}
       <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex gap-1 opacity-90 transition-opacity md:opacity-0 md:group-hover:opacity-100">
-        <button
+        <Button
           type="button"
+          variant="outline"
+          size="icon-sm"
           onClick={handleCheckNow}
           title="Check now"
           disabled={checking || !!paused}
-          className="flex h-9 w-9 items-center justify-center rounded border border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40 md:h-11 md:w-11 md:bg-bg-card"
+          className="h-9 w-9 rounded border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:bg-bg-card/90 hover:text-text-primary md:h-11 md:w-11 md:bg-bg-card"
         >
           <RefreshCw className={`h-4 w-4 ${checking ? "animate-spin" : ""}`} aria-hidden />
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="outline"
+          size="icon-sm"
           onClick={handlePauseToggle}
           title={paused ? "Resume" : "Pause"}
           disabled={loading}
-          className="flex h-9 w-9 items-center justify-center rounded border border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:text-text-primary disabled:opacity-40 md:h-11 md:w-11 md:bg-bg-card"
+          className="h-9 w-9 rounded border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:bg-bg-card/90 hover:text-text-primary md:h-11 md:w-11 md:bg-bg-card"
         >
           {paused ? (
             <Play className="h-4 w-4" aria-hidden />
           ) : (
             <Pause className="h-4 w-4" aria-hidden />
           )}
-        </button>
+        </Button>
       </div>
     </li>
   );

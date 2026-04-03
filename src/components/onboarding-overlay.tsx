@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, startTransition } from "react";
 import { Overlay } from "@/components/overlay";
 import {
   WelcomeStep,
@@ -11,6 +11,7 @@ import {
   type OnboardingStepProps,
 } from "@/components/onboarding-steps";
 import { OnboardingIndicator, type StepIdType } from "@/components/onboarding-indicator";
+import { Button } from "@/components/ui/button";
 
 const STEPS: StepIdType[] = [
   "welcome",
@@ -44,7 +45,7 @@ export function OnboardingOverlay({
 
   useEffect(() => {
     if (open && initialStep) {
-      setCurrentStep(initialStep);
+      startTransition(() => setCurrentStep(initialStep));
     }
   }, [open, initialStep]);
 
@@ -157,18 +158,22 @@ export function OnboardingOverlay({
               You can access the onboarding guide anytime from Account settings.
             </p>
             <div className="flex justify-end gap-2">
-              <button
+              <Button
+                type="button"
+                variant="ghost"
                 onClick={handleCancelSkip}
                 className="rounded-md px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
               >
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                type="button"
+                variant="default"
                 onClick={handleConfirmSkip}
                 className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
               >
                 Skip
-              </button>
+              </Button>
             </div>
           </div>
         </div>

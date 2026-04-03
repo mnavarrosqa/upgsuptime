@@ -124,7 +124,8 @@
     "darkMode": "Dark mode",
     "unreadIncidents": "Unread incidents",
     "accountMenu": "Account menu",
-    "accountActions": "Account actions"
+    "accountActions": "Account actions",
+    "backToTop": "Back to top"
   },
   "theme": {
     "switchToLight": "Switch to light theme",

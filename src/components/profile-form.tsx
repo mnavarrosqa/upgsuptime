@@ -7,6 +7,9 @@ import { toast } from "sonner";
 import { useTranslations } from "next-intl";
 import { useApiErrorMessage } from "@/lib/api-errors";
 import { LanguageSelect } from "@/components/language-select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 type ProfileFormProps = {
   username: string | null | undefined;
@@ -14,7 +17,7 @@ type ProfileFormProps = {
 };
 
 const inputClass =
-  "w-full rounded-md border border-input-border bg-bg-card px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus";
+  "h-auto min-h-10 w-full rounded-md border border-input-border bg-bg-card px-3.5 py-2.5 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus";
 
 export function ProfileForm({ username, language }: ProfileFormProps) {
   const tCommon = useTranslations("common");
@@ -66,14 +69,14 @@ export function ProfileForm({ username, language }: ProfileFormProps) {
         </div>
       )}
       <div>
-        <label
+        <Label
           htmlFor="username"
-          className="block text-sm font-medium text-text-primary mb-1.5"
+          className="mb-1.5 block text-sm font-medium text-text-primary"
         >
           {tCommon("username")}{" "}
           <span className="font-normal text-text-muted">({tCommon("optional")})</span>
-        </label>
-        <input
+        </Label>
+        <Input
           id="username"
           type="text"
           autoComplete="username"
@@ -88,13 +91,14 @@ export function ProfileForm({ username, language }: ProfileFormProps) {
       </div>
       <LanguageSelect value={selectedLanguage} onChange={setSelectedLanguage} disabled={saving} id="language-profile" />
       <div>
-        <button
+        <Button
           type="submit"
           disabled={saving}
+          variant="default"
           className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {saving ? tAccount("saving") : tAccount("saveUsername")}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -15,16 +15,21 @@ interface Incident {
 }
 
 export function IncidentPoller() {
-  const lastCheckedRef = useRef<number>(Date.now());
+  const lastCheckedRef = useRef<number | null>(null);
   const { addUnread, removeUnread } = useActivity();
   const addUnreadRef = useRef(addUnread);
   const removeUnreadRef = useRef(removeUnread);
-  addUnreadRef.current = addUnread;
-  removeUnreadRef.current = removeUnread;
 
   useEffect(() => {
+    addUnreadRef.current = addUnread;
+    removeUnreadRef.current = removeUnread;
+  }, [addUnread, removeUnread]);
+
+  useEffect(() => {
+    lastCheckedRef.current = Date.now();
+
     async function poll() {
-      const since = lastCheckedRef.current;
+      const since = lastCheckedRef.current ?? 0;
       lastCheckedRef.current = Date.now();
 
       try {

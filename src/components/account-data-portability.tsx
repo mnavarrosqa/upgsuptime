@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Download, Upload } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const btnSecondaryClass =
   "inline-flex items-center justify-center gap-2 rounded-md border border-border bg-bg-card px-3.5 py-2.5 text-sm font-medium text-text-primary hover:bg-bg-muted/60 focus:outline-none focus:ring-2 focus:ring-input-focus disabled:opacity-50";
@@ -143,15 +144,16 @@ export function AccountDataPortability() {
               backup)
             </span>
           </label>
-          <button
+          <Button
             type="button"
+            variant="outline"
             className={`${btnSecondaryClass} mt-4`}
             onClick={() => void handleExport()}
             disabled={exporting}
           >
             <Download className="size-4 shrink-0" aria-hidden />
             {exporting ? "Preparing…" : "Download JSON"}
-          </button>
+          </Button>
         </div>
 
         <hr className="border-border" />

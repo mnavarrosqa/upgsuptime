@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Overlay } from "@/components/overlay";
 import { AddMonitorFlow } from "@/components/add-monitor-flow";
+import { Button } from "@/components/ui/button";
 
 export function DashboardAddMonitor() {
   const router = useRouter();
@@ -18,13 +19,14 @@ export function DashboardAddMonitor() {
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="default"
         onClick={() => setAddOpen(true)}
-        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
+        className="rounded-md px-4 py-2 text-sm font-medium"
       >
         {t("addMonitor")}
-      </button>
+      </Button>
       <Overlay
         open={addOpen}
         onClose={() => setAddOpen(false)}

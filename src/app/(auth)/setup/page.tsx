@@ -7,6 +7,13 @@ import { Eye, EyeOff, HeartPulse } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { LanguageSelect } from "@/components/language-select";
 import { useApiErrorMessage } from "@/lib/api-errors";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+const authInputClass =
+  "h-auto min-h-10 w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-2 focus-visible:ring-input-focus/20";
 
 export default function SetupPage() {
   const tCommon = useTranslations("common");
@@ -114,10 +121,10 @@ export default function SetupPage() {
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="email" className="text-sm font-medium text-text-primary">
+            <Label htmlFor="email" className="text-sm font-medium text-text-primary">
               {tCommon("email")}
-            </label>
-            <input
+            </Label>
+            <Input
               id="email"
               type="email"
               autoComplete="email"
@@ -125,33 +132,33 @@ export default function SetupPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               placeholder="admin@example.com"
-              className="w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-2 focus:ring-input-focus/20"
+              className={authInputClass}
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="username" className="text-sm font-medium text-text-primary">
+            <Label htmlFor="username" className="text-sm font-medium text-text-primary">
               {tCommon("username")}{" "}
               <span className="font-normal text-text-muted">({tCommon("optional")})</span>
-            </label>
-            <input
+            </Label>
+            <Input
               id="username"
               type="text"
               autoComplete="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder={tCommon("lettersNumbersUnderscores")}
-              className="w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-2 focus:ring-input-focus/20"
+              className={authInputClass}
             />
             <p className="text-xs text-text-muted">{tAuth("usernameSigninHint")}</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-text-primary">
+            <Label htmlFor="password" className="text-sm font-medium text-text-primary">
               {tCommon("password")}
-            </label>
+            </Label>
             <div className="relative">
-              <input
+              <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="new-password"
@@ -159,48 +166,53 @@ export default function SetupPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 minLength={8}
-                className="w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-2 focus:ring-input-focus/20"
+                className={`${authInputClass} pr-10`}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 tabIndex={-1}
+                size="icon-xs"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                className="absolute right-2 top-1/2 size-8 min-h-0 -translate-y-1/2 rounded-md p-0 text-text-muted shadow-none hover:bg-transparent hover:text-text-primary"
                 aria-label={showPassword ? tCommon("hidePassword") : tCommon("showPassword")}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              </Button>
             </div>
             <p className="text-xs text-text-muted">{tCommon("atLeast8Chars")}</p>
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="confirmPassword" className="text-sm font-medium text-text-primary">
+            <Label htmlFor="confirmPassword" className="text-sm font-medium text-text-primary">
               {tCommon("confirmPassword")}
-            </label>
+            </Label>
             <div className="relative">
-              <input
+              <Input
                 id="confirmPassword"
                 type={showConfirm ? "text" : "password"}
                 autoComplete="new-password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
-                className={`w-full rounded-lg border bg-bg-page px-3.5 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-2 ${
-                  passwordMismatch
-                    ? "border-red-400 focus:border-red-400 focus:ring-red-400/20"
-                    : "border-input-border focus:border-input-focus focus:ring-input-focus/20"
-                }`}
+                className={cn(
+                  authInputClass,
+                  "pr-10",
+                  passwordMismatch &&
+                    "border-red-400 focus-visible:border-red-400 focus-visible:ring-red-400/20"
+                )}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 tabIndex={-1}
+                size="icon-xs"
                 onClick={() => setShowConfirm((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                className="absolute right-2 top-1/2 size-8 min-h-0 -translate-y-1/2 rounded-md p-0 text-text-muted shadow-none hover:bg-transparent hover:text-text-primary"
                 aria-label={showConfirm ? tCommon("hidePassword") : tCommon("showPassword")}
               >
                 {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              </Button>
             </div>
             {passwordMismatch && (
               <p className="text-xs text-red-600 dark:text-red-400">{tAuth("passwordsDontMatch")}</p>
@@ -209,13 +221,14 @@ export default function SetupPage() {
 
           <LanguageSelect value={language} onChange={setLanguage} disabled={submitting} id="language-setup" />
 
-          <button
+          <Button
             type="submit"
             disabled={submitting || passwordMismatch}
-            className="mt-1 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60 transition-opacity"
+            variant="default"
+            className="mt-1 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-bg-page transition-opacity hover:bg-accent-hover disabled:opacity-60"
           >
             {submitting ? tAuth("creatingAccount") : tAuth("createAdminTitle")}
-          </button>
+          </Button>
         </form>
       </div>
 

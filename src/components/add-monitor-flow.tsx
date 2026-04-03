@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { AddMonitorForm } from "@/components/add-monitor-form";
 import { AddBulkMonitorsForm } from "@/components/add-bulk-monitors-form";
+import { Button } from "@/components/ui/button";
 
 type AddMode = "single" | "bulk";
 
@@ -41,20 +42,22 @@ export function AddMonitorFlow({
         Add one site or many at once with the same settings.
       </p>
       <div className="flex flex-wrap gap-3">
-        <button
+        <Button
           type="button"
           onClick={() => setMode("single")}
+          variant="outline"
           className="rounded-md border border-border bg-bg-page px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-bg-elevated"
         >
           Single site
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
           onClick={() => setMode("bulk")}
+          variant="outline"
           className="rounded-md border border-border bg-bg-page px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-bg-elevated"
         >
           Multiple sites
-        </button>
+        </Button>
       </div>
     </div>
   );

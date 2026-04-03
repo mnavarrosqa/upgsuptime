@@ -17,6 +17,8 @@ import { SortDropdown } from "@/components/sort-dropdown";
 import { sortMonitors } from "@/lib/sort-monitors";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type DashboardContentProps = {
   monitors: Monitor[];
@@ -199,9 +201,16 @@ export function DashboardContent({
             }`}
           >
             <span
-              className="h-1.5 w-1.5 rounded-full bg-white/80 dark:bg-current"
+              className="relative flex h-1.5 w-1.5 shrink-0 items-center justify-center"
               aria-hidden
-            />
+            >
+              <span
+                className={cn(
+                  "h-1.5 w-1.5 rounded-full bg-white/80 dark:bg-current",
+                  allUp && "animate-operational-badge-dot"
+                )}
+              />
+            </span>
             {allUp ? t("allOperational") : t("downCount", { count: downCount })}
           </span>
         )}
@@ -276,13 +285,14 @@ export function DashboardContent({
       ) : filteredMonitors.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
           <p className="text-text-muted">{t("noSearchMatch")}</p>
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={() => setSearchQuery("")}
-            className="mt-3 inline-block text-sm font-medium text-text-primary hover:text-text-muted"
+            className="mt-3 h-auto p-0 text-sm font-medium text-text-primary underline-offset-2 hover:text-text-muted"
           >
             {t("clearSearch")}
-          </button>
+          </Button>
         </div>
       ) : (
         <MonitorGrid

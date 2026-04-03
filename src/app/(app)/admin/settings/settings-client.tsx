@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import type { AdminSettings } from "./page";
+import { Button } from "@/components/ui/button";
 
 export function AdminSettingsClient({
   settings: initial,
@@ -48,12 +49,14 @@ export function AdminSettingsClient({
               When disabled, the /register page returns an error for new sign-ups.
             </div>
           </div>
-          <button
+          <Button
+            type="button"
+            variant="ghost"
             onClick={handleToggle}
             disabled={saving}
             role="switch"
             aria-checked={registrationEnabled}
-            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-60 ${
+            className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border-2 border-transparent p-0 transition-colors hover:bg-transparent focus-visible:ring-2 disabled:opacity-60 ${
               registrationEnabled ? "bg-accent" : "bg-border"
             }`}
           >
@@ -62,7 +65,7 @@ export function AdminSettingsClient({
                 registrationEnabled ? "translate-x-5" : "translate-x-0.5"
               }`}
             />
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { FormattedDateTime } from "@/components/formatted-date-time";
+import { Button } from "@/components/ui/button";
 
 type CheckResultRow = {
   id: string;
@@ -90,20 +91,24 @@ export function CheckResultsTable({
             {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, results.length)} of {results.length}
           </span>
           <div className="flex gap-2">
-            <button
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setPage((p) => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="inline-flex min-h-11 items-center justify-center rounded border border-border px-4 py-2 text-sm hover:bg-bg-page disabled:opacity-40"
+              className="min-h-11 rounded border-border px-4 py-2 text-sm hover:bg-bg-page"
             >
               Previous
-            </button>
-            <button
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
               onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
               disabled={page >= totalPages - 1}
-              className="inline-flex min-h-11 items-center justify-center rounded border border-border px-4 py-2 text-sm hover:bg-bg-page disabled:opacity-40"
+              className="min-h-11 rounded border-border px-4 py-2 text-sm hover:bg-bg-page"
             >
               Next
-            </button>
+            </Button>
           </div>
         </div>
       )}

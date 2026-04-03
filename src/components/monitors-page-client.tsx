@@ -21,6 +21,7 @@ import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { SslBadge } from "@/components/ssl-badge";
 import { SortableTableHeader } from "@/components/sortable-table-header";
 import { sortMonitors, type LatestByMonitor } from "@/lib/sort-monitors";
+import { Button } from "@/components/ui/button";
 
 type MonitorConfig = {
   name: string;
@@ -140,31 +141,34 @@ function RowActionsMenu({
           >
             {t("view")}
           </Link>
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => { setOpen(false); onEdit(monitor.id); }}
-            className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98]"
+            className="h-auto w-full justify-start rounded-none border-0 px-3.5 py-2 text-sm font-normal text-text-primary shadow-none hover:bg-bg-page active:scale-[0.98]"
           >
             {t("edit")}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
+            variant="ghost"
             disabled={isPausing}
             onClick={() => { setOpen(false); onPause(monitor.id, !!monitor.paused); }}
-            className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98] disabled:opacity-50"
+            className="h-auto w-full justify-start rounded-none border-0 px-3.5 py-2 text-sm font-normal text-text-primary shadow-none hover:bg-bg-page active:scale-[0.98]"
           >
             {isPausing
               ? monitor.paused ? t("resuming") : t("pausing")
               : monitor.paused ? t("resume") : t("pause")}
-          </button>
+          </Button>
           <div className="my-1 border-t border-border" />
-          <button
+          <Button
             type="button"
+            variant="ghost"
             onClick={() => { setOpen(false); onDelete(monitor.id, monitor.name); }}
-            className="flex w-full items-center px-3.5 py-2 text-sm text-red-600 transition hover:bg-red-50 active:scale-[0.98] dark:text-red-400 dark:hover:bg-red-900/20"
+            className="h-auto w-full justify-start rounded-none border-0 px-3.5 py-2 text-sm font-normal text-red-600 shadow-none hover:bg-red-50 active:scale-[0.98] dark:text-red-400 dark:hover:bg-red-900/20"
           >
             {t("delete")}
-          </button>
+          </Button>
         </div>,
         document.body
       )
@@ -172,15 +176,17 @@ function RowActionsMenu({
 
   return (
     <>
-      <button
+      <Button
         ref={btnRef}
         type="button"
+        variant="ghost"
+        size="icon-sm"
         onClick={handleOpen}
-        className="flex h-11 w-11 items-center justify-center rounded-md text-text-muted transition hover:bg-bg-page hover:text-text-primary active:scale-90"
+        className="h-11 w-11 rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary active:scale-90"
         aria-label={t("actions")}
       >
         <MoreHorizontal className="h-5 w-5" />
-      </button>
+      </Button>
       {menu}
     </>
   );
@@ -548,29 +554,32 @@ export function MonitorsPageClient({
           onChange={handleImportFileChange}
         />
         {monitors.length > 0 && (
-          <button
+          <Button
             type="button"
+            variant="outline"
             onClick={handleExport}
             disabled={exporting}
-            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card disabled:opacity-50"
+            className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card"
           >
             {exporting ? t("exporting") : t("export")}
-          </button>
+          </Button>
         )}
-        <button
+        <Button
           type="button"
+          variant="outline"
           onClick={() => fileInputRef.current?.click()}
-          className="rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card"
+          className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card"
         >
           {t("import")}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="default"
           onClick={() => setAddOpen(true)}
-          className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
+          className="rounded-md px-4 py-2 text-sm font-medium"
         >
           {t("addMonitor")}
-        </button>
+        </Button>
       </div>
 
       {selectedCount > 0 && monitors.length > 0 && (
@@ -589,48 +598,53 @@ export function MonitorsPageClient({
             )}
           </span>
           <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
-            <button
+            <Button
               type="button"
+              variant="outline"
               onClick={handleBulkPause}
               disabled={bulkPauseBusy || allSelectedPaused}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card disabled:opacity-50"
+              className="rounded-md border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card"
             >
               {bulkPauseMode === "pause" ? t("pausing") : t("pause")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={handleBulkResume}
               disabled={bulkPauseBusy || allSelectedUnpaused}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card disabled:opacity-50"
+              className="rounded-md border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card"
             >
               {bulkPauseMode === "resume" ? t("resuming") : t("resume")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() => setBulkEditOpen(true)}
-              className="rounded-md border border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card"
+              className="rounded-md border-border px-3 py-1.5 text-sm font-medium text-text-primary hover:bg-bg-card"
             >
               {t("edit")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="outline"
               onClick={() =>
                 setDeleteConfirm({
                   kind: "bulk",
                   ids: [...selectedIds],
                 })
               }
-              className="rounded-md border border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20"
+              className="rounded-md border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20"
             >
               {t("delete")}
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
+              variant="ghost"
               onClick={clearSelection}
               className="rounded-md px-3 py-1.5 text-sm font-medium text-text-muted hover:text-text-primary"
             >
               {t("clear")}
-            </button>
+            </Button>
           </div>
         </div>
       )}
@@ -750,13 +764,14 @@ export function MonitorsPageClient({
                   </ul>
                 </div>
               )}
-              <button
+              <Button
                 type="button"
+                variant="default"
                 onClick={handleImportClose}
                 className="w-full rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
               >
                 {t("importDone")}
-              </button>
+              </Button>
             </div>
           ) : importData ? (
             <div className="space-y-3">
@@ -774,23 +789,25 @@ export function MonitorsPageClient({
                 ))}
               </ul>
               <div className="flex gap-3">
-                <button
+                <Button
                   type="button"
+                  variant="outline"
                   onClick={handleImportClose}
-                  className="flex-1 rounded-md border border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card"
+                  className="flex-1 rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-card"
                 >
                   {t("importCancel")}
-                </button>
-                <button
+                </Button>
+                <Button
                   type="button"
+                  variant="default"
                   onClick={handleImportConfirm}
                   disabled={importing}
-                  className="flex-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-50"
+                  className="flex-1 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
                 >
                   {importing
                     ? t("importingLabel")
                     : t("importConfirm", { count: importData.length })}
-                </button>
+                </Button>
               </div>
             </div>
           ) : null}
@@ -805,13 +822,14 @@ export function MonitorsPageClient({
       ) : filteredMonitors.length === 0 ? (
         <div className="mt-8 rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
           <p className="text-text-muted">{tDash("noSearchMatch")}</p>
-          <button
+          <Button
             type="button"
+            variant="link"
             onClick={() => setSearchQuery("")}
-            className="mt-3 inline-block text-sm font-medium text-text-primary hover:text-text-muted"
+            className="mt-3 h-auto p-0 text-sm font-medium text-text-primary underline-offset-2 hover:text-text-muted"
           >
             {tDash("clearSearch")}
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="mt-5 w-full min-w-0 rounded-lg border border-border bg-bg-card">

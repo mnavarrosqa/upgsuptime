@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, RefreshCw } from "lucide-react";
 
@@ -36,7 +36,7 @@ export function PullToRefresh() {
     // First-use hint
     const count = parseInt(localStorage.getItem(HINT_KEY) ?? "0", 10);
     if (count < HINT_MAX) {
-      setShowHint(true);
+      startTransition(() => setShowHint(true));
       localStorage.setItem(HINT_KEY, String(count + 1));
       const t = setTimeout(() => setShowHint(false), 3500);
       return () => {

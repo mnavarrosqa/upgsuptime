@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useState,
+  startTransition,
 } from "react";
 
 const STORAGE_KEY = "upgs_unread_incidents";
@@ -29,12 +30,14 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
 
   // Load from localStorage on mount
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(STORAGE_KEY);
-      if (stored) {
-        setUnreadIds(new Set(JSON.parse(stored) as string[]));
-      }
-    } catch {}
+    startTransition(() => {
+      try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+          setUnreadIds(new Set(JSON.parse(stored) as string[]));
+        }
+      } catch {}
+    });
   }, []);
 
   // Persist to localStorage whenever unreadIds changes

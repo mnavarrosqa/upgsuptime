@@ -1,7 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, startTransition } from "react";
 import Link from "next/link";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 
 export type MonitorSearchItem = { id: string; name: string; url: string };
 
@@ -40,7 +42,7 @@ export function SearchWithTypeahead({
   const limitedMatches = matches.slice(0, 10);
 
   useEffect(() => {
-    setHighlightedIndex(-1);
+    startTransition(() => setHighlightedIndex(-1));
   }, [value]);
 
   useEffect(() => {
@@ -85,7 +87,7 @@ export function SearchWithTypeahead({
 
   return (
     <div className="relative w-full max-w-sm">
-      <input
+      <Input
         ref={inputRef}
         type="search"
         value={value}
@@ -105,7 +107,7 @@ export function SearchWithTypeahead({
             ? `search-option-${limitedMatches[highlightedIndex].id}`
             : undefined
         }
-        className="w-full rounded-md border border-input-border bg-bg-card px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus"
+        className="h-9 rounded-md border border-input-border bg-bg-card px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus"
       />
       {showDropdown && (
         <ul
@@ -123,9 +125,10 @@ export function SearchWithTypeahead({
               className="group"
             >
               <div className="flex items-center justify-between gap-2 px-3 py-2">
-                <button
+                <Button
                   type="button"
-                  className="min-w-0 flex-1 text-left text-sm text-text-primary hover:text-text-muted"
+                  variant="ghost"
+                  className="h-auto min-h-0 min-w-0 flex-1 flex-col items-start justify-start rounded-none border-0 px-0 py-0 text-left text-sm font-normal text-text-primary shadow-none hover:bg-transparent hover:text-text-muted"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     onChange(m.name);
@@ -136,7 +139,7 @@ export function SearchWithTypeahead({
                   <span className="block truncate text-xs text-text-muted">
                     {m.url}
                   </span>
-                </button>
+                </Button>
                 <Link
                   href={`/monitors/${m.id}`}
                   className="shrink-0 text-xs text-text-muted hover:text-text-primary"

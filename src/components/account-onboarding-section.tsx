@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
+import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 
 interface AccountOnboardingSectionProps {
@@ -31,12 +32,14 @@ export function AccountOnboardingSection({
             : "You've completed the onboarding guide."}
         </p>
         <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
-          <button
+          <Button
+            type="button"
+            variant="default"
             onClick={() => setShowOnboarding(true)}
             className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
           >
             {onboardingCompleted ? "View onboarding guide" : "Continue onboarding"}
-          </button>
+          </Button>
         </div>
       </div>
 

@@ -12,6 +12,7 @@ import { MobileMenu } from "@/components/mobile-menu";
 import { IncidentPoller } from "@/components/incident-poller";
 import { ActivityProvider } from "@/components/activity-context";
 import { PullToRefresh } from "@/components/pull-to-refresh";
+import { BackToTopButton } from "@/components/back-to-top";
 
 export default async function AppLayout({
   children,
@@ -66,6 +67,7 @@ export default async function AppLayout({
       </header>
       <PullToRefresh />
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+      <BackToTopButton />
       <IncidentPoller />
     </div>
     </ActivityProvider>

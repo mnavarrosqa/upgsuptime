@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -33,9 +34,9 @@ export function LanguageSelect({ value, onChange, disabled, id = "language" }: P
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-text-primary">
+      <Label htmlFor={id} className="text-sm font-medium text-text-primary">
         {t("label")}
-      </label>
+      </Label>
       <select
         id={id}
         value={value}

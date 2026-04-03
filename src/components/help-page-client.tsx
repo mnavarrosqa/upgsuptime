@@ -3,6 +3,9 @@
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { HelpArticlePayload } from "@/lib/help-content";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 export type HelpCategoryPayload = {
   id: string;
@@ -72,42 +75,44 @@ export function HelpPageClient({ categories }: Props) {
       </header>
 
       <div className="space-y-3">
-        <label htmlFor="help-search" className="sr-only">
+        <Label htmlFor="help-search" className="sr-only">
           {t("searchLabel")}
-        </label>
+        </Label>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <input
+          <Input
             id="help-search"
             type="search"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("searchPlaceholder")}
             autoComplete="off"
-            className="w-full max-w-md rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-1 focus:ring-input-focus"
+            className="h-9 w-full max-w-md rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus"
           />
           {query.trim() ? (
-            <button
+            <Button
               type="button"
+              variant="link"
               onClick={() => setQuery("")}
-              className="shrink-0 text-sm font-medium text-accent hover:underline"
+              className="h-auto shrink-0 p-0 text-sm font-medium text-accent hover:no-underline"
             >
               {t("clearSearch")}
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
 
       <div className="md:grid md:grid-cols-[minmax(12rem,14rem)_minmax(0,1fr)] md:items-start md:gap-10">
         <div className="mb-6 md:mb-0">
-          <button
+          <Button
             type="button"
-            className="flex w-full items-center justify-between rounded-lg border border-border bg-bg-card px-3 py-2 text-left text-sm font-medium text-text-primary md:hidden"
+            variant="outline"
+            className="h-auto w-full justify-between rounded-lg border-border bg-bg-card px-3 py-2 text-left text-sm font-medium text-text-primary md:hidden"
             aria-expanded={indexOpen}
             onClick={() => setIndexOpen((o) => !o)}
           >
             <span>{t("indexHeading")}</span>
             <span className="text-text-muted">{indexOpen ? t("indexToggleHide") : t("indexToggleShow")}</span>
-          </button>
+          </Button>
 
           <nav
             className={`${indexOpen ? "mt-2" : "mt-0"} rounded-lg border border-border bg-bg-card p-3 md:sticky md:top-20 md:mt-0 md:block ${indexOpen ? "block" : "hidden md:block"}`}
@@ -185,13 +190,14 @@ export function HelpPageClient({ categories }: Props) {
 
           {filtered.length > 0 ? (
             <p className="mt-12 text-center">
-              <button
+              <Button
                 type="button"
-                className="text-sm font-medium text-accent hover:underline"
+                variant="link"
+                className="h-auto p-0 text-sm font-medium text-accent underline-offset-2 hover:underline"
                 onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
               >
                 {t("backToTop")}
-              </button>
+              </Button>
             </p>
           ) : null}
         </div>

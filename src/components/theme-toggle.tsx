@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, startTransition } from "react";
 import { Sun, Moon } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "theme";
 
@@ -12,12 +13,14 @@ export function ThemeToggle() {
   const t = useTranslations("theme");
 
   useEffect(() => {
-    setMounted(true);
-    const isDark =
-      document.documentElement.classList.contains("dark") ||
-      (!localStorage.getItem(STORAGE_KEY) &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches);
-    setDark(isDark);
+    startTransition(() => {
+      setMounted(true);
+      const isDark =
+        document.documentElement.classList.contains("dark") ||
+        (!localStorage.getItem(STORAGE_KEY) &&
+          window.matchMedia("(prefers-color-scheme: dark)").matches);
+      setDark(isDark);
+    });
   }, []);
 
   function toggle() {
@@ -36,10 +39,12 @@ export function ThemeToggle() {
   }
 
   return (
-    <button
+    <Button
       type="button"
+      variant="ghost"
+      size="icon-sm"
       onClick={toggle}
-      className="rounded-md p-2 text-text-muted hover:bg-bg-page hover:text-text-primary"
+      className="rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
       aria-label={dark ? t("switchToLight") : t("switchToDark")}
     >
       {dark ? (
@@ -47,6 +52,6 @@ export function ThemeToggle() {
       ) : (
         <Moon className="h-4 w-4" aria-hidden />
       )}
-    </button>
+    </Button>
   );
 }

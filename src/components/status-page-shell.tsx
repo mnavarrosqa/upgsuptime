@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle, XCircle, Minus, AlertTriangle } from "lucide-react";
+import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
 import { formatRelativeTime, formatDuration } from "@/lib/format-time";
 
 function getFaviconUrl(url: string): string {

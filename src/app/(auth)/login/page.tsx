@@ -7,6 +7,12 @@ import Link from "next/link";
 import { Eye, EyeOff, HeartPulse } from "lucide-react";
 import { useLocale, useTranslations } from "next-intl";
 import { LanguageSelect } from "@/components/language-select";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+const authInputClass =
+  "h-auto min-h-10 w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-2 focus-visible:ring-input-focus/20";
 
 function LoadingFallback() {
   const tCommon = useTranslations("common");
@@ -111,10 +117,10 @@ function LoginForm() {
           )}
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="login" className="text-sm font-medium text-text-primary">
+            <Label htmlFor="login" className="text-sm font-medium text-text-primary">
               {tAuth("emailOrUsername")}
-            </label>
-            <input
+            </Label>
+            <Input
               id="login"
               type="text"
               autoComplete="username"
@@ -122,43 +128,46 @@ function LoginForm() {
               onChange={(e) => setLogin(e.target.value)}
               required
               placeholder="you@example.com"
-              className="w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-2 focus:ring-input-focus/20"
+              className={authInputClass}
             />
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label htmlFor="password" className="text-sm font-medium text-text-primary">
+            <Label htmlFor="password" className="text-sm font-medium text-text-primary">
               {tCommon("password")}
-            </label>
+            </Label>
             <div className="relative">
-              <input
+              <Input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted focus:border-input-focus focus:outline-none focus:ring-2 focus:ring-input-focus/20"
+                className={`${authInputClass} pr-10`}
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
                 tabIndex={-1}
+                size="icon-xs"
                 onClick={() => setShowPassword((v) => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
+                className="absolute right-2 top-1/2 size-8 min-h-0 -translate-y-1/2 rounded-md p-0 text-text-muted shadow-none hover:bg-transparent hover:text-text-primary"
                 aria-label={showPassword ? tCommon("hidePassword") : tCommon("showPassword")}
               >
                 {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
+              </Button>
             </div>
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={submitting}
-            className="mt-1 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60 transition-opacity"
+            variant="default"
+            className="mt-1 w-full rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-bg-page transition-opacity hover:bg-accent-hover disabled:opacity-60"
           >
             {submitting ? tAuth("signingIn") : tCommon("signIn")}
-          </button>
+          </Button>
           <LanguageSelect value={language} onChange={setLanguage} disabled={submitting} id="language-login" />
         </form>
       </div>
