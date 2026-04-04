@@ -67,6 +67,10 @@ export function EditMonitorForm({
   const [dnsRecordType, setDnsRecordType] = useState(monitor.dnsRecordType ?? "A");
   const [dnsExpectedValue, setDnsExpectedValue] = useState(monitor.dnsExpectedValue ?? "");
 
+  const [degradationAlertEnabled, setDegradationAlertEnabled] = useState(
+    !!monitor.degradationAlertEnabled
+  );
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -92,6 +96,7 @@ export function EditMonitorForm({
         bodyObj.method = isKeyword ? "GET" : method;
         bodyObj.expectedStatusCodes = expectedStatusCodes.trim() || "200-299";
         bodyObj.sslMonitoring = sslMonitoring;
+        bodyObj.degradationAlertEnabled = degradationAlertEnabled;
       }
 
       if (isKeyword) {
@@ -383,6 +388,28 @@ export function EditMonitorForm({
               placeholder="alerts@example.com"
               className={inputClass}
             />
+          </div>
+        )}
+        {!isDns && (
+          <div className="mt-3">
+            <label className={`flex items-center gap-2.5 ${alertEmail ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
+              <input
+                type="checkbox"
+                checked={degradationAlertEnabled}
+                onChange={(e) => setDegradationAlertEnabled(e.target.checked)}
+                disabled={!alertEmail}
+                className="h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
+              />
+              <span className="text-sm text-text-primary">Alert on slow response times</span>
+            </label>
+            {degradationAlertEnabled && alertEmail && (
+              <p className={hintClass}>
+                Learns this site&apos;s normal response time over 20+ checks, then alerts when a sustained 2× slowdown is detected. Fires once per episode.
+              </p>
+            )}
+            {!alertEmail && (
+              <p className={hintClass}>Requires email alerts to be enabled.</p>
+            )}
           </div>
         )}
       </div>

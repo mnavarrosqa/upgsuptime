@@ -97,6 +97,24 @@ export async function PATCH(
       : existing.showOnStatusPage !== false;
   const paused =
     typeof body.paused === "boolean" ? body.paused : !!existing.paused;
+  // DNS monitors cannot have degradation alerts
+  const degradationAlertEnabled =
+    type !== "dns"
+      ? typeof body.degradationAlertEnabled === "boolean"
+        ? body.degradationAlertEnabled
+        : !!existing.degradationAlertEnabled
+      : false;
+  // Reset baseline when the URL changes so stale data isn't used for the new endpoint
+  const urlChanged = url !== existing.url;
+  const baselineReset = urlChanged
+    ? {
+        baselineP75Ms: null,
+        baselineSampleCount: 0,
+        consecutiveDegradedChecks: 0,
+        degradingAlertSentAt: null,
+        baselineResetAt: new Date(),
+      }
+    : {};
 
   // Keyword-specific fields
   const keywordContains =
@@ -187,6 +205,8 @@ export async function PATCH(
       name, url, intervalMinutes, timeoutSeconds, method, expectedStatusCodes,
       alertEmail, alertEmailTo, sslMonitoring, showOnStatusPage, paused,
       keywordContains, keywordShouldExist, dnsRecordType, dnsExpectedValue,
+      degradationAlertEnabled,
+      ...baselineReset,
     })
     .where(eq(monitor.id, id));
 

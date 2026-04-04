@@ -42,6 +42,13 @@ export const monitor = sqliteTable("monitor", {
   dnsRecordType: text("dns_record_type"),
   dnsExpectedValue: text("dns_expected_value"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  // Degradation alert feature
+  degradationAlertEnabled: integer("degradation_alert_enabled", { mode: "boolean" }),
+  baselineP75Ms: integer("baseline_p75_ms"),
+  baselineSampleCount: integer("baseline_sample_count"),
+  consecutiveDegradedChecks: integer("consecutive_degraded_checks"),
+  degradingAlertSentAt: integer("degrading_alert_sent_at", { mode: "timestamp" }),
+  baselineResetAt: integer("baseline_reset_at", { mode: "timestamp" }),
 });
 
 export const checkResult = sqliteTable("check_result", {

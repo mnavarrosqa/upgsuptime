@@ -10,6 +10,7 @@ import { CheckResultsTable } from "@/components/check-results-table";
 import { RecentIncidentsList } from "@/components/recent-incidents-list";
 import { UptimeTrendCharts } from "@/components/uptime-trend-charts";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { DegradationAlertCallout } from "@/components/degradation-alert-callout";
 import { unixNowMs } from "@/lib/server-relative-time";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
@@ -267,6 +268,14 @@ export default async function MonitorDetailPage({
             );
           })()}
         </div>
+      )}
+
+      {/* Degradation alert callout — shown for HTTP/keyword monitors that haven't enabled it */}
+      {m.type !== "dns" && !m.degradationAlertEnabled && (
+        <DegradationAlertCallout
+          monitorId={m.id}
+          hasEmailAlerts={!!m.alertEmail}
+        />
       )}
 
       {/* Recent incidents — only shown when there are failures */}

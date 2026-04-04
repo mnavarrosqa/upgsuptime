@@ -9,7 +9,7 @@ export type SslAlertType = "invalid" | "expiring" | "critical" | "recovered";
 
 let _transporter: Transporter | null | undefined; // undefined = not yet initialized
 
-function getTransporter(): Transporter | null {
+export function getTransporter(): Transporter | null {
   if (_transporter !== undefined) return _transporter;
 
   const host = process.env.SMTP_HOST;
@@ -31,127 +31,45 @@ function getTransporter(): Transporter | null {
   return _transporter;
 }
 
-function buildMergedDownSslTextLines(
-  sslResult: SslCheckResult,
-  mergedSslAlertType: Exclude<SslAlertType, "recovered">
-): string[] {
-  const lines: string[] = ["", "SSL Certificate"];
-  switch (mergedSslAlertType) {
-    case "invalid":
-      lines.push(
-        `  Status: INVALID — ${sslResult.error ?? "Certificate not trusted"}`
-      );
-      break;
-    case "expiring":
-      lines.push(
-        `  Status: EXPIRING SOON — ${sslResult.daysUntilExpiry} days remaining`
-      );
-      break;
-    case "critical":
-      lines.push(
-        `  Status: CRITICAL — only ${sslResult.daysUntilExpiry} days remaining`
-      );
-      break;
-  }
-  if (sslResult.expiresAt != null) {
-    lines.push(
-      `  Expires: ${new Date(sslResult.expiresAt).toUTCString()} (${sslResult.daysUntilExpiry} days)`
-    );
-  }
-  return lines;
-}
-
 export async function sendEmailAlert(
   m: Monitor,
   newStatus: boolean,
   result: RunCheckResult,
   ownerEmail: string,
-  sslResult: SslCheckResult | null = null,
-  mergedSslAlertType: SslAlertType | null = null
 ): Promise<void> {
   const transporter = getTransporter();
   if (!transporter) return;
 
   const to = m.alertEmailTo ?? ownerEmail;
-  const statusLabel = newStatus ? "UP" : "DOWN";
-
   const monitorType = m.type ?? "http";
 
   let subject: string;
   if (newStatus) {
-    subject = `📶 ${m.name} — back online`;
-  } else if (
-    monitorType === "http" &&
-    sslResult &&
-    mergedSslAlertType &&
-    mergedSslAlertType !== "recovered"
-  ) {
-    switch (mergedSslAlertType) {
-      case "invalid":
-        subject = `🛡️ ${m.name} — unreachable, SSL not trusted`;
-        break;
-      case "expiring":
-        subject = `🛡️ ${m.name} — unreachable, SSL expires in ${sslResult.daysUntilExpiry} days`;
-        break;
-      case "critical":
-        subject = `🛡️ ${m.name} — unreachable, SSL critical (${sslResult.daysUntilExpiry} days)`;
-        break;
-      default:
-        subject = `📴 ${m.name} — unreachable`;
-    }
+    subject = `[Up] ${m.name} — back online`;
   } else if (monitorType === "dns") {
-    subject = `📴 ${m.name} — DNS check failed`;
+    subject = `[Down] ${m.name} — DNS check failed`;
   } else if (monitorType === "keyword") {
-    subject = `📴 ${m.name} — keyword check failed`;
+    subject = `[Down] ${m.name} — keyword check failed`;
   } else {
-    subject = `📴 ${m.name} — unreachable`;
+    subject = `[Down] ${m.name} — unreachable`;
   }
 
   const checkedAt = new Date().toUTCString();
-  const sslLines: string[] = [];
-  if (newStatus && sslResult) {
-    sslLines.push("", "SSL Certificate");
-    if (sslResult.valid) {
-      sslLines.push(`  Status: Valid`);
-      if (sslResult.expiresAt != null) {
-        sslLines.push(`  Expires: ${new Date(sslResult.expiresAt).toUTCString()} (${sslResult.daysUntilExpiry} days)`);
-      }
-    } else {
-      sslLines.push(`  Status: Invalid — ${sslResult.error ?? "Certificate not trusted"}`);
-    }
-  } else if (
-    !newStatus &&
-    sslResult &&
-    mergedSslAlertType &&
-    mergedSslAlertType !== "recovered"
-  ) {
-    sslLines.push(
-      ...buildMergedDownSslTextLines(sslResult, mergedSslAlertType)
-    );
-  }
   const textLines = [
     `Monitor: ${m.name}`,
-    `${(m.type ?? "http") === "dns" ? "Host" : "URL"}: ${m.url}`,
-    `Status: ${statusLabel}`,
+    `${monitorType === "dns" ? "Host" : "URL"}: ${m.url}`,
+    `Status: ${newStatus ? "UP" : "DOWN"}`,
     ``,
     result.statusCode != null ? `Status code: ${result.statusCode}` : null,
     result.responseTimeMs != null ? `Response time: ${result.responseTimeMs}ms` : null,
     result.message ? `Error: ${result.message}` : null,
-    ...sslLines,
     ``,
     `Checked at: ${checkedAt}`,
   ]
     .filter((l) => l !== null)
     .join("\n");
 
-  const html = buildUptimeAlertHtml(
-    m,
-    newStatus,
-    result,
-    checkedAt,
-    sslResult,
-    mergedSslAlertType
-  );
+  const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt);
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM ?? `"UPG Monitor" <${process.env.SMTP_USER}>`,
@@ -167,20 +85,11 @@ export async function sendNotifications(
   newStatus: boolean,
   result: RunCheckResult,
   ownerEmail: string,
-  sslResult: SslCheckResult | null = null,
-  mergedSslAlertType: SslAlertType | null = null
 ): Promise<void> {
   if (!m.alertEmail) return;
 
   try {
-    await sendEmailAlert(
-      m,
-      newStatus,
-      result,
-      ownerEmail,
-      sslResult,
-      mergedSslAlertType
-    );
+    await sendEmailAlert(m, newStatus, result, ownerEmail);
   } catch (err) {
     console.error("[notify] email failed for monitor", m.id, err);
   }
@@ -205,19 +114,19 @@ export async function sendSslNotifications(
 
   switch (alertType) {
     case "invalid":
-      subject = `🔐 ${m.name} — SSL certificate not trusted`;
+      subject = `[SSL] ${m.name} — certificate not trusted`;
       statusLine = `Status: INVALID — ${sslResult.error ?? "Certificate not trusted"}`;
       break;
     case "expiring":
-      subject = `📅 ${m.name} — SSL expires in ${sslResult.daysUntilExpiry} days`;
+      subject = `[SSL] ${m.name} — expires in ${sslResult.daysUntilExpiry} days`;
       statusLine = `Status: EXPIRING SOON — ${sslResult.daysUntilExpiry} days remaining`;
       break;
     case "critical":
-      subject = `⏰ ${m.name} — SSL expires in ${sslResult.daysUntilExpiry} days`;
+      subject = `[SSL] ${m.name} — expires in ${sslResult.daysUntilExpiry} days (critical)`;
       statusLine = `Status: CRITICAL — only ${sslResult.daysUntilExpiry} days remaining`;
       break;
     case "recovered":
-      subject = `🔓 ${m.name} — SSL certificate valid again`;
+      subject = `[SSL] ${m.name} — certificate valid again`;
       statusLine = `Status: VALID`;
       break;
   }

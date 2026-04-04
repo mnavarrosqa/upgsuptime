@@ -8,6 +8,7 @@ import type { Monitor } from "@/db/schema";
 import { getUrlNotAllowedReason, isBlockedIP } from "@/lib/url-allowed";
 import { sendNotifications, sendSslNotifications } from "@/lib/notify";
 import type { SslAlertType } from "@/lib/notify";
+import { evaluateDegradation, sendDegradationAlert } from "@/lib/degradation";
 import { checkSSL } from "@/lib/check-ssl";
 
 export type RunCheckResult = {
@@ -148,7 +149,6 @@ async function applyCheckResult(
   }
 
   // True when a site that was confirmed down has just come back up
-  const isHttpRecovery = m.currentStatus === false && ok === true;
 
   // Await SSL result (likely already done by now); DNS monitors always pass null
   const sslResult = await sslPromise;
@@ -173,7 +173,30 @@ async function applyCheckResult(
     }
   }
 
-  // Single DB update: HTTP fields + SSL fields + consecutiveFailures in one round-trip
+  // Degradation detection — only for successful HTTP/keyword checks with the feature enabled
+  let degradationFields: Record<string, unknown> = {};
+  let shouldSendDegradationAlert = false;
+  let degradationAlertArgs: { recentAvgMs: number; baselineP75Ms: number } | null = null;
+
+  if (ok && m.type !== "dns" && m.degradationAlertEnabled) {
+    const deg = await evaluateDegradation(m);
+    degradationFields = {
+      baselineP75Ms: deg.baselineP75Ms,
+      baselineSampleCount: deg.baselineSampleCount,
+      consecutiveDegradedChecks: deg.consecutiveDegradedChecks,
+      ...(deg.clearDegradingAlertSentAt ? { degradingAlertSentAt: null } : {}),
+      ...(deg.shouldAlert ? { degradingAlertSentAt: now } : {}),
+    };
+    if (deg.shouldAlert && deg.recentAvgMs !== null && deg.baselineP75Ms !== null) {
+      shouldSendDegradationAlert = true;
+      degradationAlertArgs = { recentAvgMs: deg.recentAvgMs, baselineP75Ms: deg.baselineP75Ms };
+    }
+  } else if (!ok && m.degradationAlertEnabled) {
+    // Reset consecutive degraded count on a failed check so the episode restarts cleanly
+    degradationFields = { consecutiveDegradedChecks: 0, degradingAlertSentAt: null };
+  }
+
+  // Single DB update: HTTP fields + SSL fields + consecutiveFailures + degradation in one round-trip
   await db
     .update(monitor)
     .set({
@@ -187,6 +210,7 @@ async function applyCheckResult(
             sslLastCheckedAt: now,
           }
         : {}),
+      ...degradationFields,
     })
     .where(sql`${monitor.id} = ${m.id}`);
 
@@ -198,40 +222,23 @@ async function applyCheckResult(
     message,
   };
 
-  const mergeSslIntoDownEmail =
-    Boolean(
-      shouldNotify &&
-        !ok &&
-        sslResult &&
-        sslAlertType &&
-        sslAlertType !== "recovered"
-    );
-
   // Fire-and-forget: notification errors must not propagate
   if (shouldNotify) {
-    const sslForUptime =
-      isHttpRecovery || mergeSslIntoDownEmail ? sslResult : null;
-    const mergedSslAlertForDown = mergeSslIntoDownEmail ? sslAlertType : null;
-    sendNotifications(
-      m,
-      ok,
-      result,
-      ownerEmail,
-      sslForUptime,
-      mergedSslAlertForDown
-    ).catch((err) => {
+    sendNotifications(m, ok, result, ownerEmail).catch((err) => {
       console.error("[run-check] notification error for monitor", m.id, err);
     });
   }
-  // Skip separate SSL email when merged into UP recovery or into DOWN email
-  if (
-    sslResult &&
-    sslAlertType &&
-    !(sslAlertType === "recovered" && isHttpRecovery) &&
-    !mergeSslIntoDownEmail
-  ) {
+  // Only send standalone SSL alerts when the site is up — if it's down, SSL
+  // failure is expected and would just add noise to the inbox.
+  if (ok && sslResult && sslAlertType) {
     sendSslNotifications(m, sslResult, sslAlertType, ownerEmail).catch((err) => {
       console.error("[run-check] SSL notification error for monitor", m.id, err);
+    });
+  }
+
+  if (shouldSendDegradationAlert && degradationAlertArgs && m.alertEmail) {
+    sendDegradationAlert(m, degradationAlertArgs.recentAvgMs, degradationAlertArgs.baselineP75Ms, ownerEmail).catch((err) => {
+      console.error("[run-check] degradation alert error for monitor", m.id, err);
     });
   }
 

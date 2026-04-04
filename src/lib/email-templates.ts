@@ -29,8 +29,26 @@ const COLORS = {
   criticalText: "#9a3412",
 };
 
-function badge(label: string, bg: string, color: string) {
-  return `<span style="display:inline-block;background:${bg};color:${color};font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:100px;font-family:${FONT_STACK};">${label}</span>`;
+// ─── flat inline-SVG icons (email-safe, color baked in) ───────────────────────
+
+function iconCheck(color: string) {
+  return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><path d="M1.5 6L4.5 9L10.5 3" stroke="${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+}
+
+function iconX(color: string) {
+  return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><path d="M2 2L10 10M10 2L2 10" stroke="${color}" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+}
+
+function iconWarn(color: string) {
+  return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><path d="M6 1L11.5 10.5H0.5L6 1Z" stroke="${color}" stroke-width="1.4" stroke-linejoin="round"/><line x1="6" y1="4.5" x2="6" y2="7" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/><circle cx="6" cy="9" r="0.7" fill="${color}"/></svg>`;
+}
+
+function iconLock(color: string) {
+  return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><rect x="1.5" y="5.5" width="9" height="5.5" rx="1.2" stroke="${color}" stroke-width="1.4"/><path d="M3.5 5.5V4a2.5 2.5 0 015 0v1.5" stroke="${color}" stroke-width="1.4" stroke-linecap="round"/></svg>`;
+}
+
+function badge(label: string, bg: string, color: string, icon: string) {
+  return `<span style="display:inline-block;background:${bg};color:${color};font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:100px;font-family:${FONT_STACK};line-height:1.4;"><span style="display:inline-block;vertical-align:middle;margin-right:5px;line-height:0;">${icon}</span><span style="display:inline-block;vertical-align:middle;">${label}</span></span>`;
 }
 
 function detailRow(label: string, value: string) {
@@ -134,13 +152,11 @@ export function buildUptimeAlertHtml(
   newStatus: boolean,
   result: RunCheckResult,
   checkedAt: string,
-  sslResult: SslCheckResult | null = null,
-  mergedSslAlertType: SslAlertType | null = null
 ): string {
   const isUp = newStatus;
   const statusBadge = isUp
-    ? badge("● Up", COLORS.upBg, COLORS.upText)
-    : badge("● Down", COLORS.downBg, COLORS.downText);
+    ? badge("Up", COLORS.upBg, COLORS.upText, iconCheck(COLORS.upText))
+    : badge("Down", COLORS.downBg, COLORS.downText, iconX(COLORS.downText));
 
   const monitorType = m.type ?? "http";
   const downHeadline =
@@ -162,48 +178,6 @@ export function buildUptimeAlertHtml(
   if (!isUp && result.message)
     rows.push(detailRow("Error", escHtml(result.message)));
 
-  // SSL: recovery summary when UP; problem details when DOWN merged with SSL alert
-  let sslSection = "";
-  if (
-    !isUp &&
-    sslResult &&
-    mergedSslAlertType &&
-    mergedSslAlertType !== "recovered"
-  ) {
-    const sslRows = sslProblemDetailRows(sslResult, mergedSslAlertType);
-    sslSection = `
-    <!-- SSL divider -->
-    <div style="height:1px;background:${COLORS.border};margin:${rows.length > 0 ? "6px" : "0"} 0 14px;"></div>
-    <p style="margin:0 0 10px;font-size:11px;color:${COLORS.textMuted};text-transform:uppercase;letter-spacing:0.07em;font-weight:600;font-family:${FONT_STACK};">SSL Certificate</p>
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">${sslRows.join("")}</table>`;
-  } else if (isUp && sslResult) {
-    const sslRows: string[] = [];
-    if (sslResult.valid) {
-      sslRows.push(detailRow("SSL Status", "Valid"));
-      if (sslResult.expiresAt != null) {
-        sslRows.push(
-          detailRow(
-            "SSL Expires",
-            `${new Date(sslResult.expiresAt).toUTCString()} (${sslResult.daysUntilExpiry} days)`
-          )
-        );
-      }
-    } else {
-      sslRows.push(
-        detailRow(
-          "SSL Status",
-          `<span style="color:${COLORS.down};">Invalid</span> — ${escHtml(sslResult.error ?? "Certificate not trusted")}`
-        )
-      );
-    }
-    sslSection = `
-    <!-- SSL divider -->
-    <div style="height:1px;background:${COLORS.border};margin:${rows.length > 0 ? "6px" : "0"} 0 14px;"></div>
-    <p style="margin:0 0 10px;font-size:11px;color:${COLORS.textMuted};text-transform:uppercase;letter-spacing:0.07em;font-weight:600;font-family:${FONT_STACK};">SSL Certificate</p>
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">${sslRows.join("")}</table>`;
-  }
-
-  const hasDetails = rows.length > 0 || sslSection;
   const body = `
     <!-- Badge -->
     <div style="margin-bottom:16px;">${statusBadge}</div>
@@ -212,7 +186,7 @@ export function buildUptimeAlertHtml(
     <h1 style="margin:0 0 6px;font-size:21px;font-weight:700;color:${COLORS.textPrimary};line-height:1.3;font-family:${FONT_STACK};">
       ${headline}
     </h1>
-    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">${monitorType === "dns" ? escHtml(m.url) : escHtml(m.url)}</p>
+    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">${escHtml(m.url)}</p>
 
     <!-- Divider -->
     <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
@@ -223,10 +197,9 @@ export function buildUptimeAlertHtml(
         ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">${rows.join("")}</table>`
         : ""
     }
-    ${sslSection}
 
     <!-- Timestamp -->
-    <p style="margin:${hasDetails ? "6px" : "0"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
+    <p style="margin:${rows.length > 0 ? "6px" : "0"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
       Checked at ${escHtml(checkedAt)}
     </p>`;
 
@@ -246,19 +219,19 @@ export function buildSslAlertHtml(
 
   switch (alertType) {
     case "invalid":
-      statusBadge = badge("● SSL Invalid", COLORS.downBg, COLORS.downText);
+      statusBadge = badge("SSL Invalid", COLORS.downBg, COLORS.downText, iconLock(COLORS.downText));
       headline = `SSL certificate for <span style="color:${COLORS.down};">${escHtml(m.name)}</span> is not trusted`;
       break;
     case "expiring":
-      statusBadge = badge(`● SSL Expiring`, COLORS.warnBg, COLORS.warnText);
+      statusBadge = badge("SSL Expiring", COLORS.warnBg, COLORS.warnText, iconLock(COLORS.warnText));
       headline = `SSL certificate for <span style="color:${COLORS.warn};">${escHtml(m.name)}</span> is expiring soon`;
       break;
     case "critical":
-      statusBadge = badge(`● SSL Critical`, COLORS.criticalBg, COLORS.criticalText);
+      statusBadge = badge("SSL Critical", COLORS.criticalBg, COLORS.criticalText, iconWarn(COLORS.criticalText));
       headline = `SSL certificate for <span style="color:${COLORS.critical};">${escHtml(m.name)}</span> expires very soon`;
       break;
     case "recovered":
-      statusBadge = badge("● SSL Valid", COLORS.upBg, COLORS.upText);
+      statusBadge = badge("SSL Valid", COLORS.upBg, COLORS.upText, iconLock(COLORS.upText));
       headline = `SSL certificate for <span style="color:${COLORS.up};">${escHtml(m.name)}</span> is valid`;
       break;
   }
@@ -292,6 +265,37 @@ export function buildSslAlertHtml(
     <p style="margin:${rows.length > 0 ? "6px" : "0"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
       Checked at ${escHtml(checkedAt)}
     </p>`;
+
+  return wrap(body);
+}
+
+// ─── degradation alert ────────────────────────────────────────────────────────
+
+export function buildDegradationAlertHtml(
+  m: Monitor,
+  recentAvgMs: number,
+  baselineP75Ms: number,
+  checkedAt: string
+): string {
+  const ratio = (recentAvgMs / baselineP75Ms).toFixed(1);
+  const statusBadge = badge("Degrading", COLORS.warnBg, COLORS.warnText, iconWarn(COLORS.warnText));
+
+  const rows = [
+    detailRow("Recent avg response", `${recentAvgMs} ms`),
+    detailRow("Normal baseline (P75)", `${baselineP75Ms} ms`),
+    detailRow("Slowdown", `<span style="color:${COLORS.warn};font-weight:700;">${ratio}× above baseline</span>`),
+    detailRow("URL", escHtml(m.url)),
+  ];
+
+  const body = `
+    <div style="margin-bottom:16px;">${statusBadge}</div>
+    <h1 style="margin:0 0 6px;font-size:21px;font-weight:700;color:${COLORS.textPrimary};line-height:1.3;font-family:${FONT_STACK};">
+      <span style="color:${COLORS.warn};">${escHtml(m.name)}</span> is responding slowly
+    </h1>
+    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">Response time has been elevated for several consecutive checks.</p>
+    <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">${rows.join("")}</table>
+    <p style="margin:6px 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">Checked at ${escHtml(checkedAt)}</p>`;
 
   return wrap(body);
 }

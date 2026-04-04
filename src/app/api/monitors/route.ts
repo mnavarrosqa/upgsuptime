@@ -70,6 +70,9 @@ export async function POST(request: Request) {
   const sslMonitoring = type === "dns" ? false : body.sslMonitoring === true;
   const showOnStatusPage =
     typeof body.showOnStatusPage === "boolean" ? body.showOnStatusPage : true;
+  // DNS monitors cannot have degradation alerts (no meaningful response time)
+  const degradationAlertEnabled =
+    type !== "dns" && body.degradationAlertEnabled === true;
 
   // Keyword-specific fields
   const keywordContains =
@@ -168,6 +171,7 @@ export async function POST(request: Request) {
     keywordShouldExist,
     dnsRecordType,
     dnsExpectedValue,
+    degradationAlertEnabled,
     createdAt: now,
   });
 
