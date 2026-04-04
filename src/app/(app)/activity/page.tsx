@@ -15,23 +15,24 @@ export default async function ActivityPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
-  const sp = await searchParams;
-  const session = await getServerSession(authOptions);
+  const [sp, session] = await Promise.all([searchParams, getServerSession(authOptions)]);
   if (!session?.user?.id) redirect("/login");
 
   const since = daysAgoUtc(7);
 
-  const [currentUser] = await db
-    .select({ activityClearedAt: user.activityClearedAt })
-    .from(user)
-    .where(eq(user.id, session.user.id));
+  // Fetch user metadata and monitors list in parallel — independent queries.
+  const [[currentUser], monitors] = await Promise.all([
+    db
+      .select({ activityClearedAt: user.activityClearedAt })
+      .from(user)
+      .where(eq(user.id, session.user.id)),
+    db
+      .select({ id: monitor.id, name: monitor.name, url: monitor.url })
+      .from(monitor)
+      .where(eq(monitor.userId, session.user.id)),
+  ]);
 
   const clearedAt = currentUser?.activityClearedAt ?? null;
-
-  const monitors = await db
-    .select({ id: monitor.id, name: monitor.name, url: monitor.url })
-    .from(monitor)
-    .where(eq(monitor.userId, session.user.id));
 
   const monitorIds = monitors.map((m) => m.id);
   const monitorById = new Map(monitors.map((m) => [m.id, m]));

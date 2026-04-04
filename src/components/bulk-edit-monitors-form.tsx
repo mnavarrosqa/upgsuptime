@@ -46,6 +46,8 @@ export function BulkEditMonitorsForm({
   const alertTos = monitors.map((m) => (m.alertEmailTo ?? "").trim());
   const ssls = monitors.map((m) => !!m.sslMonitoring);
   const statusPages = monitors.map((m) => m.showOnStatusPage !== false);
+  const nonDnsMonitors = monitors.filter((m) => m.type !== "dns");
+  const degradations = nonDnsMonitors.map((m) => !!m.degradationAlertEnabled);
 
   const [intervalMinutes, setIntervalMinutes] = useState<string>(
     allEqual(intervals) ? String(intervals[0] ?? 5) : ""
@@ -71,10 +73,14 @@ export function BulkEditMonitorsForm({
   const [showOnStatusPage, setShowOnStatusPage] = useState<TriBool>(
     allEqual(statusPages) ? statusPages[0] : null
   );
+  const [degradationAlertEnabled, setDegradationAlertEnabled] = useState<TriBool>(
+    degradations.length > 0 && allEqual(degradations) ? degradations[0] : null
+  );
 
   const alertEmailRef = useRef<HTMLInputElement>(null);
   const sslRef = useRef<HTMLInputElement>(null);
   const statusPageRef = useRef<HTMLInputElement>(null);
+  const degradationRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (alertEmailRef.current) {
@@ -94,7 +100,14 @@ export function BulkEditMonitorsForm({
     }
   }, [showOnStatusPage]);
 
+  useEffect(() => {
+    if (degradationRef.current) {
+      degradationRef.current.indeterminate = degradationAlertEnabled === null;
+    }
+  }, [degradationAlertEnabled]);
+
   const anyHttps = monitors.some((m) => m.url.startsWith("https://"));
+  const anyNonDns = nonDnsMonitors.length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -142,6 +155,10 @@ export function BulkEditMonitorsForm({
 
     if (showOnStatusPage !== null) {
       patchBase.showOnStatusPage = showOnStatusPage;
+    }
+
+    if (degradationAlertEnabled !== null) {
+      patchBase.degradationAlertEnabled = degradationAlertEnabled;
     }
 
     if (Object.keys(patchBase).length === 0) {
@@ -330,6 +347,29 @@ export function BulkEditMonitorsForm({
               placeholder="alerts@example.com"
               className={inputClass}
             />
+          </div>
+        )}
+        {anyNonDns && (
+          <div className="mt-3">
+            <label className={`flex items-center gap-2.5 ${alertEmail === true ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
+              <input
+                ref={degradationRef}
+                type="checkbox"
+                checked={degradationAlertEnabled === true}
+                onChange={(e) => setDegradationAlertEnabled(e.target.checked)}
+                disabled={alertEmail !== true}
+                className="h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
+              />
+              <span className="text-sm text-text-primary">Alert on slow response times</span>
+            </label>
+            {alertEmail !== true && (
+              <p className={hintClass}>Requires email alerts to be enabled.</p>
+            )}
+            {degradationAlertEnabled === true && alertEmail === true && (
+              <p className={hintClass}>
+                Learns each site&apos;s normal response time over 20+ checks, then alerts when a sustained 2× slowdown is detected. Fires once per episode.
+              </p>
+            )}
           </div>
         )}
       </div>

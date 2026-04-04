@@ -42,6 +42,34 @@ type MonitorGridProps = {
   sortBy: { field: string; direction: "asc" | "desc" };
 };
 
+// Extracted outside MonitorGrid so it is not re-created on every render (Rule 5.4).
+function MonitorGridCard({
+  m,
+  latestByMonitor,
+  trendByMonitor,
+}: {
+  m: Monitor;
+  latestByMonitor: MonitorGridProps["latestByMonitor"];
+  trendByMonitor: MonitorGridProps["trendByMonitor"];
+}) {
+  return (
+    <MonitorCard
+      key={m.id}
+      id={m.id}
+      name={m.name}
+      url={m.url}
+      monitorType={m.type ?? "http"}
+      paused={m.paused}
+      latest={latestByMonitor[m.id]}
+      trendResults={trendByMonitor[m.id] ?? []}
+      lastCheckAt={m.lastCheckAt}
+      sslMonitoring={!!m.sslMonitoring}
+      sslValid={m.sslValid ?? null}
+      sslExpiresAt={m.sslExpiresAt ?? null}
+    />
+  );
+}
+
 function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: MonitorGridProps) {
   const t = useTranslations("dashboard");
   const downMonitors = sortMonitors(
@@ -72,25 +100,6 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
   const multipleGroups =
     [downMonitors, pausedMonitors, [...upMonitors, ...uncheckedMonitors]].filter((g) => g.length > 0).length > 1;
 
-  function renderCard(m: Monitor) {
-    return (
-      <MonitorCard
-        key={m.id}
-        id={m.id}
-        name={m.name}
-        url={m.url}
-        monitorType={m.type ?? "http"}
-        paused={m.paused}
-        latest={latestByMonitor[m.id]}
-        trendResults={trendByMonitor[m.id] ?? []}
-        lastCheckAt={m.lastCheckAt}
-        sslMonitoring={!!m.sslMonitoring}
-        sslValid={m.sslValid ?? null}
-        sslExpiresAt={m.sslExpiresAt ?? null}
-      />
-    );
-  }
-
   return (
     <ul className="mt-5 grid gap-4 sm:grid-cols-2">
       {downMonitors.length > 0 && (
@@ -102,7 +111,9 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
               </p>
             </li>
           )}
-          {downMonitors.map(renderCard)}
+          {downMonitors.map((m) => (
+            <MonitorGridCard key={m.id} m={m} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+          ))}
         </>
       )}
       {pausedMonitors.length > 0 && (
@@ -114,7 +125,9 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
               </p>
             </li>
           )}
-          {pausedMonitors.map(renderCard)}
+          {pausedMonitors.map((m) => (
+            <MonitorGridCard key={m.id} m={m} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+          ))}
         </>
       )}
       {(upMonitors.length > 0 || uncheckedMonitors.length > 0) && (
@@ -126,8 +139,12 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
               </p>
             </li>
           )}
-          {upMonitors.map(renderCard)}
-          {uncheckedMonitors.map(renderCard)}
+          {upMonitors.map((m) => (
+            <MonitorGridCard key={m.id} m={m} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+          ))}
+          {uncheckedMonitors.map((m) => (
+            <MonitorGridCard key={m.id} m={m} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+          ))}
         </>
       )}
     </ul>
@@ -154,12 +171,16 @@ export function DashboardContent({
     !onboarding?.onboardingCompleted && monitors.length === 0
   );
 
-  const searchItems: MonitorSearchItem[] = monitors.map((m) => ({
-    id: m.id,
-    name: m.name,
-    url: m.url,
-  }));
-  const filteredMonitors = filterMonitorsBySearch(monitors, searchQuery);
+  // Memoize derived collections so they are not recomputed on every render
+  // (e.g. sort state or onboarding state changes) — Rule 5.1.
+  const searchItems: MonitorSearchItem[] = useMemo(
+    () => monitors.map((m) => ({ id: m.id, name: m.name, url: m.url })),
+    [monitors]
+  );
+  const filteredMonitors = useMemo(
+    () => filterMonitorsBySearch(monitors, searchQuery),
+    [monitors, searchQuery]
+  );
 
   const sortOptions = useMemo(
     () => [

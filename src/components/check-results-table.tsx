@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 import { FormattedDateTime } from "@/components/formatted-date-time";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ export function CheckResultsTable({
   results: CheckResultRow[];
   hideMessage?: boolean;
 }) {
+  const t = useTranslations("monitorDetail");
   const [page, setPage] = useState(0);
   const totalPages = Math.ceil(results.length / PAGE_SIZE);
   const pageResults = results.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
@@ -33,20 +35,20 @@ export function CheckResultsTable({
           <thead>
             <tr>
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-                Time
+                {t("colTime")}
               </th>
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-                Status
+                {t("colStatus")}
               </th>
               <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
-                Code
+                {t("colCode")}
               </th>
               <th className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-                Response
+                {t("colResponse")}
               </th>
               {!hideMessage && (
                 <th className="hidden px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
-                  Message
+                  {t("colMessage")}
                 </th>
               )}
             </tr>
@@ -65,7 +67,7 @@ export function CheckResultsTable({
                         : "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
                     }`}
                   >
-                    {r.ok ? "Up" : "Down"}
+                    {r.ok ? t("statusBadgeUp") : t("statusBadgeDown")}
                   </span>
                 </td>
                 <td className="hidden px-4 py-2.5 text-sm text-text-muted sm:table-cell">
@@ -98,7 +100,7 @@ export function CheckResultsTable({
               disabled={page === 0}
               className="min-h-11 rounded border-border px-4 py-2 text-sm hover:bg-bg-page"
             >
-              Previous
+              {t("paginationPrev")}
             </Button>
             <Button
               type="button"
@@ -107,7 +109,7 @@ export function CheckResultsTable({
               disabled={page >= totalPages - 1}
               className="min-h-11 rounded border-border px-4 py-2 text-sm hover:bg-bg-page"
             >
-              Next
+              {t("paginationNext")}
             </Button>
           </div>
         </div>

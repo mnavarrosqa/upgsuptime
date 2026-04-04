@@ -1,5 +1,6 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import { FormattedDateTime } from "@/components/formatted-date-time";
 
 export type IncidentRow = {
@@ -12,10 +13,12 @@ export type IncidentRow = {
 };
 
 export function RecentIncidentsList({ incidents }: { incidents: IncidentRow[] }) {
+  const t = useTranslations("monitorDetail");
+
   if (incidents.length === 0) {
     return (
       <div className="mt-4 rounded-lg border border-dashed border-border-muted bg-bg-page p-6 text-center text-sm text-text-muted">
-        No recent incidents.
+        {t("noIncidents")}
       </div>
     );
   }
@@ -26,19 +29,19 @@ export function RecentIncidentsList({ incidents }: { incidents: IncidentRow[] })
         <thead>
           <tr>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-              Time
+              {t("colTime")}
             </th>
             <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
-              Status
+              {t("colStatus")}
             </th>
             <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
-              Code
+              {t("colCode")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-              Response
+              {t("colResponse")}
             </th>
             <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
-              Message
+              {t("colMessage")}
             </th>
           </tr>
         </thead>
@@ -50,7 +53,7 @@ export function RecentIncidentsList({ incidents }: { incidents: IncidentRow[] })
               </td>
               <td className="hidden px-4 py-3 sm:table-cell">
                 <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400">
-                  Down
+                  {t("statusBadgeDown")}
                 </span>
               </td>
               <td className="hidden px-4 py-3 text-sm text-text-muted sm:table-cell">

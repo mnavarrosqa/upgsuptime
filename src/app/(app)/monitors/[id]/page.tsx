@@ -8,10 +8,11 @@ import Link from "next/link";
 import { MonitorDetailActions } from "@/components/monitor-detail-actions";
 import { CheckResultsTable } from "@/components/check-results-table";
 import { RecentIncidentsList } from "@/components/recent-incidents-list";
-import { UptimeTrendCharts } from "@/components/uptime-trend-charts";
+import { UptimeTrendCharts } from "@/components/uptime-trend-charts-client";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DegradationAlertCallout } from "@/components/degradation-alert-callout";
 import { unixNowMs } from "@/lib/server-relative-time";
+import { getTranslations } from "next-intl/server";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns") return "";
@@ -32,18 +33,18 @@ export default async function MonitorDetailPage({
   if (!session?.user?.id) redirect("/login");
 
   const { id } = await params;
-  const [m] = await db
-    .select()
-    .from(monitor)
-    .where(and(eq(monitor.id, id), eq(monitor.userId, session.user.id)));
-  if (!m) notFound();
 
-  const results = await db
-    .select()
-    .from(checkResult)
-    .where(eq(checkResult.monitorId, id))
-    .orderBy(desc(checkResult.createdAt))
-    .limit(50);
+  // Fetch monitor metadata and check results in parallel — neither depends on the other.
+  const [[m], results] = await Promise.all([
+    db.select().from(monitor).where(and(eq(monitor.id, id), eq(monitor.userId, session.user.id))),
+    db
+      .select()
+      .from(checkResult)
+      .where(eq(checkResult.monitorId, id))
+      .orderBy(desc(checkResult.createdAt))
+      .limit(50),
+  ]);
+  if (!m) notFound();
 
   const serializedResults = results.map((r) => ({
     id: r.id,
@@ -79,6 +80,8 @@ export default async function MonitorDetailPage({
   const favicon = getFaviconUrl(m.url, monitorType);
   const allMessagesNull = serializedResults.every((r) => r.message === null);
 
+  const t = await getTranslations("monitorDetail");
+
   return (
     <div>
       <AutoRefresh />
@@ -87,7 +90,7 @@ export default async function MonitorDetailPage({
         href="/monitors"
         className="text-sm text-text-muted hover:text-text-primary"
       >
-        ← Monitors
+        ← {t("breadcrumb")}
       </Link>
 
       {/* Header: favicon + name + status + actions */}
@@ -111,7 +114,7 @@ export default async function MonitorDetailPage({
             </h1>
             {m.paused ? (
               <span className="inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium bg-border text-text-muted">
-                Paused
+                {t("statusPaused")}
               </span>
             ) : (
               <span
@@ -123,7 +126,7 @@ export default async function MonitorDetailPage({
                       : "bg-border text-text-muted"
                 }`}
               >
-                {lastOk === true ? "Up" : lastOk === false ? "Down" : "No data"}
+                {lastOk === true ? t("statusUp") : lastOk === false ? t("statusDown") : t("statusNoData")}
               </span>
             )}
           </div>
@@ -140,15 +143,15 @@ export default async function MonitorDetailPage({
                 <span aria-hidden>·</span>
               </>
             )}
-            <span>Every {m.intervalMinutes} min</span>
+            <span>{t("configEvery", { n: m.intervalMinutes })}</span>
             {monitorType !== "dns" && (
               <>
                 <span aria-hidden>·</span>
-                <span>Timeout {m.timeoutSeconds}s</span>
+                <span>{t("configTimeout", { n: m.timeoutSeconds })}</span>
                 <span aria-hidden>·</span>
-                <span>Expect {m.expectedStatusCodes}</span>
+                <span>{t("configExpect", { codes: m.expectedStatusCodes })}</span>
                 <span aria-hidden>·</span>
-                <span>SSL {m.sslMonitoring ? "on" : "off"}</span>
+                <span>{m.sslMonitoring ? t("configSslOn") : t("configSslOff")}</span>
               </>
             )}
             {monitorType === "keyword" && m.keywordContains && (
@@ -156,7 +159,7 @@ export default async function MonitorDetailPage({
                 <span aria-hidden>·</span>
                 <span>
                   Keyword: &ldquo;{m.keywordContains}&rdquo;{" "}
-                  ({m.keywordShouldExist !== false ? "must contain" : "must not contain"})
+                  ({m.keywordShouldExist !== false ? t("configMustContain") : t("configMustNotContain")})
                 </span>
               </>
             )}
@@ -175,7 +178,7 @@ export default async function MonitorDetailPage({
       {results.length > 0 && (
         <div className={`mt-5 grid grid-cols-2 gap-3 ${m.sslMonitoring ? "sm:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-4"}`}>
           <div className="rounded-lg border border-border bg-bg-card px-4 py-3">
-            <p className="text-xs text-text-muted">Uptime</p>
+            <p className="text-xs text-text-muted">{t("statUptime")}</p>
             <p
               className={`mt-1 text-xl font-semibold ${
                 uptimePct === 100
@@ -188,30 +191,30 @@ export default async function MonitorDetailPage({
               {uptimePct}%
             </p>
             <p className="mt-0.5 text-xs text-text-muted">
-              {results.length} checks
+              {t("statChecks", { n: results.length })}
             </p>
           </div>
 
           <div className="rounded-lg border border-border bg-bg-card px-4 py-3">
-            <p className="text-xs text-text-muted">Avg response</p>
+            <p className="text-xs text-text-muted">{t("statAvgResponse")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">
               {avgResponseTimeMs != null ? `${avgResponseTimeMs}ms` : "—"}
             </p>
-            <p className="mt-0.5 text-xs text-text-muted">last 50 checks</p>
+            <p className="mt-0.5 text-xs text-text-muted">{t("statLast50")}</p>
           </div>
 
           <div className="rounded-lg border border-border bg-bg-card px-4 py-3">
-            <p className="text-xs text-text-muted">Latest response</p>
+            <p className="text-xs text-text-muted">{t("statLatestResponse")}</p>
             <p className="mt-1 text-xl font-semibold text-text-primary">
               {latestResult?.responseTimeMs != null
                 ? `${latestResult.responseTimeMs}ms`
                 : "—"}
             </p>
-            <p className="mt-0.5 text-xs text-text-muted">most recent check</p>
+            <p className="mt-0.5 text-xs text-text-muted">{t("statMostRecent")}</p>
           </div>
 
           <div className="rounded-lg border border-border bg-bg-card px-4 py-3">
-            <p className="text-xs text-text-muted">Incidents</p>
+            <p className="text-xs text-text-muted">{t("statIncidents")}</p>
             <p
               className={`mt-1 text-xl font-semibold ${
                 incidentCount > 0
@@ -219,9 +222,9 @@ export default async function MonitorDetailPage({
                   : "text-emerald-600 dark:text-emerald-400"
               }`}
             >
-              {incidentCount > 0 ? incidentCount : "None"}
+              {incidentCount > 0 ? incidentCount : t("statNone")}
             </p>
-            <p className="mt-0.5 text-xs text-text-muted">in last 50 checks</p>
+            <p className="mt-0.5 text-xs text-text-muted">{t("statInLast50")}</p>
           </div>
 
           {m.sslMonitoring && (() => {
@@ -245,24 +248,24 @@ export default async function MonitorDetailPage({
               m.sslValid === null
                 ? "—"
                 : !m.sslValid
-                  ? "Invalid"
+                  ? t("sslInvalid")
                   : sslDays !== null && sslDays <= 7
-                    ? "Critical"
+                    ? t("sslCritical")
                     : sslDays !== null && sslDays <= 30
-                      ? "Expiring"
-                      : "Valid";
+                      ? t("sslExpiring")
+                      : t("sslValid");
             return (
               <div className="rounded-lg border border-border bg-bg-card px-4 py-3">
-                <p className="text-xs text-text-muted">SSL</p>
+                <p className="text-xs text-text-muted">{t("statSsl")}</p>
                 <p className={`mt-1 text-xl font-semibold ${sslColor}`}>
                   {sslLabel}
                 </p>
                 <p className="mt-0.5 text-xs text-text-muted">
                   {sslDays !== null
-                    ? `${sslDays}d until expiry`
+                    ? t("sslDaysUntilExpiry", { n: sslDays })
                     : m.sslLastCheckedAt
-                      ? "checked"
-                      : "not checked yet"}
+                      ? t("sslChecked")
+                      : t("sslNotCheckedYet")}
                 </p>
               </div>
             );
@@ -282,13 +285,13 @@ export default async function MonitorDetailPage({
       {recentIncidents.length > 0 && (
         <section
           className="mt-5 rounded-lg border border-red-200 bg-red-50 p-5 dark:border-red-900/30 dark:bg-red-900/10"
-          aria-label="Recent incidents"
+          aria-label={t("incidentsTitle")}
         >
           <h2 className="text-sm font-medium text-red-800 dark:text-red-400">
-            Recent incidents
+            {t("incidentsTitle")}
           </h2>
           <p className="mt-0.5 text-xs text-red-700/60 dark:text-red-400/60">
-            Latest failed checks
+            {t("incidentsSubtitle")}
           </p>
           <RecentIncidentsList incidents={recentIncidents} />
         </section>
@@ -297,23 +300,28 @@ export default async function MonitorDetailPage({
       {/* History charts */}
       <section
         className="mt-5 rounded-lg border border-border bg-bg-card p-5 sm:p-6"
-        aria-label="History charts"
+        aria-label={t("historyTitle")}
       >
-        <h2 className="text-base font-medium text-text-primary">History</h2>
-        <p className="mt-0.5 text-sm text-text-muted">Last 50 checks</p>
-        <UptimeTrendCharts results={serializedResults} />
+        <h2 className="text-base font-medium text-text-primary">{t("historyTitle")}</h2>
+        <p className="mt-0.5 text-sm text-text-muted">{t("historySubtitle")}</p>
+        <UptimeTrendCharts
+          results={serializedResults}
+          baselineP75Ms={m.baselineP75Ms}
+          degradationAlertEnabled={m.degradationAlertEnabled}
+        />
       </section>
 
       {/* Check log */}
       <section className="mt-5 rounded-lg border border-border bg-bg-card p-5 sm:p-6">
-        <h2 className="text-base font-medium text-text-primary">Check log</h2>
+        <h2 className="text-base font-medium text-text-primary">{t("checkLogTitle")}</h2>
         <p className="mt-0.5 text-sm text-text-muted">
-          Every {m.intervalMinutes} min · showing last {results.length} result
-          {results.length !== 1 ? "s" : ""}
+          {results.length === 1
+            ? t("checkLogSubtitle", { n: m.intervalMinutes, count: results.length })
+            : t("checkLogSubtitlePlural", { n: m.intervalMinutes, count: results.length })}
         </p>
         {results.length === 0 ? (
           <div className="mt-4 rounded-lg border border-dashed border-border-muted bg-bg-page p-8 text-center text-sm text-text-muted">
-            No checks yet. Results appear after the cron job runs.
+            {t("checkLogEmpty")}
           </div>
         ) : (
           <CheckResultsTable

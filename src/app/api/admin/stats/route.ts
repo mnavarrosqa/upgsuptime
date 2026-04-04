@@ -11,29 +11,22 @@ export async function GET() {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  const [{ totalUsers }] = await db
-    .select({ totalUsers: count() })
-    .from(user);
-
-  const [{ totalMonitors }] = await db
-    .select({ totalMonitors: count() })
-    .from(monitor);
-
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-  const [{ checksLast24h }] = await db
-    .select({ checksLast24h: count() })
-    .from(checkResult)
-    .where(gte(checkResult.createdAt, since));
 
-  const [{ monitorsUp }] = await db
-    .select({ monitorsUp: count() })
-    .from(monitor)
-    .where(eq(monitor.currentStatus, true));
-
-  const [{ monitorsDown }] = await db
-    .select({ monitorsDown: count() })
-    .from(monitor)
-    .where(eq(monitor.currentStatus, false));
+  // All five count queries are independent — run them in parallel.
+  const [
+    [{ totalUsers }],
+    [{ totalMonitors }],
+    [{ checksLast24h }],
+    [{ monitorsUp }],
+    [{ monitorsDown }],
+  ] = await Promise.all([
+    db.select({ totalUsers: count() }).from(user),
+    db.select({ totalMonitors: count() }).from(monitor),
+    db.select({ checksLast24h: count() }).from(checkResult).where(gte(checkResult.createdAt, since)),
+    db.select({ monitorsUp: count() }).from(monitor).where(eq(monitor.currentStatus, true)),
+    db.select({ monitorsDown: count() }).from(monitor).where(eq(monitor.currentStatus, false)),
+  ]);
 
   return NextResponse.json({
     totalUsers,

@@ -10,44 +10,44 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  const monitors = await db
-    .select()
-    .from(monitor)
-    .where(eq(monitor.userId, session.user.id));
-
-  const [userOnboarding] = await db
-    .select({ onboardingCompleted: user.onboardingCompleted, onboardingStep: user.onboardingStep })
-    .from(user)
-    .where(eq(user.id, session.user.id));
+  // Start both independent queries in parallel — monitors list and user onboarding
+  // data have no dependency on each other.
+  const [monitors, [userOnboarding]] = await Promise.all([
+    db.select().from(monitor).where(eq(monitor.userId, session.user.id)),
+    db
+      .select({ onboardingCompleted: user.onboardingCompleted, onboardingStep: user.onboardingStep })
+      .from(user)
+      .where(eq(user.id, session.user.id)),
+  ]);
 
   const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }> = {};
-  for (const m of monitors) {
-    const [latest] = await db
-      .select({ ok: checkResult.ok, responseTimeMs: checkResult.responseTimeMs, message: checkResult.message })
-      .from(checkResult)
-      .where(eq(checkResult.monitorId, m.id))
-      .orderBy(desc(checkResult.createdAt))
-      .limit(1);
-    if (latest) latestByMonitor[m.id] = { ok: latest.ok, responseTimeMs: latest.responseTimeMs, message: latest.message };
-  }
-
   let trendByMonitor: Record<string, { id: string; ok: boolean; responseTimeMs: number | null }[]> = {};
+
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
-    const limit = Math.min(monitorIds.length * 24, 500);
+    const trendLimit = Math.min(monitorIds.length * 24, 500);
+
+    // Fetch latest status and trend data in a single batched query instead of
+    // N sequential per-monitor queries — eliminates the N+1 waterfall.
     const recentResults = await db
       .select({
         id: checkResult.id,
         monitorId: checkResult.monitorId,
         ok: checkResult.ok,
         responseTimeMs: checkResult.responseTimeMs,
+        message: checkResult.message,
       })
       .from(checkResult)
       .where(inArray(checkResult.monitorId, monitorIds))
       .orderBy(desc(checkResult.createdAt))
-      .limit(limit);
+      .limit(trendLimit);
+
     const grouped = new Map<string, { id: string; ok: boolean; responseTimeMs: number | null }[]>();
     for (const r of recentResults) {
+      // First result per monitor = most recent = latestByMonitor entry
+      if (!(r.monitorId in latestByMonitor)) {
+        latestByMonitor[r.monitorId] = { ok: r.ok, responseTimeMs: r.responseTimeMs, message: r.message };
+      }
       const list = grouped.get(r.monitorId) ?? [];
       if (list.length < 24) {
         list.push({ id: r.id, ok: r.ok, responseTimeMs: r.responseTimeMs });

@@ -17,14 +17,17 @@ const MOCK_MONITORS = [
 ];
 
 export default async function HomePage() {
-  const [row] = await db.select({ count: count() }).from(user);
+  // Start session and translations fetches immediately; user-count check is cheap
+  // and synchronous relative to the DB call, so we kick everything off in parallel.
+  const [[row], session, t, tCommon] = await Promise.all([
+    db.select({ count: count() }).from(user),
+    getServerSession(authOptions),
+    getTranslations("landing"),
+    getTranslations("common"),
+  ]);
+
   if (row.count === 0) redirect("/setup");
-
-  const session = await getServerSession(authOptions);
   if (session) redirect("/dashboard");
-
-  const t = await getTranslations("landing");
-  const tCommon = await getTranslations("common");
   const upCount = MOCK_MONITORS.filter((m) => m.status).length;
 
   return (
@@ -268,8 +271,8 @@ export default async function HomePage() {
                 { time: "10:18 PM", code: "0",   ms: "—",       ok: false },
                 { time: "09:41 PM", code: "503", ms: "1102 ms", ok: false },
                 { time: "08:55 PM", code: "200", ms: "108 ms",  ok: true  },
-              ].map((row, i) => (
-                <div key={i} className="px-4 py-2 grid grid-cols-[1fr_auto_auto] gap-3 items-center">
+              ].map((row) => (
+                <div key={row.time} className="px-4 py-2 grid grid-cols-[1fr_auto_auto] gap-3 items-center">
                   <span className="text-[11px] text-text-primary tabular-nums">{row.time}</span>
                   <span className={`text-[11px] tabular-nums font-medium ${row.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{row.code}</span>
                   <span className="text-[10px] text-text-muted tabular-nums text-right">{row.ms}</span>
@@ -302,8 +305,8 @@ export default async function HomePage() {
                 { name: "auth.service",   down: true,  when: "1h"  },
                 { name: "cdn.assets",     down: false, when: "3h"  },
                 { name: "db.replica",     down: false, when: "5h"  },
-              ].map((row, i) => (
-                <div key={i} className="px-4 py-2.5 grid grid-cols-[1fr_auto_auto] gap-3 items-center">
+              ].map((row) => (
+                <div key={`${row.name}-${row.when}`} className="px-4 py-2.5 grid grid-cols-[1fr_auto_auto] gap-3 items-center">
                   <span className="text-[12px] font-medium text-text-primary truncate">{row.name}</span>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium flex-shrink-0 ${
                     row.down

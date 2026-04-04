@@ -24,9 +24,12 @@ function getInitials(name: string | null | undefined, email: string): string {
 }
 
 export default async function AccountPage() {
-  const tAccount = await getTranslations("account");
-  const tCommon = await getTranslations("common");
-  const session = await getServerSession(authOptions);
+  // Fetch session and translations in parallel — none depend on each other.
+  const [session, tAccount, tCommon] = await Promise.all([
+    getServerSession(authOptions),
+    getTranslations("account"),
+    getTranslations("common"),
+  ]);
   if (!session?.user) redirect("/login");
 
   const { email, name, role, id } = session.user;
