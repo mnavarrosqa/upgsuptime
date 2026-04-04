@@ -206,3 +206,11 @@ body {
     @apply font-sans;
   }
 }
+
+/* iOS safe area — push content below the notch/status bar when viewportFit=cover */
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}

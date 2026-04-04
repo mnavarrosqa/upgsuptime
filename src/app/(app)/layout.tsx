@@ -27,7 +27,7 @@ export default async function AppLayout({
   return (
     <ActivityProvider>
     <div className="min-h-screen bg-bg-page text-text-primary">
-      <header className="border-b border-border bg-bg-card">
+      <header className="safe-top border-b border-border bg-bg-card">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex h-14 items-stretch gap-2 sm:gap-5">
             <Link

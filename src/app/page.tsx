@@ -33,7 +33,7 @@ export default async function HomePage() {
   return (
     <main className="min-h-screen bg-bg-page text-text-primary flex flex-col">
       {/* ── Header ── */}
-      <header className="max-w-6xl mx-auto w-full px-6 pt-6 pb-4 flex items-center justify-between">
+      <header className="safe-top max-w-6xl mx-auto w-full px-6 pt-6 pb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <span className="size-[18px] rounded-full bg-accent inline-block flex-shrink-0" />
           <span className="font-display font-semibold text-[15px] tracking-tight">UPG Monitor</span>
