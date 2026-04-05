@@ -571,5 +571,12 @@
     "tooltipResponse": "Respuesta",
     "tooltipCheck": "verificación",
     "tooltipChecks": "verificaciones"
+  },
+  "installBanner": {
+    "title": "Agregar a Inicio",
+    "bodyAndroid": "Instala UPG Monitor para una experiencia más rápida.",
+    "bodyIos": "Toca el botón Compartir y luego \"Agregar a Inicio\".",
+    "install": "Instalar",
+    "dismiss": "Ahora no"
   }
 }

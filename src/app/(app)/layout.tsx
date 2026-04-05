@@ -13,6 +13,7 @@ import { IncidentPoller } from "@/components/incident-poller";
 import { ActivityProvider } from "@/components/activity-context";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { BackToTopButton } from "@/components/back-to-top";
+import { PwaInstallBanner } from "@/components/pwa-install-banner";
 
 export default async function AppLayout({
   children,
@@ -68,6 +69,7 @@ export default async function AppLayout({
       <PullToRefresh />
       <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
       <BackToTopButton />
+      <PwaInstallBanner />
       <IncidentPoller />
     </div>
     </ActivityProvider>
