@@ -51,6 +51,33 @@ function badge(label: string, bg: string, color: string, icon: string) {
   return `<span style="display:inline-block;background:${bg};color:${color};font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:100px;font-family:${FONT_STACK};line-height:1.4;"><span style="display:inline-block;vertical-align:middle;margin-right:5px;line-height:0;">${icon}</span><span style="display:inline-block;vertical-align:middle;">${label}</span></span>`;
 }
 
+function escAttr(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;");
+}
+
+/** CTA for down alerts: one-click ack from email (link is pre-signed). */
+function buildDownAckEmailBlock(ackEmailUrl: string): string {
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:20px;">
+      <tr>
+        <td style="padding:16px 18px;background:${COLORS.warnBg};border:1px solid ${COLORS.border};border-radius:10px;">
+          <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:${COLORS.warnText};font-family:${FONT_STACK};">
+            Is this downtime expected?
+          </p>
+          <p style="margin:0 0 14px;font-size:13px;color:${COLORS.textMuted};line-height:1.5;font-family:${FONT_STACK};">
+            If this is planned maintenance or a known issue, you can acknowledge it. Your dashboard will show this outage as known, and repeat down alerts for this incident are paused until the outage ends or you undo the acknowledgment. You will still receive an email when the monitor recovers.
+          </p>
+          <a href="${escAttr(ackEmailUrl)}" style="display:inline-block;background:${COLORS.textPrimary};color:#fafaf9;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;font-family:${FONT_STACK};">
+            Acknowledge downtime
+          </a>
+        </td>
+      </tr>
+    </table>`;
+}
+
 function detailRow(label: string, value: string) {
   return `
   <tr>
@@ -152,6 +179,7 @@ export function buildUptimeAlertHtml(
   newStatus: boolean,
   result: RunCheckResult,
   checkedAt: string,
+  options?: { ackEmailUrl?: string | null },
 ): string {
   const isUp = newStatus;
   const statusBadge = isUp
@@ -178,6 +206,11 @@ export function buildUptimeAlertHtml(
   if (!isUp && result.message)
     rows.push(detailRow("Error", escHtml(result.message)));
 
+  const ackBlock =
+    !isUp && options?.ackEmailUrl
+      ? buildDownAckEmailBlock(options.ackEmailUrl)
+      : "";
+
   const body = `
     <!-- Badge -->
     <div style="margin-bottom:16px;">${statusBadge}</div>
@@ -190,6 +223,8 @@ export function buildUptimeAlertHtml(
 
     <!-- Divider -->
     <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
+
+    ${ackBlock}
 
     <!-- Details -->
     ${

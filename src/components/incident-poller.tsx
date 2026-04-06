@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import { useActivity } from "@/components/activity-context";
+import { isDowntimeAcked } from "@/lib/downtime-ack";
 
 const POLL_INTERVAL_MS = 60_000;
 
@@ -12,6 +13,7 @@ interface Incident {
   name: string;
   url: string;
   lastStatusChangedAt: string | null;
+  downtimeAckEpisodeAt: string | null;
 }
 
 export function IncidentPoller() {
@@ -37,6 +39,21 @@ export function IncidentPoller() {
         if (!res.ok) return;
         const data: { incidents: Incident[] } = await res.json();
         for (const incident of data.incidents) {
+          const lastAt = incident.lastStatusChangedAt
+            ? new Date(incident.lastStatusChangedAt)
+            : null;
+          const ackAt = incident.downtimeAckEpisodeAt
+            ? new Date(incident.downtimeAckEpisodeAt)
+            : null;
+          if (
+            isDowntimeAcked({
+              currentStatus: false,
+              lastStatusChangedAt: lastAt,
+              downtimeAckEpisodeAt: ackAt,
+            })
+          ) {
+            continue;
+          }
           addUnreadRef.current(incident.id);
           toast.error(
             <span>

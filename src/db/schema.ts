@@ -27,6 +27,8 @@ export const monitor = sqliteTable("monitor", {
   lastCheckAt: integer("last_check_at", { mode: "timestamp" }),
   currentStatus: integer("current_status", { mode: "boolean" }),
   lastStatusChangedAt: integer("last_status_changed_at", { mode: "timestamp" }),
+  /** Copy of lastStatusChangedAt when user acks current down episode; cleared on recovery. */
+  downtimeAckEpisodeAt: integer("downtime_ack_episode_at", { mode: "timestamp" }),
   alertEmail: integer("alert_email", { mode: "boolean" }),
   alertEmailTo: text("alert_email_to"),
   sslMonitoring: integer("ssl_monitoring", { mode: "boolean" }),

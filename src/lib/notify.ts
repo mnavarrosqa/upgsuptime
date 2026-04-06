@@ -4,8 +4,21 @@ import type { Monitor } from "@/db/schema";
 import type { RunCheckResult } from "@/lib/run-check";
 import type { SslCheckResult } from "@/lib/check-ssl";
 import { buildUptimeAlertHtml, buildSslAlertHtml } from "@/lib/email-templates";
+import {
+  canSignEmailAckTokens,
+  signEmailAckToken,
+} from "@/lib/email-ack-token";
 
 export type SslAlertType = "invalid" | "expiring" | "critical" | "recovered";
+
+/** Base URL for links in emails (NEXTAUTH_URL, or https://VERCEL_URL). */
+export function getAppBaseUrlForEmail(): string {
+  const raw = process.env.NEXTAUTH_URL?.trim();
+  if (raw) return raw.replace(/\/$/, "");
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return `https://${vercel.replace(/\/$/, "")}`;
+  return "";
+}
 
 let _transporter: Transporter | null | undefined; // undefined = not yet initialized
 
@@ -36,6 +49,7 @@ export async function sendEmailAlert(
   newStatus: boolean,
   result: RunCheckResult,
   ownerEmail: string,
+  downEpisodeAt?: Date,
 ): Promise<void> {
   const transporter = getTransporter();
   if (!transporter) return;
@@ -55,7 +69,20 @@ export async function sendEmailAlert(
   }
 
   const checkedAt = new Date().toUTCString();
-  const textLines = [
+
+  const baseUrl = getAppBaseUrlForEmail();
+  let ackEmailUrl: string | null = null;
+  if (
+    !newStatus &&
+    downEpisodeAt &&
+    baseUrl &&
+    canSignEmailAckTokens()
+  ) {
+    const token = signEmailAckToken(m.id, downEpisodeAt.getTime());
+    ackEmailUrl = `${baseUrl}/api/monitors/${encodeURIComponent(m.id)}/ack-downtime/email?t=${encodeURIComponent(token)}`;
+  }
+
+  const textParts: (string | null)[] = [
     `Monitor: ${m.name}`,
     `${monitorType === "dns" ? "Host" : "URL"}: ${m.url}`,
     `Status: ${newStatus ? "UP" : "DOWN"}`,
@@ -65,11 +92,21 @@ export async function sendEmailAlert(
     result.message ? `Error: ${result.message}` : null,
     ``,
     `Checked at: ${checkedAt}`,
-  ]
-    .filter((l) => l !== null)
-    .join("\n");
+  ];
+  if (ackEmailUrl) {
+    textParts.push(
+      ``,
+      `Is this downtime expected? Acknowledge it in one click (no login required):`,
+      ackEmailUrl,
+      ``,
+      `This marks the outage in your dashboard. Repeat down alerts for this incident are paused until the outage ends or you undo the acknowledgment; you will still receive an email when the monitor recovers.`
+    );
+  }
+  const textLines = textParts.filter((l): l is string => l !== null).join("\n");
 
-  const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt);
+  const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt, {
+    ackEmailUrl,
+  });
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM ?? `"UPG Monitor" <${process.env.SMTP_USER}>`,
@@ -85,11 +122,12 @@ export async function sendNotifications(
   newStatus: boolean,
   result: RunCheckResult,
   ownerEmail: string,
+  opts?: { downEpisodeAt?: Date },
 ): Promise<void> {
   if (!m.alertEmail) return;
 
   try {
-    await sendEmailAlert(m, newStatus, result, ownerEmail);
+    await sendEmailAlert(m, newStatus, result, ownerEmail, opts?.downEpisodeAt);
   } catch (err) {
     console.error("[notify] email failed for monitor", m.id, err);
   }

@@ -14,6 +14,9 @@ import { NextCheckCountdown } from "@/components/next-check-countdown";
 import { DegradationAlertCallout } from "@/components/degradation-alert-callout";
 import { unixNowMs } from "@/lib/server-relative-time";
 import { getTranslations } from "next-intl/server";
+import { isDowntimeAcked } from "@/lib/downtime-ack";
+import { DowntimeAckControls } from "@/components/downtime-ack-controls";
+import { MonitorDetailAckFeedback } from "@/components/monitor-detail-ack-feedback";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns") return "";
@@ -27,13 +30,23 @@ function getFaviconUrl(url: string, monitorType?: string | null): string {
 
 export default async function MonitorDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ ack?: string }>;
 }) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) redirect("/login");
-
   const { id } = await params;
+  const sp = await searchParams;
+
+  if (!session?.user?.id) {
+    const qs = new URLSearchParams();
+    if (sp.ack) qs.set("ack", sp.ack);
+    const suffix = qs.toString() ? `?${qs.toString()}` : "";
+    redirect(
+      `/login?callbackUrl=${encodeURIComponent(`/monitors/${id}${suffix}`)}`
+    );
+  }
 
   // Fetch monitor metadata and check results in parallel — neither depends on the other.
   const [[m], results] = await Promise.all([
@@ -82,9 +95,11 @@ export default async function MonitorDetailPage({
   const allMessagesNull = serializedResults.every((r) => r.message === null);
 
   const t = await getTranslations("monitorDetail");
+  const showDowntimeAckUi = !m.paused && m.currentStatus === false;
 
   return (
     <div>
+      <MonitorDetailAckFeedback ackParam={sp.ack} />
       <AutoRefresh />
       {/* Breadcrumb */}
       <Link
@@ -176,6 +191,11 @@ export default async function MonitorDetailPage({
             paused={!!m.paused}
             lastCheckAtIso={m.lastCheckAt ? m.lastCheckAt.toISOString() : null}
             intervalMinutes={m.intervalMinutes}
+          />
+          <DowntimeAckControls
+            monitorId={m.id}
+            show={showDowntimeAckUi}
+            isAcked={isDowntimeAcked(m)}
           />
         </div>
         <MonitorDetailActions monitor={m} />

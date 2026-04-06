@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Pause, Play, RefreshCw } from "lucide-react";
 import { MonitorCardTrend, type TrendPoint } from "@/components/monitor-card-trend";
 import { MonitorStatusBadge } from "@/components/monitor-status-badge";
+import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
 import { SslBadge } from "@/components/ssl-badge";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ type MonitorCardProps = {
   sslValid: boolean | null;
   sslExpiresAt: Date | string | null;
   enterDelayMs?: number;
+  downtimeAcked?: boolean;
 };
 
 function getFaviconUrl(url: string, monitorType?: "http" | "keyword" | "dns" | null): string {
@@ -58,6 +60,7 @@ export function MonitorCard({
   sslValid,
   sslExpiresAt,
   enterDelayMs = 0,
+  downtimeAcked = false,
 }: MonitorCardProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -138,7 +141,10 @@ export function MonitorCard({
                   </span>
                 )}
               </div>
-              <MonitorStatusBadge paused={paused} latest={latest} />
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                <MonitorStatusBadge paused={paused} latest={latest} />
+                {downtimeAcked ? <DowntimeAckBadge /> : null}
+              </div>
             </div>
             {type === "dns" ? (
               <span

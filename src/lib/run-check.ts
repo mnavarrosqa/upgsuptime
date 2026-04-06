@@ -202,6 +202,7 @@ async function applyCheckResult(
     .set({
       lastCheckAt: now,
       consecutiveFailures: newConsecutiveFailures,
+      ...(shouldTransition && ok ? { downtimeAckEpisodeAt: null } : {}),
       ...(shouldTransition ? { currentStatus: ok, lastStatusChangedAt: now } : {}),
       ...(sslResult
         ? {
@@ -224,7 +225,9 @@ async function applyCheckResult(
 
   // Fire-and-forget: notification errors must not propagate
   if (shouldNotify) {
-    sendNotifications(m, ok, result, ownerEmail).catch((err) => {
+    sendNotifications(m, ok, result, ownerEmail, {
+      downEpisodeAt: !ok ? now : undefined,
+    }).catch((err) => {
       console.error("[run-check] notification error for monitor", m.id, err);
     });
   }

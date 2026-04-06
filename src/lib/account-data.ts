@@ -54,6 +54,7 @@ export type AccountExportMonitor = {
   lastCheckAt: string | null;
   currentStatus: boolean | null;
   lastStatusChangedAt: string | null;
+  downtimeAckEpisodeAt: string | null;
   alertEmail: boolean;
   alertEmailTo: string | null;
   sslMonitoring: boolean;
@@ -94,6 +95,7 @@ export type ParsedMonitorRow = {
   lastCheckAt: Date | null;
   currentStatus: boolean | null;
   lastStatusChangedAt: Date | null;
+  downtimeAckEpisodeAt: Date | null;
   alertEmail: boolean;
   alertEmailTo: string | null;
   sslMonitoring: boolean;
@@ -202,6 +204,7 @@ export function parseMonitorFromImport(
 
   const lastCheckAt = parseImportedDate(item.lastCheckAt);
   const lastStatusChangedAt = parseImportedDate(item.lastStatusChangedAt);
+  const downtimeAckEpisodeAt = parseImportedDate(item.downtimeAckEpisodeAt);
   const sslExpiresAt = parseImportedDate(item.sslExpiresAt);
   const sslLastCheckedAt = parseImportedDate(item.sslLastCheckedAt);
   const createdAt = parseImportedDate(item.createdAt);
@@ -236,6 +239,7 @@ export function parseMonitorFromImport(
       lastCheckAt,
       currentStatus,
       lastStatusChangedAt,
+      downtimeAckEpisodeAt,
       alertEmail,
       alertEmailTo,
       sslMonitoring,

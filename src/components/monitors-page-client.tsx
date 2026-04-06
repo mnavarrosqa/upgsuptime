@@ -21,6 +21,8 @@ import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { SslBadge } from "@/components/ssl-badge";
 import { SortableTableHeader } from "@/components/sortable-table-header";
 import { sortMonitors, type LatestByMonitor } from "@/lib/sort-monitors";
+import { isDowntimeAcked } from "@/lib/downtime-ack";
+import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
 import { Button } from "@/components/ui/button";
 
 type MonitorConfig = {
@@ -972,8 +974,9 @@ export function MonitorsPageClient({
                       </a>
                     </td>
                     <td className="min-w-0 px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                         <MonitorStatusBadge paused={m.paused} latest={latest} />
+                        {isDowntimeAcked(m) ? <DowntimeAckBadge /> : null}
                       </div>
                     </td>
                     <td className="hidden min-w-0 px-4 py-3 sm:table-cell">

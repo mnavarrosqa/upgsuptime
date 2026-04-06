@@ -60,6 +60,7 @@ export async function GET(request: Request) {
       lastCheckAt: toIsoTimestamp(m.lastCheckAt ?? undefined),
       currentStatus: m.currentStatus ?? null,
       lastStatusChangedAt: toIsoTimestamp(m.lastStatusChangedAt ?? undefined),
+      downtimeAckEpisodeAt: toIsoTimestamp(m.downtimeAckEpisodeAt ?? undefined),
       alertEmail: m.alertEmail ?? false,
       alertEmailTo: m.alertEmailTo ?? null,
       sslMonitoring: m.sslMonitoring ?? false,

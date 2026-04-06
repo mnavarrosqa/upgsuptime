@@ -39,6 +39,13 @@ function LoginForm() {
 
   const expired = searchParams.get("expired") === "1";
   const rateLimited = searchParams.get("error") === "rate_limit";
+  const callbackUrlRaw = searchParams.get("callbackUrl");
+  const safeCallbackUrl =
+    callbackUrlRaw &&
+    callbackUrlRaw.startsWith("/") &&
+    !callbackUrlRaw.startsWith("//")
+      ? callbackUrlRaw
+      : null;
 
   useEffect(() => {
     fetch("/api/setup/status")
@@ -61,7 +68,7 @@ function LoginForm() {
         setError(tAuth("invalidCredentials"));
         return;
       }
-      router.replace("/dashboard");
+      router.replace(safeCallbackUrl ?? "/dashboard");
       router.refresh();
     } catch {
       setError(tCommon("somethingWentWrong"));

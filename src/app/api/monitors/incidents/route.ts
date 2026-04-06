@@ -22,6 +22,7 @@ export async function GET(request: Request) {
       name: monitor.name,
       url: monitor.url,
       lastStatusChangedAt: monitor.lastStatusChangedAt,
+      downtimeAckEpisodeAt: monitor.downtimeAckEpisodeAt,
     })
     .from(monitor)
     .where(

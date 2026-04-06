@@ -15,6 +15,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
 import { SortDropdown } from "@/components/sort-dropdown";
 import { sortMonitors } from "@/lib/sort-monitors";
+import { isDowntimeAcked } from "@/lib/downtime-ack";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ function MonitorGridCard({
       sslValid={m.sslValid ?? null}
       sslExpiresAt={m.sslExpiresAt ?? null}
       enterDelayMs={Math.min(index * 35, 260)}
+      downtimeAcked={isDowntimeAcked(m)}
     />
   );
 }
