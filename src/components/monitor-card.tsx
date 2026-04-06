@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Pause, Play, RefreshCw } from "lucide-react";
@@ -95,7 +95,10 @@ export function MonitorCard({
   }
 
   return (
-    <li className="group relative [--enter-delay:0ms] motion-safe:motion-soft-pop" style={{ "--enter-delay": `${enterDelayMs}ms` }}>
+    <li
+      className="group relative [--enter-delay:0ms] motion-safe:motion-soft-pop"
+      style={{ "--enter-delay": `${enterDelayMs}ms` } as CSSProperties}
+    >
       <div
         className={`relative flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:border-border-muted hover:shadow active:translate-y-0 active:scale-[0.99] ${paused ? "opacity-60" : ""}`}
       >
