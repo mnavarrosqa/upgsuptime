@@ -47,11 +47,16 @@ export function ThemeToggle() {
       className="rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
       aria-label={dark ? t("switchToLight") : t("switchToDark")}
     >
-      {dark ? (
-        <Sun className="h-4 w-4" aria-hidden />
-      ) : (
-        <Moon className="h-4 w-4" aria-hidden />
-      )}
+      <span className="relative h-4 w-4">
+        <Sun
+          className={`absolute inset-0 h-4 w-4 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] ${dark ? "opacity-100 motion-safe:animate-icon-swap-in" : "pointer-events-none rotate-12 scale-90 opacity-0"}`}
+          aria-hidden
+        />
+        <Moon
+          className={`absolute inset-0 h-4 w-4 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] ${dark ? "pointer-events-none -rotate-12 scale-90 opacity-0" : "opacity-100 motion-safe:animate-icon-swap-in"}`}
+          aria-hidden
+        />
+      </span>
     </Button>
   );
 }

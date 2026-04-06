@@ -21,6 +21,7 @@ type MonitorCardProps = {
   sslMonitoring: boolean;
   sslValid: boolean | null;
   sslExpiresAt: Date | string | null;
+  enterDelayMs?: number;
 };
 
 function getFaviconUrl(url: string, monitorType?: "http" | "keyword" | "dns" | null): string {
@@ -56,6 +57,7 @@ export function MonitorCard({
   sslMonitoring,
   sslValid,
   sslExpiresAt,
+  enterDelayMs = 0,
 }: MonitorCardProps) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -93,9 +95,9 @@ export function MonitorCard({
   }
 
   return (
-    <li className="relative group">
+    <li className="group relative [--enter-delay:0ms] motion-safe:motion-soft-pop" style={{ "--enter-delay": `${enterDelayMs}ms` }}>
       <div
-        className={`relative flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition hover:border-border-muted hover:shadow active:scale-[0.98] ${paused ? "opacity-60" : ""}`}
+        className={`relative flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:border-border-muted hover:shadow active:translate-y-0 active:scale-[0.99] ${paused ? "opacity-60" : ""}`}
       >
         <Link
           href={`/monitors/${id}`}
@@ -211,7 +213,7 @@ export function MonitorCard({
       </div>
 
       {/* Quick actions are always visible on touch-sized screens and enhanced on hover for larger screens */}
-      <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex gap-1 opacity-90 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+      <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex translate-y-0 gap-1 opacity-90 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
         <Button
           type="button"
           variant="outline"
@@ -221,7 +223,7 @@ export function MonitorCard({
           disabled={checking || !!paused}
           className="h-9 w-9 rounded border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:bg-bg-card/90 hover:text-text-primary md:h-11 md:w-11 md:bg-bg-card"
         >
-          <RefreshCw className={`h-4 w-4 ${checking ? "animate-spin" : ""}`} aria-hidden />
+          <RefreshCw className={`h-4 w-4 ${checking ? "motion-safe:animate-spin motion-reduce:animate-none" : ""}`} aria-hidden />
         </Button>
         <Button
           type="button"

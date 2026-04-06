@@ -34,6 +34,11 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --radius: 0.625rem;
+  --motion-duration-fast: 140ms;
+  --motion-duration-medium: 240ms;
+  --motion-duration-slow: 420ms;
+  --motion-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
+  --motion-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 .dark {
@@ -111,6 +116,9 @@
   --animate-monitor-trend-bar: monitor-trend-bar-in 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-monitor-trend-bar-new: monitor-trend-bar-new 0.58s cubic-bezier(0.25, 0.9, 0.35, 1.12) both;
   --animate-operational-badge-dot: operational-badge-dot 2.6s ease-in-out infinite;
+  --animate-fade-slide-up: fade-slide-up var(--motion-duration-slow) var(--motion-ease-out-quint) both;
+  --animate-soft-pop-in: soft-pop-in 320ms var(--motion-ease-out-quart) both;
+  --animate-icon-swap-in: icon-swap-in 220ms var(--motion-ease-out-quart) both;
 
   @keyframes operational-badge-dot {
     0%,
@@ -163,6 +171,39 @@
       transform: translateY(0);
     }
   }
+
+  @keyframes fade-slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes soft-pop-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px) scale(0.99);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  @keyframes icon-swap-in {
+    from {
+      opacity: 0;
+      transform: rotate(-10deg) scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: rotate(0) scale(1);
+    }
+  }
 }
 
 body {
@@ -193,6 +234,14 @@ body {
     opacity: 1;
     transform: none;
   }
+
+  .animate-fade-slide-up,
+  .animate-soft-pop-in,
+  .animate-icon-swap-in {
+    animation: none;
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @layer base {
@@ -204,6 +253,18 @@ body {
   }
   html {
     @apply font-sans;
+  }
+}
+
+@layer utilities {
+  .motion-enter {
+    animation: var(--animate-fade-slide-up);
+    animation-delay: var(--enter-delay, 0ms);
+  }
+
+  .motion-soft-pop {
+    animation: var(--animate-soft-pop-in);
+    animation-delay: var(--enter-delay, 0ms);
   }
 }
 

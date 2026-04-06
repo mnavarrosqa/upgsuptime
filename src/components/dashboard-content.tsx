@@ -45,10 +45,12 @@ type MonitorGridProps = {
 // Extracted outside MonitorGrid so it is not re-created on every render (Rule 5.4).
 function MonitorGridCard({
   m,
+  index,
   latestByMonitor,
   trendByMonitor,
 }: {
   m: Monitor;
+  index: number;
   latestByMonitor: MonitorGridProps["latestByMonitor"];
   trendByMonitor: MonitorGridProps["trendByMonitor"];
 }) {
@@ -66,6 +68,7 @@ function MonitorGridCard({
       sslMonitoring={!!m.sslMonitoring}
       sslValid={m.sslValid ?? null}
       sslExpiresAt={m.sslExpiresAt ?? null}
+      enterDelayMs={Math.min(index * 35, 260)}
     />
   );
 }
@@ -111,8 +114,8 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
               </p>
             </li>
           )}
-          {downMonitors.map((m) => (
-            <MonitorGridCard key={m.id} m={m} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+          {downMonitors.map((m, index) => (
+            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
           ))}
         </>
       )}
@@ -125,8 +128,8 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
               </p>
             </li>
           )}
-          {pausedMonitors.map((m) => (
-            <MonitorGridCard key={m.id} m={m} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+          {pausedMonitors.map((m, index) => (
+            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
           ))}
         </>
       )}
@@ -139,11 +142,11 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
               </p>
             </li>
           )}
-          {upMonitors.map((m) => (
-            <MonitorGridCard key={m.id} m={m} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+          {upMonitors.map((m, index) => (
+            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
           ))}
-          {uncheckedMonitors.map((m) => (
-            <MonitorGridCard key={m.id} m={m} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+          {uncheckedMonitors.map((m, index) => (
+            <MonitorGridCard key={m.id} m={m} index={index + upMonitors.length} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
           ))}
         </>
       )}
@@ -203,7 +206,7 @@ export function DashboardContent({
 
   return (
     <>
-      <div>
+      <div className="motion-safe:motion-enter">
         <AutoRefresh />
       {/* Header: title + status badge */}
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
@@ -274,7 +277,7 @@ export function DashboardContent({
       )}
 
       {/* Toolbar: search + sort + add button */}
-      <div className="mt-5 flex items-center gap-3">
+      <div className="mt-5 flex items-center gap-3 [--enter-delay:90ms] motion-safe:motion-soft-pop">
         {hasMonitors && (
           <div className="flex flex-wrap items-center gap-2 flex-1 sm:flex-nowrap">
             <div className="flex-1">
