@@ -10,6 +10,7 @@ import { CheckResultsTable } from "@/components/check-results-table";
 import { RecentIncidentsList } from "@/components/recent-incidents-list";
 import { UptimeTrendCharts } from "@/components/uptime-trend-charts-client";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { NextCheckCountdown } from "@/components/next-check-countdown";
 import { DegradationAlertCallout } from "@/components/degradation-alert-callout";
 import { unixNowMs } from "@/lib/server-relative-time";
 import { getTranslations } from "next-intl/server";
@@ -170,6 +171,12 @@ export default async function MonitorDetailPage({
               </>
             )}
           </div>
+          <NextCheckCountdown
+            monitorId={m.id}
+            paused={!!m.paused}
+            lastCheckAtIso={m.lastCheckAt ? m.lastCheckAt.toISOString() : null}
+            intervalMinutes={m.intervalMinutes}
+          />
         </div>
         <MonitorDetailActions monitor={m} />
       </div>

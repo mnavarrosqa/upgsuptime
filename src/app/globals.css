@@ -119,6 +119,18 @@
   --animate-fade-slide-up: fade-slide-up var(--motion-duration-slow) var(--motion-ease-out-quint) both;
   --animate-soft-pop-in: soft-pop-in 320ms var(--motion-ease-out-quart) both;
   --animate-icon-swap-in: icon-swap-in 220ms var(--motion-ease-out-quart) both;
+  --animate-checking-dot: checking-dot 1.05s ease-in-out infinite;
+
+  @keyframes checking-dot {
+    0%,
+    80%,
+    100% {
+      opacity: 0.2;
+    }
+    40% {
+      opacity: 1;
+    }
+  }
 
   @keyframes operational-badge-dot {
     0%,
@@ -242,6 +254,11 @@ body {
     opacity: 1;
     transform: none;
   }
+
+  .animate-checking-dot {
+    animation: none;
+    opacity: 1;
+  }
 }
 
 @layer base {
@@ -265,6 +282,22 @@ body {
   .motion-soft-pop {
     animation: var(--animate-soft-pop-in);
     animation-delay: var(--enter-delay, 0ms);
+  }
+
+  .animate-checking-dot {
+    animation: var(--animate-checking-dot);
+  }
+
+  .animate-checking-dots .animate-checking-dot:nth-child(1) {
+    animation-delay: 0ms;
+  }
+
+  .animate-checking-dots .animate-checking-dot:nth-child(2) {
+    animation-delay: 180ms;
+  }
+
+  .animate-checking-dots .animate-checking-dot:nth-child(3) {
+    animation-delay: 360ms;
   }
 }
 
