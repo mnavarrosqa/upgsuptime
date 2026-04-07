@@ -27,7 +27,7 @@ export function CheckNowButton({
         toast.error(data.error ?? data.message ?? "Check failed");
         return;
       }
-      router.refresh();
+      await router.refresh();
       toast.success("Check complete");
     } catch {
       toast.error("Check failed");

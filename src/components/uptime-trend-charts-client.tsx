@@ -73,8 +73,13 @@ export function MonitorDetailHistoryClient({
   const [rangeResults, setRangeResults] = useState<ChartResultRow[]>(initialResults);
   const [isLoading, setIsLoading] = useState(true);
 
+  /** Bumps when RSC refreshes with new check rows (e.g. after "Check now" or scheduled run). */
+  const serverDataRevision =
+    initialResults.length > 0 ? initialResults[0]!.id : `empty:${initialResults.length}`;
+
   useEffect(() => {
     const ac = new AbortController();
+    setIsLoading(true);
 
     fetch(`/api/monitors/${encodeURIComponent(monitorId)}/results?range=${range}`, { signal: ac.signal })
       .then(async (res) => {
@@ -101,7 +106,7 @@ export function MonitorDetailHistoryClient({
       });
 
     return () => ac.abort();
-  }, [monitorId, range]);
+  }, [monitorId, range, serverDataRevision]);
 
   const { uptimePct, avgResponseTimeMs, latestResponseMs, incidentCount } = useMemo(
     () => computeStats(rangeResults),
