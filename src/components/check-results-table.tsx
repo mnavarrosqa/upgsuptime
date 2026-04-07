@@ -30,7 +30,7 @@ export function CheckResultsTable({
 
   return (
     <div className="mt-4">
-      <div className="overflow-x-auto rounded-lg border border-border bg-bg-card">
+      <div className="overflow-x-auto rounded-md border border-border bg-bg-page">
         <table className="min-w-full divide-y divide-border">
           <thead>
             <tr>

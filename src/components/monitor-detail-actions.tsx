@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Monitor } from "@/db/schema";
 import { Overlay } from "@/components/overlay";
@@ -11,6 +12,7 @@ import { CheckNowButton } from "@/components/check-now-button";
 import { Button } from "@/components/ui/button";
 
 export function MonitorDetailActions({ monitor }: { monitor: Monitor }) {
+  const t = useTranslations("monitorDetail");
   const router = useRouter();
   const [editOpen, setEditOpen] = useState(false);
   const [pausing, setPausing] = useState(false);
@@ -24,11 +26,15 @@ export function MonitorDetailActions({ monitor }: { monitor: Monitor }) {
         body: JSON.stringify({ paused: !monitor.paused }),
       });
       if (res.ok) {
-        toast.success(monitor.paused ? "Monitor resumed" : "Monitor paused");
+        toast.success(
+          monitor.paused ? t("toastMonitorResumed") : t("toastMonitorPaused")
+        );
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed to update monitor");
+        toast.error(
+          typeof data.error === "string" ? data.error : t("toastMonitorUpdateFailed")
+        );
       }
     } finally {
       setPausing(false);
@@ -50,11 +56,11 @@ export function MonitorDetailActions({ monitor }: { monitor: Monitor }) {
         >
           {pausing
             ? monitor.paused
-              ? "Resuming…"
-              : "Pausing…"
+              ? t("actionResuming")
+              : t("actionPausing")
             : monitor.paused
-              ? "Resume"
-              : "Pause"}
+              ? t("actionResume")
+              : t("actionPause")}
         </Button>
         <Button
           type="button"
@@ -62,7 +68,7 @@ export function MonitorDetailActions({ monitor }: { monitor: Monitor }) {
           onClick={() => setEditOpen(true)}
           className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary transition hover:bg-bg-page active:scale-95"
         >
-          Edit
+          {t("actionEdit")}
         </Button>
         <DeleteMonitorButton
           monitorId={monitor.id}
@@ -72,7 +78,7 @@ export function MonitorDetailActions({ monitor }: { monitor: Monitor }) {
       <Overlay
         open={editOpen}
         onClose={() => setEditOpen(false)}
-        title="Edit monitor"
+        title={t("overlayEditTitle")}
       >
         <EditMonitorForm
           monitor={monitor}

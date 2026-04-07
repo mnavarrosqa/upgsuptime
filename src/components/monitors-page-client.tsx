@@ -24,6 +24,7 @@ import { sortMonitors, type LatestByMonitor } from "@/lib/sort-monitors";
 import { isDowntimeAcked } from "@/lib/downtime-ack";
 import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
 import { Button } from "@/components/ui/button";
+import { MonitorFavicon } from "@/components/monitor-favicon";
 
 type MonitorConfig = {
   name: string;
@@ -45,26 +46,6 @@ function getFaviconUrl(url: string): string {
   } catch {
     return "";
   }
-}
-
-function MonitorFavicon({ src }: { src: string }) {
-  const [failed, setFailed] = useState(false);
-  if (!src || failed) {
-    return (
-      <span className="h-4 w-4 shrink-0 rounded bg-border" aria-hidden />
-    );
-  }
-  return (
-    <img
-      src={src}
-      alt=""
-      className="h-4 w-4 shrink-0 rounded"
-      width={16}
-      height={16}
-      loading="lazy"
-      onError={() => setFailed(true)}
-    />
-  );
 }
 
 type DeleteConfirmState =

@@ -39,7 +39,7 @@ export function DegradationAlertCallout({
 
   return (
     <section
-      className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-amber-800/40 dark:bg-amber-900/10"
+      className="rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-amber-800/40 dark:bg-amber-900/10"
       aria-label={t("title")}
     >
       <h2 className="text-sm font-medium text-amber-800 dark:text-amber-400">

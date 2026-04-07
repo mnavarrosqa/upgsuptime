@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { monitor, checkResult } from "@/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, gte } from "drizzle-orm";
 
 export async function GET(
   request: Request,
@@ -22,6 +22,26 @@ export async function GET(
   if (!m) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const url = new URL(request.url);
+  const range = url.searchParams.get("range");
+  const rangeHours: Record<string, number> = {
+    "24h": 24,
+    "7d": 24 * 7,
+    "1m": 24 * 30,
+  };
+  const hours = range ? rangeHours[range] : undefined;
+
+  if (hours) {
+    const since = new Date(Date.now() - hours * 60 * 60 * 1000);
+    const results = await db
+      .select()
+      .from(checkResult)
+      .where(and(eq(checkResult.monitorId, monitorId), gte(checkResult.createdAt, since)))
+      .orderBy(desc(checkResult.createdAt))
+      .limit(5000);
+
+    return NextResponse.json(results);
+  }
+
   const limit = Math.min(Number(url.searchParams.get("limit")) || 50, 100);
   const offset = Number(url.searchParams.get("offset")) || 0;
 

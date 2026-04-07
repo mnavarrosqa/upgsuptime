@@ -43,15 +43,18 @@ export function NextCheckCountdown({
 }) {
   const t = useTranslations("monitorDetail");
   const router = useRouter();
-  const [now, setNow] = useState(() => Date.now());
+  /** null until after mount — avoids SSR/client `Date.now()` mismatch and hydration errors */
+  const [now, setNow] = useState<number | null>(null);
 
   useEffect(() => {
-    const id = setInterval(() => setNow(Date.now()), 1000);
+    const tick = () => setNow(Date.now());
+    const id = setInterval(tick, 1000);
+    queueMicrotask(tick);
     return () => clearInterval(id);
   }, []);
 
   const remainingMs = useMemo(() => {
-    if (paused || !lastCheckAtIso) return null;
+    if (paused || !lastCheckAtIso || now === null) return null;
     const nextAt =
       new Date(lastCheckAtIso).getTime() + intervalMinutes * 60 * 1000;
     return nextAt - now;
@@ -96,6 +99,16 @@ export function NextCheckCountdown({
   if (!lastCheckAtIso) {
     return (
       <p className="mt-2 text-sm text-text-muted">{t("nextCheckPending")}</p>
+    );
+  }
+
+  if (now === null) {
+    return (
+      <p className="mt-2 text-sm text-text-muted">
+        <span className="tabular-nums text-text-primary">
+          {t("nextCheckIn", { time: "\u2014" })}
+        </span>
+      </p>
     );
   }
 
