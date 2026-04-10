@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { db } from "@/db";
-import { monitor, user, checkResult } from "@/db/schema";
-import { eq, and, gte } from "drizzle-orm";
+import { monitor, user } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import {
+  buildMonitorPublicStatusItem,
+  getUptimeStats90d,
+  ninetyDaysAgoFrom,
+} from "@/lib/monitor-public-status";
 
 export async function GET(
   _request: Request,
@@ -25,37 +30,13 @@ export async function GET(
 
   const publicMonitors = allMonitors.filter((m) => m.showOnStatusPage !== false);
 
-  const ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000);
-
-  const monitors = await Promise.all(
-    publicMonitors.map(async (m) => {
-      const rows = await db
-        .select({ ok: checkResult.ok })
-        .from(checkResult)
-        .where(
-          and(
-            eq(checkResult.monitorId, m.id),
-            gte(checkResult.createdAt, ninetyDaysAgo)
-          )
-        );
-
-      const total = rows.length;
-      const okCount = rows.filter((r) => r.ok).length;
-      const uptimePct = total > 0 ? Math.round((okCount / total) * 1000) / 10 : null;
-
-      return {
-        id: m.id,
-        name: m.name,
-        url: m.url,
-        currentStatus: m.currentStatus,
-        lastCheckAt: m.lastCheckAt ? new Date(m.lastCheckAt).toISOString() : null,
-        lastStatusChangedAt: m.lastStatusChangedAt
-          ? new Date(m.lastStatusChangedAt).toISOString()
-          : null,
-        uptimePct,
-        checkCount90d: total,
-      };
-    })
+  const ninetyDaysAgo = ninetyDaysAgoFrom();
+  const stats = await getUptimeStats90d(
+    publicMonitors.map((m) => m.id),
+    ninetyDaysAgo
+  );
+  const monitors = publicMonitors.map((m) =>
+    buildMonitorPublicStatusItem(m, stats.get(m.id))
   );
 
   return NextResponse.json({ username: u.username, monitors });

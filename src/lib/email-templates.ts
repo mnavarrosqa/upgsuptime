@@ -58,6 +58,21 @@ function escAttr(str: string): string {
     .replace(/</g, "&lt;");
 }
 
+/** Primary navigation: open this monitor in the app (when base URL is configured). */
+function buildMonitorDetailCtaBlock(monitorDetailUrl: string | null | undefined): string {
+  if (!monitorDetailUrl) return "";
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:20px;">
+      <tr>
+        <td>
+          <a href="${escAttr(monitorDetailUrl)}" style="display:inline-block;background:${COLORS.cardBg};color:${COLORS.textPrimary};border:1px solid ${COLORS.border};padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;font-family:${FONT_STACK};">
+            View monitor
+          </a>
+        </td>
+      </tr>
+    </table>`;
+}
+
 /** CTA for down alerts: one-click ack from email (link is pre-signed). */
 function buildDownAckEmailBlock(ackEmailUrl: string): string {
   return `
@@ -179,7 +194,7 @@ export function buildUptimeAlertHtml(
   newStatus: boolean,
   result: RunCheckResult,
   checkedAt: string,
-  options?: { ackEmailUrl?: string | null },
+  options?: { ackEmailUrl?: string | null; monitorDetailUrl?: string | null },
 ): string {
   const isUp = newStatus;
   const statusBadge = isUp
@@ -211,6 +226,8 @@ export function buildUptimeAlertHtml(
       ? buildDownAckEmailBlock(options.ackEmailUrl)
       : "";
 
+  const monitorCta = buildMonitorDetailCtaBlock(options?.monitorDetailUrl);
+
   const body = `
     <!-- Badge -->
     <div style="margin-bottom:16px;">${statusBadge}</div>
@@ -220,6 +237,8 @@ export function buildUptimeAlertHtml(
       ${headline}
     </h1>
     <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">${escHtml(m.url)}</p>
+
+    ${monitorCta}
 
     <!-- Divider -->
     <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
@@ -247,7 +266,8 @@ export function buildSslAlertHtml(
   m: Monitor,
   sslResult: SslCheckResult,
   alertType: SslAlertType,
-  checkedAt: string
+  checkedAt: string,
+  monitorDetailUrl?: string | null,
 ): string {
   let statusBadge: string;
   let headline: string;
@@ -276,6 +296,8 @@ export function buildSslAlertHtml(
       ? [detailRow("Status", "Certificate is valid and trusted")]
       : sslProblemDetailRows(sslResult, alertType);
 
+  const monitorCta = buildMonitorDetailCtaBlock(monitorDetailUrl);
+
   const body = `
     <!-- Badge -->
     <div style="margin-bottom:16px;">${statusBadge}</div>
@@ -285,6 +307,8 @@ export function buildSslAlertHtml(
       ${headline}
     </h1>
     <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">${escHtml(m.url)}</p>
+
+    ${monitorCta}
 
     <!-- Divider -->
     <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
@@ -310,7 +334,8 @@ export function buildDegradationAlertHtml(
   m: Monitor,
   recentAvgMs: number,
   baselineP75Ms: number,
-  checkedAt: string
+  checkedAt: string,
+  monitorDetailUrl?: string | null,
 ): string {
   const ratio = (recentAvgMs / baselineP75Ms).toFixed(1);
   const statusBadge = badge("Degrading", COLORS.warnBg, COLORS.warnText, iconWarn(COLORS.warnText));
@@ -322,12 +347,15 @@ export function buildDegradationAlertHtml(
     detailRow("URL", escHtml(m.url)),
   ];
 
+  const monitorCta = buildMonitorDetailCtaBlock(monitorDetailUrl);
+
   const body = `
     <div style="margin-bottom:16px;">${statusBadge}</div>
     <h1 style="margin:0 0 6px;font-size:21px;font-weight:700;color:${COLORS.textPrimary};line-height:1.3;font-family:${FONT_STACK};">
       <span style="color:${COLORS.warn};">${escHtml(m.name)}</span> is responding slowly
     </h1>
     <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">Response time has been elevated for several consecutive checks.</p>
+    ${monitorCta}
     <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation">${rows.join("")}</table>
     <p style="margin:6px 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">Checked at ${escHtml(checkedAt)}</p>`;

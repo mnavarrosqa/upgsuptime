@@ -6,13 +6,14 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const btnSecondaryClass =
   "inline-flex items-center justify-center gap-2 rounded-md border border-border bg-bg-card px-3.5 py-2.5 text-sm font-medium text-text-primary hover:bg-bg-muted/60 focus:outline-none focus:ring-2 focus:ring-input-focus disabled:opacity-50";
 
 const labelClass = "flex cursor-pointer items-start gap-2 text-sm text-text-primary";
 
-export function AccountDataPortability() {
+export function AccountDataPortability({ className }: { className?: string }) {
   const { update } = useSession();
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
@@ -114,7 +115,7 @@ export function AccountDataPortability() {
   }
 
   return (
-    <div className="mt-10">
+    <div className={cn("mt-10", className)}>
       <h2
         className="text-base font-semibold text-text-primary"
         style={{ fontFamily: "var(--font-display)" }}

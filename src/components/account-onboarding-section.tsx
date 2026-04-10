@@ -4,22 +4,25 @@ import { useState } from "react";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
 
 interface AccountOnboardingSectionProps {
   onboardingCompleted?: boolean | null;
   userId: string;
+  className?: string;
 }
 
 export function AccountOnboardingSection({
   onboardingCompleted,
   userId,
+  className,
 }: AccountOnboardingSectionProps) {
   const router = useRouter();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   return (
     <>
-      <div id="onboarding" className="mt-10">
+      <div id="onboarding" className={cn("mt-10", className)}>
         <h2
           className="text-base font-semibold text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}

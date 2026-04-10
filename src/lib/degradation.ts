@@ -2,7 +2,7 @@ import { db } from "@/db";
 import { checkResult } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import type { Monitor } from "@/db/schema";
-import { getTransporter } from "@/lib/notify";
+import { getAppBaseUrlForEmail, getTransporter } from "@/lib/notify";
 import { buildDegradationAlertHtml } from "@/lib/email-templates";
 
 // ─── Tuning constants ─────────────────────────────────────────────────────────
@@ -126,18 +126,32 @@ export async function sendDegradationAlert(
   const checkedAt = new Date().toUTCString();
 
   const subject = `[Slow] ${m.name} — response time degrading (${ratio}× above normal)`;
+  const baseUrl = getAppBaseUrlForEmail();
+  const monitorDetailUrl = baseUrl
+    ? `${baseUrl}/monitors/${encodeURIComponent(m.id)}`
+    : null;
+
   const text = [
     `Monitor: ${m.name}`,
     `URL: ${m.url}`,
+    monitorDetailUrl ? `View monitor: ${monitorDetailUrl}` : null,
     ``,
     `Recent average response time: ${recentAvgMs} ms`,
     `Normal baseline (P75): ${baselineP75Ms} ms`,
     `Slowdown: ${ratio}× above baseline`,
     ``,
     `Checked at: ${checkedAt}`,
-  ].join("\n");
+  ]
+    .filter((l): l is string => l !== null)
+    .join("\n");
 
-  const html = buildDegradationAlertHtml(m, recentAvgMs, baselineP75Ms, checkedAt);
+  const html = buildDegradationAlertHtml(
+    m,
+    recentAvgMs,
+    baselineP75Ms,
+    checkedAt,
+    monitorDetailUrl,
+  );
 
   await transporter.sendMail({
     from: process.env.SMTP_FROM ?? `"UPG Monitor" <${process.env.SMTP_USER}>`,

@@ -70,6 +70,23 @@ export const settings = sqliteTable("settings", {
   value: text("value").notNull(),
 });
 
+export const apiKey = sqliteTable("api_key", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  name: text("name").notNull(),
+  keyPrefix: text("key_prefix").notNull().unique(),
+  keyHash: text("key_hash").notNull(),
+  scope: text("scope", { enum: ["status:read"] }).notNull().default("status:read"),
+  corsOrigins: text("cors_origins").notNull().default("[]"),
+  expiresAt: integer("expires_at", { mode: "timestamp" }),
+  lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+  lastUsedIp: text("last_used_ip"),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+});
+
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type Monitor = typeof monitor.$inferSelect;
@@ -78,3 +95,5 @@ export type CheckResult = typeof checkResult.$inferSelect;
 export type NewCheckResult = typeof checkResult.$inferInsert;
 export type Settings = typeof settings.$inferSelect;
 export type NewSettings = typeof settings.$inferInsert;
+export type ApiKey = typeof apiKey.$inferSelect;
+export type NewApiKey = typeof apiKey.$inferInsert;

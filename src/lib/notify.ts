@@ -71,6 +71,9 @@ export async function sendEmailAlert(
   const checkedAt = new Date().toUTCString();
 
   const baseUrl = getAppBaseUrlForEmail();
+  const monitorDetailUrl = baseUrl
+    ? `${baseUrl}/monitors/${encodeURIComponent(m.id)}`
+    : null;
   let ackEmailUrl: string | null = null;
   if (
     !newStatus &&
@@ -85,6 +88,7 @@ export async function sendEmailAlert(
   const textParts: (string | null)[] = [
     `Monitor: ${m.name}`,
     `${monitorType === "dns" ? "Host" : "URL"}: ${m.url}`,
+    monitorDetailUrl ? `View monitor: ${monitorDetailUrl}` : null,
     `Status: ${newStatus ? "UP" : "DOWN"}`,
     ``,
     result.statusCode != null ? `Status code: ${result.statusCode}` : null,
@@ -106,6 +110,7 @@ export async function sendEmailAlert(
 
   const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt, {
     ackEmailUrl,
+    monitorDetailUrl,
   });
 
   await transporter.sendMail({
@@ -174,9 +179,15 @@ export async function sendSslNotifications(
       ? `Expires: ${new Date(sslResult.expiresAt).toUTCString()} (${sslResult.daysUntilExpiry} days)`
       : null;
 
+  const baseUrl = getAppBaseUrlForEmail();
+  const monitorDetailUrl = baseUrl
+    ? `${baseUrl}/monitors/${encodeURIComponent(m.id)}`
+    : null;
+
   const textLines = [
     `Monitor: ${m.name}`,
     `URL: ${m.url}`,
+    monitorDetailUrl ? `View monitor: ${monitorDetailUrl}` : null,
     statusLine,
     expiryLine,
     ``,
@@ -185,7 +196,7 @@ export async function sendSslNotifications(
     .filter((l) => l !== null)
     .join("\n");
 
-  const html = buildSslAlertHtml(m, sslResult, alertType, checkedAt);
+  const html = buildSslAlertHtml(m, sslResult, alertType, checkedAt, monitorDetailUrl);
 
   try {
     await transporter.sendMail({
