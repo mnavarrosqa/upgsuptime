@@ -5,8 +5,13 @@
     "details": "After 20 successful checks we learn your baseline (P75 from older checks). If the last 7 checks average at least ~2.9× that baseline (and at least ~450 ms) for 5 checks in a row, you get one warning email. Another email only happens after times settle clearly back near baseline — brief recoveries in the middle no longer re-trigger alerts.",
     "enableButton": "Enable degradation alerts",
     "enabling": "Enabling…",
+    "laterButton": "I'll enable them later",
     "requiresEmail": "Requires email alerts — enable them in the monitor's edit settings first.",
     "errorToast": "Failed to enable degradation alerts"
+  },
+  "degradationFormHint": {
+    "addReminder": "You chose to set up slow-response alerts later. Turn on \"Alert on slow response times\" below (under Notifications) once email alerts are enabled.",
+    "editReminder": "You chose to set this up later. Turn on \"Alert on slow response times\" below once email alerts are enabled."
   },
   "monitorTypes": {
     "typeLabel": "Monitor type",

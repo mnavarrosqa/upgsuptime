@@ -1,13 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Monitor } from "@/db/schema";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  clearDegradationCalloutDismissed,
+  isDegradationCalloutDismissed,
+} from "@/lib/degradation-callout-dismiss";
 import { DNS_RECORD_TYPES } from "@/lib/validate-monitor";
 
 const inputClass =
@@ -34,6 +39,7 @@ export function EditMonitorForm({
   onCancel?: () => void;
 }) {
   const router = useRouter();
+  const tDegradationHint = useTranslations("degradationFormHint");
 
   // Type is read-only after creation
   const monitorType = (monitor.type ?? "http") as "http" | "keyword" | "dns";
@@ -71,11 +77,21 @@ export function EditMonitorForm({
     !!monitor.degradationAlertEnabled
   );
 
+  const [showDegradationDeferHint, setShowDegradationDeferHint] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const isDns = monitorType === "dns";
   const isKeyword = monitorType === "keyword";
+
+  useEffect(() => {
+    setShowDegradationDeferHint(
+      !isDns &&
+        !monitor.degradationAlertEnabled &&
+        isDegradationCalloutDismissed(monitor.id)
+    );
+  }, [isDns, monitor.degradationAlertEnabled, monitor.id]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -118,6 +134,10 @@ export function EditMonitorForm({
       if (!res.ok) {
         setError(data.error ?? "Failed to update");
         return;
+      }
+      if (!isDns && degradationAlertEnabled) {
+        clearDegradationCalloutDismissed(monitor.id);
+        setShowDegradationDeferHint(false);
       }
       toast.success("Monitor updated");
       router.refresh();
@@ -388,6 +408,14 @@ export function EditMonitorForm({
               placeholder="alerts@example.com"
               className={inputClass}
             />
+          </div>
+        )}
+        {!isDns && showDegradationDeferHint && (
+          <div
+            role="note"
+            className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-950/90 dark:border-amber-800/40 dark:bg-amber-950/25 dark:text-amber-100/90"
+          >
+            {tDegradationHint("editReminder")}
           </div>
         )}
         {!isDns && (

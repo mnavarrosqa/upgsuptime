@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  clearGlobalDegradationDeferHint,
+  isGlobalDegradationDeferHint,
+} from "@/lib/degradation-callout-dismiss";
 import { DNS_RECORD_TYPES } from "@/lib/validate-monitor";
 
 const inputClass =
@@ -27,6 +32,7 @@ export function AddMonitorForm({
   onBack?: () => void;
 }) {
   const router = useRouter();
+  const tDegradationHint = useTranslations("degradationFormHint");
 
   // Monitor type
   const [monitorType, setMonitorType] = useState<"http" | "keyword" | "dns">("http");
@@ -55,8 +61,14 @@ export function AddMonitorForm({
 
   const [degradationAlertEnabled, setDegradationAlertEnabled] = useState(false);
 
+  const [showDegradationDeferHint, setShowDegradationDeferHint] = useState(false);
+
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setShowDegradationDeferHint(isGlobalDegradationDeferHint());
+  }, []);
 
   function handleTypeChange(newType: "http" | "keyword" | "dns") {
     setMonitorType(newType);
@@ -107,6 +119,11 @@ export function AddMonitorForm({
       if (!res.ok) {
         setError(data.error ?? "Failed to add monitor");
         return;
+      }
+
+      if (!isDns && degradationAlertEnabled) {
+        clearGlobalDegradationDeferHint();
+        setShowDegradationDeferHint(false);
       }
 
       // Reset all fields
@@ -406,6 +423,14 @@ export function AddMonitorForm({
               placeholder="alerts@example.com"
               className={inputClass}
             />
+          </div>
+        )}
+        {!isDns && showDegradationDeferHint && (
+          <div
+            role="note"
+            className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-950/90 dark:border-amber-800/40 dark:bg-amber-950/25 dark:text-amber-100/90"
+          >
+            {tDegradationHint("addReminder")}
           </div>
         )}
         {!isDns && (

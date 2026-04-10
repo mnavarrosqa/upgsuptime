@@ -5,8 +5,13 @@
     "details": "Tras 20 verificaciones correctas aprendemos la línea base (P75 de verificaciones anteriores). Si el promedio de las últimas 7 es al menos ~2,9× esa base (y al menos ~450 ms) durante 5 verificaciones seguidas, recibes un correo de aviso. Otro correo solo si los tiempos se estabilizan claramente cerca de lo normal: recuperaciones breves en medio ya no disparan alertas repetidas.",
     "enableButton": "Activar alertas de degradación",
     "enabling": "Activando…",
+    "laterButton": "Las activaré más tarde",
     "requiresEmail": "Requiere alertas por correo — actívalas en la configuración del monitor.",
     "errorToast": "No se pudieron activar las alertas de degradación"
+  },
+  "degradationFormHint": {
+    "addReminder": "Elegiste configurar las alertas por lentitud más tarde. Activa \"Alertar por tiempos de respuesta lentos\" abajo (en Notificaciones) cuando tengas alertas por correo activadas.",
+    "editReminder": "Elegiste configurarlo más tarde. Activa \"Alertar por tiempos de respuesta lentos\" abajo cuando tengas alertas por correo activadas."
   },
   "monitorTypes": {
     "typeLabel": "Tipo de monitor",
