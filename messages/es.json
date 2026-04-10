@@ -2,7 +2,7 @@
   "degradationCallout": {
     "title": "Alertas tempranas disponibles",
     "description": "UPG Monitor puede aprender el tiempo de respuesta normal de este sitio y avisarte cuando se degrada significativamente, antes de que el sitio caiga.",
-    "details": "Tras 20 verificaciones se establece la línea base. Si las últimas 5 verificaciones promedian 2× el tiempo normal durante 3 verificaciones seguidas, recibirás un correo de advertencia, una vez por episodio.",
+    "details": "Tras 20 verificaciones correctas aprendemos la línea base (P75 de verificaciones anteriores). Si el promedio de las últimas 7 es al menos ~2,9× esa base (y al menos ~450 ms) durante 5 verificaciones seguidas, recibes un correo de aviso. Otro correo solo si los tiempos se estabilizan claramente cerca de lo normal: recuperaciones breves en medio ya no disparan alertas repetidas.",
     "enableButton": "Activar alertas de degradación",
     "enabling": "Activando…",
     "requiresEmail": "Requiere alertas por correo — actívalas en la configuración del monitor.",
@@ -552,7 +552,7 @@
     "mockIncidentsLabel": "Incidentes",
     "mockSslLabel": "SSL",
     "feature4Title": "Alertas tempranas",
-    "feature4Body": "Detecta ralentizaciones sostenidas en el tiempo de respuesta antes de que se conviertan en caídas. Aprende la línea base normal de cada sitio y lanza una sola advertencia cuando una degradación de 2× persiste en varias verificaciones consecutivas."
+    "feature4Body": "Detecta ralentizaciones sostenidas antes de caídas. Aprende la línea base de cada sitio y envía una advertencia cuando la latencia se mantiene muy por encima de lo normal durante varias verificaciones; el episodio solo termina tras una recuperación clara, para no saturar el correo con avisos repetidos."
   },
   "monitorDetail": {
     "breadcrumb": "Monitores",
@@ -649,9 +649,9 @@
     "chartTimeline": "Línea de tiempo",
     "chartTimelineSub": "Cada punto es una verificación — los puntos rojos son fallos",
     "chartBaseline": "Base vs reciente",
-    "chartBaselineSub": "P75 base (40 verificaciones) vs promedio de las últimas 5",
+    "chartBaselineSub": "P75 base (40 verificaciones) vs promedio de las últimas 7",
     "chartBaselineP75": "P75 base",
-    "chartRecentAvg": "Promedio reciente (5 verif.)",
+    "chartRecentAvg": "Promedio reciente (7 verif.)",
     "chartWithinBaseline": "Dentro de la base — {pct}% del P75",
     "chartAboveBaseline": "{ratio}× por encima de la base",
     "tooltipResponse": "Respuesta",

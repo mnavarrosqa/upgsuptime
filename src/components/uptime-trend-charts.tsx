@@ -11,6 +11,10 @@ import {
 } from "@radix-ui/react-tooltip";
 import type { TooltipProps } from "recharts";
 import {
+  DEGRADATION_ENTER_RATIO,
+  DEGRADATION_RECENT_WINDOW,
+} from "@/lib/degradation-config";
+import {
   ResponsiveContainer,
   AreaChart,
   Area,
@@ -304,7 +308,7 @@ export function UptimeTrendCharts({
 
   // ── baseline comparison ───────────────────────────────────────────────────
   const recentOkTimes = chronological
-    .slice(-5)
+    .slice(-DEGRADATION_RECENT_WINDOW)
     .filter((r) => r.ok && r.responseTimeMs != null)
     .map((r) => r.responseTimeMs as number);
   const recentAvgMs =
@@ -324,7 +328,7 @@ export function UptimeTrendCharts({
       ? "text-text-muted"
       : ratio <= 1
         ? "text-emerald-600 dark:text-emerald-400"
-        : ratio <= 2
+        : ratio <= DEGRADATION_ENTER_RATIO
           ? "text-yellow-600 dark:text-yellow-400"
           : "text-red-600 dark:text-red-400";
 

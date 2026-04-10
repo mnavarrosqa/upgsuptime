@@ -2,25 +2,17 @@ import { db } from "@/db";
 import { checkResult } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import type { Monitor } from "@/db/schema";
+import {
+  DEGRADATION_BASELINE_MIN_SAMPLES as BASELINE_MIN_SAMPLES,
+  DEGRADATION_BASELINE_WINDOW as BASELINE_WINDOW,
+  DEGRADATION_CLEAR_RATIO,
+  DEGRADATION_CONFIRM_COUNT as CONFIRM_COUNT,
+  DEGRADATION_ENTER_RATIO,
+  DEGRADATION_MIN_RECENT_MS,
+  DEGRADATION_RECENT_WINDOW as RECENT_WINDOW,
+} from "@/lib/degradation-config";
 import { getAppBaseUrlForEmail, getTransporter } from "@/lib/notify";
 import { buildDegradationAlertHtml } from "@/lib/email-templates";
-
-// ─── Tuning constants ─────────────────────────────────────────────────────────
-
-/** Minimum successful checks in the baseline window before it is considered reliable. */
-const BASELINE_MIN_SAMPLES = 20;
-/**
- * Number of older checks used to compute the baseline P75.
- * Kept separate from the recent window so slow checks during a degradation
- * episode never contaminate the baseline.
- */
-const BASELINE_WINDOW = 40;
-/** Number of recent checks used to compute the current average. */
-const RECENT_WINDOW = 5;
-/** Ratio of recent avg to baseline P75 that signals degradation. */
-const DEGRADATION_RATIO = 2.0;
-/** Consecutive degraded checks required before firing an alert. */
-const CONFIRM_COUNT = 3;
 
 // ─── Core logic ───────────────────────────────────────────────────────────────
 
@@ -91,14 +83,19 @@ export async function evaluateDegradation(
     recentSlice.reduce((a, b) => a + b, 0) / recentSlice.length
   );
 
-  const isDegraded = recentAvgMs >= DEGRADATION_RATIO * newP75;
+  const enterThresholdMs = Math.max(
+    DEGRADATION_ENTER_RATIO * newP75,
+    DEGRADATION_MIN_RECENT_MS
+  );
+  const isDegraded = recentAvgMs >= enterThresholdMs;
   const newConsecutive = isDegraded ? (m.consecutiveDegradedChecks ?? 0) + 1 : 0;
 
   const shouldAlert =
     newConsecutive >= CONFIRM_COUNT && m.degradingAlertSentAt === null;
 
   const clearDegradingAlertSentAt =
-    !isDegraded && m.degradingAlertSentAt !== null;
+    recentAvgMs < DEGRADATION_CLEAR_RATIO * newP75 &&
+    m.degradingAlertSentAt !== null;
 
   return {
     baselineP75Ms: newP75,
