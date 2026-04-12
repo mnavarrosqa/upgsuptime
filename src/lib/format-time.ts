@@ -46,9 +46,3 @@ export function formatDuration(
   }
   return `${Math.floor(diffHr / 24)}d`;
 }
-
-/**
- * Format the last checked time (alias for formatRelativeTime)
- * Maintains API compatibility with existing code.
- */
-export const formatLastChecked = formatRelativeTime;

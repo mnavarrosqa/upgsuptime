@@ -34,8 +34,6 @@
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
   --radius: 0.625rem;
-  --motion-duration-fast: 140ms;
-  --motion-duration-medium: 240ms;
   --motion-duration-slow: 420ms;
   --motion-ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
   --motion-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
@@ -308,7 +306,4 @@ body {
 /* iOS safe area — push content below the notch/status bar when viewportFit=cover */
 .safe-top {
   padding-top: env(safe-area-inset-top);
-}
-.safe-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
 }

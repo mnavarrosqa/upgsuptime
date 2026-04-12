@@ -1,0 +1,1 @@
+ALTER TABLE `monitor` DROP COLUMN `screenshot_taken_at`;

@@ -42,6 +42,7 @@ npm install && npm run db:push && npm run build && npm run start
 | `npm run db:studio:local` | Drizzle Studio (localhost only) |
 | `npm run db:check-users` | List user emails in the DB |
 | `npm run lint` | ESLint |
+| `npm run knip` | Find unused files/exports/deps ([Knip](https://github.com/webpro-nl/knip)) |
 
 ---
 
