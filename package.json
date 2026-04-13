@@ -6,7 +6,7 @@
     "dev": "next dev --webpack -p 3077",
     "generate:splash": "node scripts/generate-pwa-splash.mjs",
     "generate:pwa-assets": "npm run generate:icons && npm run generate:splash",
-    "build": "npm run generate:pwa-assets && next build --webpack",
+    "build": "npm run generate:pwa-assets && NODE_OPTIONS=--max-old-space-size=8192 next build --webpack",
     "start": "next start -p 3077",
     "lint": "eslint",
     "test": "vitest run",
