@@ -28,7 +28,13 @@ export default async function AppLayout({
   return (
     <ActivityProvider>
     <div className="min-h-screen bg-bg-page text-text-primary">
-      <header className="safe-top border-b border-border bg-bg-card">
+      <Link
+        href="#main-content"
+        className="fixed left-4 top-0 z-[60] -translate-y-full rounded-md border border-border bg-bg-card px-3 py-2 text-sm font-medium text-text-primary shadow-md outline-none ring-2 ring-ring/30 motion-safe:transition-transform focus:left-4 focus:top-4 focus:translate-y-0 focus-visible:left-4 focus-visible:top-4 focus-visible:translate-y-0"
+      >
+        {t("skipToContent")}
+      </Link>
+      <header className="safe-top sticky top-0 z-30 border-b border-border bg-bg-card/90 backdrop-blur-[8px]">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
           <div className="flex h-14 items-stretch gap-2 sm:gap-5">
             <Link
@@ -67,7 +73,9 @@ export default async function AppLayout({
         </div>
       </header>
       <PullToRefresh />
-      <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6">{children}</main>
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
+        {children}
+      </main>
       <BackToTopButton />
       <PwaInstallBanner />
       <IncidentPoller />

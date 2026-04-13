@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { lookup as dnsLookup, resolve as dnsResolve } from "dns/promises";
 import { fetch as undiciFetch, buildConnector, Agent } from "undici";
 import { db } from "@/db";
-import { monitor, checkResult } from "@/db/schema";
+import { monitor, checkResult, degradationAlertEvent } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import type { Monitor } from "@/db/schema";
 import { getUrlNotAllowedReason, isBlockedIP } from "@/lib/url-allowed";
@@ -214,6 +214,16 @@ async function applyCheckResult(
       ...degradationFields,
     })
     .where(sql`${monitor.id} = ${m.id}`);
+
+  if (shouldSendDegradationAlert && degradationAlertArgs) {
+    await db.insert(degradationAlertEvent).values({
+      id: randomUUID(),
+      monitorId: m.id,
+      createdAt: now,
+      recentAvgMs: degradationAlertArgs.recentAvgMs,
+      baselineP75Ms: degradationAlertArgs.baselineP75Ms,
+    });
+  }
 
   const result: RunCheckResult = {
     monitorId: m.id,

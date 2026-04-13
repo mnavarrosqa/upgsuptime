@@ -48,6 +48,9 @@ export async function GET(request: Request) {
       onboardingCompleted: u.onboardingCompleted ?? null,
       onboardingStep: u.onboardingStep ?? null,
       activityClearedAt: toIsoTimestamp(u.activityClearedAt ?? undefined),
+      statusPageTitle: u.statusPageTitle ?? null,
+      statusPageTagline: u.statusPageTagline ?? null,
+      statusPageShowPoweredBy: u.statusPageShowPoweredBy !== false,
     },
     monitors: monitors.map((m) => ({
       id: m.id,

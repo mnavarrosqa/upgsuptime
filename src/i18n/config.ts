@@ -3,6 +3,8 @@ export const LOCALES = ["en", "es"] as const;
 export type AppLocale = (typeof LOCALES)[number];
 
 export const DEFAULT_LOCALE: AppLocale = "en";
+/** Stable default for formatting dates/times (avoids ENVIRONMENT_FALLBACK / SSR mismatches). */
+export const DEFAULT_TIME_ZONE = "UTC";
 export const LOCALE_COOKIE = "UPGS_LOCALE";
 
 export function isAppLocale(value: string): value is AppLocale {

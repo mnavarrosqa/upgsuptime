@@ -1,0 +1,1 @@
+ALTER TABLE `user` ADD `activity_dismissed_ids` text;

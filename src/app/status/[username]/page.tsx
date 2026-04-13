@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
 import { monitor, user, checkResult } from "@/db/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
@@ -11,9 +13,27 @@ export async function generateMetadata({
   params: Promise<{ username: string }>;
 }) {
   const { username } = await params;
+  const [u] = await db
+    .select({
+      statusPageTitle: user.statusPageTitle,
+      statusPageTagline: user.statusPageTagline,
+      username: user.username,
+    })
+    .from(user)
+    .where(eq(user.username, username));
+
+  if (!u) {
+    return { title: "Status" };
+  }
+
+  const slug = u.username ?? username;
+  const headline = u.statusPageTitle?.trim() || slug;
+  const description =
+    u.statusPageTagline?.trim() || `Service status page for ${slug}`;
+
   return {
-    title: `${username} Status`,
-    description: `Service status page for ${username}`,
+    title: `${headline} · Status`,
+    description,
   };
 }
 
@@ -25,7 +45,13 @@ export default async function StatusPage({
   const { username } = await params;
 
   const [u] = await db
-    .select({ id: user.id, username: user.username })
+    .select({
+      id: user.id,
+      username: user.username,
+      statusPageTitle: user.statusPageTitle,
+      statusPageTagline: user.statusPageTagline,
+      statusPageShowPoweredBy: user.statusPageShowPoweredBy,
+    })
     .from(user)
     .where(eq(user.username, username));
 
@@ -121,9 +147,26 @@ export default async function StatusPage({
   const downCount = monitorsWithStats.filter((m) => m.currentStatus === false).length;
   const incidents = monitorsWithStats.filter((m) => m.currentStatus === false);
 
+  const pageTitle = (u.statusPageTitle?.trim() || u.username || username).trim();
+  const pageTagline = u.statusPageTagline?.trim() || null;
+  const showPoweredBy = u.statusPageShowPoweredBy !== false;
+
+  const session = await getServerSession(authOptions);
+  const sessionUsername = session?.user?.name?.trim() || null;
+  const pageOwnerUsername = (u.username ?? username).trim();
+  const isOwner = Boolean(
+    sessionUsername && sessionUsername === pageOwnerUsername
+  );
+  const isLoggedIn = Boolean(session?.user);
+
   return (
     <StatusPageShell
       username={u.username ?? username}
+      pageTitle={pageTitle}
+      pageTagline={pageTagline}
+      showPoweredBy={showPoweredBy}
+      isOwner={isOwner}
+      isLoggedIn={isLoggedIn}
       monitors={monitorsWithStats}
       downCount={downCount}
       incidents={incidents}

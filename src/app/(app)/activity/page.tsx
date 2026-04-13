@@ -2,10 +2,11 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { monitor, user, checkResult } from "@/db/schema";
+import { monitor, user, checkResult, degradationAlertEvent } from "@/db/schema";
 import { eq, and, gte, gt, lt, inArray, max, asc } from "drizzle-orm";
 import { ActivityPageClient } from "@/components/activity-page-client";
 import { daysAgoUtc } from "@/lib/server-relative-time";
+import { parseActivityDismissedIds } from "@/lib/activity-dismissed-ids";
 
 const MAX_EVENTS = 50;
 const PAGE_SIZE = 20;
@@ -23,7 +24,10 @@ export default async function ActivityPage({
   // Fetch user metadata and monitors list in parallel — independent queries.
   const [[currentUser], monitors] = await Promise.all([
     db
-      .select({ activityClearedAt: user.activityClearedAt })
+      .select({
+        activityClearedAt: user.activityClearedAt,
+        activityDismissedIds: user.activityDismissedIds,
+      })
       .from(user)
       .where(eq(user.id, session.user.id)),
     db
@@ -84,16 +88,34 @@ export default async function ActivityPage({
     ...(clearedAt ? [gt(checkResult.createdAt, clearedAt)] : []),
   ];
 
-  const windowChecks = await db
-    .select({
-      id: checkResult.id,
-      monitorId: checkResult.monitorId,
-      ok: checkResult.ok,
-      createdAt: checkResult.createdAt,
-    })
-    .from(checkResult)
-    .where(and(...windowWhere))
-    .orderBy(asc(checkResult.monitorId), asc(checkResult.createdAt));
+  const degWhere = [
+    inArray(degradationAlertEvent.monitorId, monitorIds),
+    gte(degradationAlertEvent.createdAt, since),
+    ...(clearedAt ? [gt(degradationAlertEvent.createdAt, clearedAt)] : []),
+  ];
+
+  const [windowChecks, degradationRows] = await Promise.all([
+    db
+      .select({
+        id: checkResult.id,
+        monitorId: checkResult.monitorId,
+        ok: checkResult.ok,
+        createdAt: checkResult.createdAt,
+      })
+      .from(checkResult)
+      .where(and(...windowWhere))
+      .orderBy(asc(checkResult.monitorId), asc(checkResult.createdAt)),
+    db
+      .select({
+        id: degradationAlertEvent.id,
+        monitorId: degradationAlertEvent.monitorId,
+        createdAt: degradationAlertEvent.createdAt,
+        recentAvgMs: degradationAlertEvent.recentAvgMs,
+        baselineP75Ms: degradationAlertEvent.baselineP75Ms,
+      })
+      .from(degradationAlertEvent)
+      .where(and(...degWhere)),
+  ]);
 
   type TransitionRow = {
     id: string;
@@ -132,7 +154,42 @@ export default async function ActivityPage({
   }
 
   transitions.sort((a, b) => b.at.getTime() - a.at.getTime());
-  const capped = transitions.slice(0, MAX_EVENTS);
+
+  const degradationEvents = degradationRows.flatMap((d) => {
+    const meta = monitorById.get(d.monitorId);
+    if (!meta) return [];
+    return [
+      {
+        kind: "degradation" as const,
+        id: d.id,
+        monitorId: d.monitorId,
+        name: meta.name,
+        url: meta.url,
+        recentAvgMs: d.recentAvgMs,
+        baselineP75Ms: d.baselineP75Ms,
+        at: d.createdAt,
+      },
+    ];
+  });
+
+  const statusEvents = transitions.map((t) => ({
+    kind: "status" as const,
+    id: t.id,
+    monitorId: t.monitorId,
+    name: t.name,
+    url: t.url,
+    recovered: t.recovered,
+    at: t.at,
+  }));
+
+  const merged = [...statusEvents, ...degradationEvents].sort(
+    (a, b) => b.at.getTime() - a.at.getTime()
+  );
+  const dismissed = parseActivityDismissedIds(
+    currentUser?.activityDismissedIds
+  );
+  const mergedFiltered = merged.filter((e) => !dismissed.has(e.id));
+  const capped = mergedFiltered.slice(0, MAX_EVENTS);
   const totalCount = capped.length;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
 
@@ -144,10 +201,29 @@ export default async function ActivityPage({
 
   const start = (page - 1) * PAGE_SIZE;
   const pageSlice = capped.slice(start, start + PAGE_SIZE);
-  const items = pageSlice.map((row) => ({
-    ...row,
-    at: row.at.toISOString(),
-  }));
+  const items = pageSlice.map((row) => {
+    if (row.kind === "status") {
+      return {
+        kind: "status" as const,
+        id: row.id,
+        monitorId: row.monitorId,
+        name: row.name,
+        url: row.url,
+        recovered: row.recovered,
+        at: row.at.toISOString(),
+      };
+    }
+    return {
+      kind: "degradation" as const,
+      id: row.id,
+      monitorId: row.monitorId,
+      name: row.name,
+      url: row.url,
+      recentAvgMs: row.recentAvgMs,
+      baselineP75Ms: row.baselineP75Ms,
+      at: row.at.toISOString(),
+    };
+  });
 
   return (
     <ActivityPageClient

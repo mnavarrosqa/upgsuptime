@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { monitor, checkResult } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { MonitorDetailActions } from "@/components/monitor-detail-actions";
 import { CheckResultsTable } from "@/components/check-results-table";
 import { RecentIncidentsList } from "@/components/recent-incidents-list";
@@ -19,7 +20,6 @@ import { DowntimeAckControls } from "@/components/downtime-ack-controls";
 import { MonitorDetailAckFeedback } from "@/components/monitor-detail-ack-feedback";
 import { MonitorFavicon } from "@/components/monitor-favicon";
 import { monitorMetaChipClass } from "@/lib/monitor-ui";
-
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns") return "";
   try {
@@ -96,12 +96,23 @@ export default async function MonitorDetailPage({
     <div className="space-y-8">
       <MonitorDetailAckFeedback ackParam={sp.ack} />
       <AutoRefresh />
-      <div className="rounded-lg border border-border bg-bg-card p-5 sm:p-6">
+      <div className="relative overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+        <div>
+          <div className="border-b border-border/80 bg-muted/30 px-4 py-2.5 dark:bg-muted/20 sm:px-5 sm:py-3">
+            <p
+              className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {t("heroEyebrow")}
+            </p>
+          </div>
+          <div className="p-4 sm:p-5 md:p-6">
         <Link
           href="/monitors"
-          className="mb-4 inline-block text-sm text-text-muted hover:text-text-primary"
+          className="mb-4 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-text-muted transition-colors hover:bg-muted/50 hover:text-text-primary"
         >
-          ← {t("breadcrumb")}
+          <ChevronLeft className="size-4 shrink-0" aria-hidden />
+          {t("breadcrumb")}
         </Link>
 
         {/* Header: favicon + name + status + actions */}
@@ -181,6 +192,8 @@ export default async function MonitorDetailPage({
           </div>
           <MonitorDetailActions monitor={m} />
         </div>
+          </div>
+        </div>
       </div>
 
       <MonitorDetailHistoryClient
@@ -200,16 +213,23 @@ export default async function MonitorDetailPage({
             )}
             {recentIncidents.length > 0 && (
               <section
-                className="rounded-lg border border-red-200 bg-red-50 p-5 dark:border-red-900/30 dark:bg-red-900/10"
+                className="overflow-hidden rounded-2xl border border-red-200 bg-red-50 shadow-sm ring-1 ring-red-200/50 dark:border-red-900/35 dark:bg-red-900/10 dark:ring-red-900/25"
                 aria-label={t("incidentsTitle")}
               >
-                <h2 className="text-sm font-medium text-red-800 dark:text-red-400">
-                  {t("incidentsTitle")}
-                </h2>
-                <p className="mt-0.5 text-xs text-red-700/60 dark:text-red-400/60">
-                  {t("incidentsSubtitle")}
-                </p>
-                <RecentIncidentsList incidents={recentIncidents} />
+                <div className="border-b border-red-200/90 px-4 py-3 dark:border-red-900/40 sm:px-5">
+                  <h2
+                    className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-red-800 dark:text-red-400"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {t("incidentsTitle")}
+                  </h2>
+                  <p className="mt-1 text-xs text-red-700/75 dark:text-red-400/75">
+                    {t("incidentsSubtitle")}
+                  </p>
+                </div>
+                <div className="p-4 sm:p-5">
+                  <RecentIncidentsList incidents={recentIncidents} />
+                </div>
               </section>
             )}
           </>
@@ -244,12 +264,14 @@ export default async function MonitorDetailPage({
                       ? t("sslExpiring")
                       : t("sslValid");
             return (
-              <div className="rounded-lg border border-border bg-bg-card px-4 py-3">
-                <p className="text-xs text-text-muted">{t("statSsl")}</p>
-                <p className={`mt-1 text-xl font-semibold ${sslColor}`}>
+              <div className="flex min-h-full flex-col rounded-xl border border-border/80 bg-muted/35 px-3 py-3 dark:bg-muted/20 sm:px-4 sm:py-3.5">
+                <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-text-muted">
+                  {t("statSsl")}
+                </span>
+                <p className={`mt-2 text-xl font-semibold tabular-nums sm:text-2xl ${sslColor}`}>
                   {sslLabel}
                 </p>
-                <p className="mt-0.5 text-xs text-text-muted">
+                <p className="mt-1 text-xs text-text-muted">
                   {sslDays !== null
                     ? t("sslDaysUntilExpiry", { n: sslDays })
                     : m.sslLastCheckedAt
@@ -262,23 +284,34 @@ export default async function MonitorDetailPage({
       </MonitorDetailHistoryClient>
 
       {/* Check log */}
-      <section className="rounded-lg border border-border bg-bg-card p-5 sm:p-6">
-        <h2 className="text-base font-medium text-text-primary">{t("checkLogTitle")}</h2>
-        <p className="mt-0.5 text-sm text-text-muted">
+      <section className="overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+        <div className="border-b border-border/80 bg-gradient-to-b from-muted/40 to-transparent px-4 py-2.5 dark:from-muted/25 sm:px-5 sm:py-3">
+          <h2
+            className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {t("checkLogTitle")}
+          </h2>
+        </div>
+        <div className="p-4 sm:p-5 md:p-6">
+        <p className="text-sm text-text-muted">
           {results.length === 1
             ? t("checkLogSubtitle", { n: m.intervalMinutes, count: results.length })
             : t("checkLogSubtitlePlural", { n: m.intervalMinutes, count: results.length })}
         </p>
         {results.length === 0 ? (
-          <div className="mt-4 rounded-lg border border-dashed border-border-muted bg-bg-page p-8 text-center text-sm text-text-muted">
+          <div className="mt-4 rounded-xl border border-dashed border-border-muted bg-bg-page p-8 text-center text-sm text-text-muted">
             {t("checkLogEmpty")}
           </div>
         ) : (
+          <div className="mt-4">
           <CheckResultsTable
             results={serializedResults}
             hideMessage={allMessagesNull}
           />
+          </div>
         )}
+        </div>
       </section>
     </div>
   );

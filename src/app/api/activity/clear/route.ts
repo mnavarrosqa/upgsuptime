@@ -13,7 +13,7 @@ export async function POST() {
 
   await db
     .update(user)
-    .set({ activityClearedAt: new Date() })
+    .set({ activityClearedAt: new Date(), activityDismissedIds: null })
     .where(eq(user.id, session.user.id));
 
   return NextResponse.json({ ok: true });

@@ -8,12 +8,11 @@ import { signOut } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useActivity } from "@/components/activity-context";
 import { Button } from "@/components/ui/button";
-
-const navLinks = [
-  { href: "/dashboard", labelKey: "dashboard" as const },
-  { href: "/monitors", labelKey: "monitors" as const },
-  { href: "/activity", labelKey: "activity" as const },
-] as const;
+import {
+  APP_PRIMARY_NAV_LINKS,
+  isAdminNavActive,
+  isPrimaryNavActive,
+} from "@/lib/app-main-nav";
 
 export function MobileMenu({
   role,
@@ -125,18 +124,16 @@ export function MobileMenu({
           </div>
 
           {/* Nav links */}
-          {navLinks.map(({ href, labelKey }) => {
+          {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
             const label = t(labelKey);
-            const active =
-              href === "/dashboard"
-                ? pathname === "/dashboard"
-                : pathname.startsWith(href);
+            const active = isPrimaryNavActive(pathname, href);
             const hasUnread = href === "/activity" && unreadCount > 0;
             return (
               <Link
                 key={href}
                 href={href}
                 role="menuitem"
+                aria-current={active ? "page" : undefined}
                 onClick={() => setOpen(false)}
                 className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
                   active
@@ -158,9 +155,10 @@ export function MobileMenu({
             <Link
               href="/admin"
               role="menuitem"
+              aria-current={isAdminNavActive(pathname) ? "page" : undefined}
               onClick={() => setOpen(false)}
               className={`flex items-center px-3 py-2 text-sm transition-colors ${
-                pathname.startsWith("/admin")
+                isAdminNavActive(pathname)
                   ? "font-medium text-text-primary"
                   : "text-text-muted hover:bg-bg-page hover:text-text-primary"
               }`}

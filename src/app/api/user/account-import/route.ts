@@ -119,6 +119,9 @@ export async function POST(request: Request) {
       username?: string | null;
       onboardingCompleted?: boolean | null;
       onboardingStep?: string | null;
+      statusPageTitle?: string | null;
+      statusPageTagline?: string | null;
+      statusPageShowPoweredBy?: boolean;
     } = {};
 
     if ("username" in u) {
@@ -158,6 +161,40 @@ export async function POST(request: Request) {
     if ("onboardingStep" in u) {
       patch.onboardingStep =
         typeof u.onboardingStep === "string" ? u.onboardingStep : null;
+    }
+
+    if ("statusPageTitle" in u) {
+      if (u.statusPageTitle === null) {
+        patch.statusPageTitle = null;
+      } else if (typeof u.statusPageTitle === "string") {
+        const t = u.statusPageTitle.trim();
+        if (t.length > 120) {
+          return NextResponse.json(
+            { error: "statusPageTitle must be at most 120 characters" },
+            { status: 400 }
+          );
+        }
+        patch.statusPageTitle = t || null;
+      }
+    }
+    if ("statusPageTagline" in u) {
+      if (u.statusPageTagline === null) {
+        patch.statusPageTagline = null;
+      } else if (typeof u.statusPageTagline === "string") {
+        const t = u.statusPageTagline.trim();
+        if (t.length > 400) {
+          return NextResponse.json(
+            { error: "statusPageTagline must be at most 400 characters" },
+            { status: 400 }
+          );
+        }
+        patch.statusPageTagline = t || null;
+      }
+    }
+    if ("statusPageShowPoweredBy" in u) {
+      if (typeof u.statusPageShowPoweredBy === "boolean") {
+        patch.statusPageShowPoweredBy = u.statusPageShowPoweredBy;
+      }
     }
 
     if (Object.keys(patch).length > 0) {

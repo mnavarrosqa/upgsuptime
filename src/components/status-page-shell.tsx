@@ -1,9 +1,23 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, type CSSProperties } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { CheckCircle, XCircle, AlertTriangle } from "lucide-react";
+import {
+  Activity,
+  CheckCircle,
+  Cog,
+  Gauge,
+  History,
+  Globe,
+  ServerOff,
+  XCircle,
+  AlertTriangle,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { formatRelativeTime, formatDuration } from "@/lib/format-time";
+import { cn } from "@/lib/utils";
 
 function getFaviconUrl(url: string): string {
   try {
@@ -31,18 +45,34 @@ type MonitorStat = {
 
 export function StatusPageShell({
   username,
+  pageTitle,
+  pageTagline,
+  showPoweredBy,
+  isOwner,
+  isLoggedIn,
   monitors,
   downCount,
   incidents,
   generatedAt,
 }: {
   username: string;
+  /** Main heading; usually custom title or username. */
+  pageTitle: string;
+  /** Optional subtitle under the title. */
+  pageTagline: string | null;
+  /** Whether to show product branding in the footer. */
+  showPoweredBy: boolean;
+  /** Logged-in user is the owner of this public page. */
+  isOwner: boolean;
+  /** Any authenticated session (hides guest marketing CTA). */
+  isLoggedIn: boolean;
   monitors: MonitorStat[];
   downCount: number;
   incidents: MonitorStat[];
   generatedAt: string;
 }) {
   const router = useRouter();
+  const tPublic = useTranslations("publicStatus");
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -73,136 +103,192 @@ export function StatusPageShell({
 
   return (
     <div className="min-h-screen bg-bg-page text-text-primary">
-      {/* ── Header ─────────────────────────────────────────────────── */}
-      <header className="border-b border-border bg-bg-card">
-        <div className="mx-auto max-w-3xl px-4 py-4 sm:px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {/* Pulsing status dot */}
-              {hasMonitors && (
-                <span className="relative flex h-3 w-3 shrink-0">
-                  <span
-                    className={`absolute inline-flex h-full w-full animate-ping rounded-full opacity-75 ${
-                      allOperational ? "bg-emerald-400" : "bg-red-400"
-                    }`}
-                  />
-                  <span
-                    className={`relative inline-flex h-3 w-3 rounded-full ${
-                      allOperational ? "bg-emerald-500" : "bg-red-500"
-                    }`}
-                  />
-                </span>
-              )}
-              <div>
-                <p
-                  className="text-base font-semibold text-text-primary"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
+      <header className="safe-top border-b border-border bg-bg-card/90 backdrop-blur-[8px]">
+        <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-text-muted">
+                Public status
+              </p>
+              <h1
+                className="mt-1.5 text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.65rem]"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                {pageTitle}
+              </h1>
+              {pageTitle.trim() !== username.trim() && (
+                <p className="mt-1 text-xs text-text-muted">
+                  <span className="text-text-muted/80">/status/</span>
                   {username}
                 </p>
-                <p className="text-xs text-text-muted">
-                  {hasMonitors
-                    ? `${monitors.length} service${monitors.length !== 1 ? "s" : ""} monitored`
-                    : "Status page"}
-                </p>
-              </div>
+              )}
+              <p className="mt-1 text-sm text-text-muted">
+                {pageTagline
+                  ? pageTagline
+                  : hasMonitors
+                    ? `${monitors.length} service${monitors.length !== 1 ? "s" : ""} on this page`
+                    : "No services are published yet"}
+              </p>
             </div>
-            <span className="text-xs text-text-muted">
-              Updated {formatRelativeTime(generatedAt)}
-            </span>
+            <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
+              <p className="text-xs tabular-nums text-text-muted">
+                Updated{" "}
+                <time dateTime={generatedAt}>{formatRelativeTime(generatedAt)}</time>
+              </p>
+              <ThemeToggle />
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-        {/* ── Status hero ─────────────────────────────────────────── */}
+      {isOwner && (
+        <div className="border-b border-border bg-bg-card/70">
+          <div className="mx-auto max-w-4xl px-4 py-2.5 sm:px-6">
+            <Link
+              href="/account#status"
+              className="inline-flex items-center gap-2 rounded-md text-sm font-medium text-text-primary transition-colors [transition-timing-function:var(--motion-ease-out-quart)] hover:text-primary"
+              aria-label={tPublic("customizeAria")}
+            >
+              <Cog className="h-4 w-4 shrink-0" aria-hidden />
+              <span>{tPublic("customizeLink")}</span>
+            </Link>
+          </div>
+        </div>
+      )}
+
+      <main className="mx-auto max-w-4xl px-4 pb-12 pt-8 sm:px-6 sm:pb-16 sm:pt-10">
         {hasMonitors ? (
           <div
-            className={`rounded-xl px-6 py-5 ${
+            className={cn(
+              "motion-enter overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm dark:shadow-none",
               allOperational
-                ? "bg-emerald-50 dark:bg-emerald-900/10"
-                : "bg-red-50 dark:bg-red-900/10"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              {allOperational ? (
-                <CheckCircle
-                  className="h-8 w-8 shrink-0 text-emerald-600 dark:text-emerald-400"
-                  aria-hidden
-                />
-              ) : (
-                <XCircle
-                  className="h-8 w-8 shrink-0 text-red-600 dark:text-red-400"
-                  aria-hidden
-                />
-              )}
-              <p
-                className={`text-lg font-semibold ${
-                  allOperational
-                    ? "text-emerald-800 dark:text-emerald-300"
-                    : "text-red-800 dark:text-red-300"
-                }`}
-                style={{ fontFamily: "var(--font-display)" }}
-              >
-                {allOperational
-                  ? "All Systems Operational"
-                  : `${downCount} system${downCount !== 1 ? "s" : ""} having issues`}
-              </p>
-            </div>
-
-            {/* Stats row */}
-            {(avgUptime !== null || avgResponse !== null || totalChecks > 0) && (
-              <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-text-muted">
-                {avgUptime !== null && (
-                  <span>
-                    <span
-                      className={
-                        parseFloat(avgUptime) >= 99.5
-                          ? "font-medium text-emerald-700 dark:text-emerald-400"
-                          : parseFloat(avgUptime) >= 95
-                            ? "font-medium text-yellow-700 dark:text-yellow-400"
-                            : "font-medium text-red-700 dark:text-red-400"
-                      }
-                    >
-                      {avgUptime}%
-                    </span>{" "}
-                    avg uptime
-                  </span>
-                )}
-                {avgUptime !== null && (avgResponse !== null || totalChecks > 0) && (
-                  <span aria-hidden className="text-border">·</span>
-                )}
-                {avgResponse !== null && (
-                  <span>
-                    <span className="font-medium text-text-primary">{avgResponse}ms</span>{" "}
-                    avg response
-                  </span>
-                )}
-                {avgResponse !== null && totalChecks > 0 && (
-                  <span aria-hidden className="text-border">·</span>
-                )}
-                {totalChecks > 0 && (
-                  <span>
-                    <span className="font-medium text-text-primary">
-                      {totalChecks.toLocaleString()}
-                    </span>{" "}
-                    checks in 90 days
-                  </span>
-                )}
-              </div>
+                ? "border-l-[3px] border-l-primary"
+                : "border-l-[3px] border-l-destructive"
             )}
+          >
+            <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-start sm:justify-between sm:gap-8 sm:p-6">
+              <div className="flex min-w-0 gap-4">
+                <div
+                  className={cn(
+                    "flex h-12 w-12 shrink-0 items-center justify-center rounded-xl",
+                    allOperational
+                      ? "bg-primary/12 text-primary"
+                      : "bg-destructive/10 text-destructive"
+                  )}
+                  aria-hidden
+                >
+                  {allOperational ? (
+                    <CheckCircle className="h-6 w-6" />
+                  ) : (
+                    <XCircle className="h-6 w-6" />
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p
+                    className="text-lg font-semibold leading-snug tracking-tight text-text-primary sm:text-xl"
+                    style={{ fontFamily: "var(--font-display)" }}
+                  >
+                    {allOperational
+                      ? "All systems operational"
+                      : `${downCount} service${downCount !== 1 ? "s" : ""} unavailable`}
+                  </p>
+                  <p className="mt-1 text-sm text-text-muted">
+                    {allOperational
+                      ? "Every published endpoint reported success on the last check."
+                      : "One or more checks failed on the last run. Details below."}
+                  </p>
+                </div>
+              </div>
+              {(avgUptime !== null || avgResponse !== null || totalChecks > 0) && (
+                <dl className="flex w-full shrink-0 flex-wrap gap-3 sm:w-auto sm:justify-end sm:gap-4">
+                  {avgUptime !== null && (
+                    <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
+                      <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
+                        <Activity className="h-3 w-3 shrink-0" aria-hidden />
+                        Uptime
+                      </dt>
+                      <dd
+                        className={cn(
+                          "mt-1 text-lg font-semibold tabular-nums tracking-tight",
+                          parseFloat(avgUptime) >= 99.5
+                            ? "text-primary"
+                            : parseFloat(avgUptime) >= 95
+                              ? "text-chart-hist-warn"
+                              : "text-destructive"
+                        )}
+                      >
+                        {avgUptime}%
+                      </dd>
+                      <dd className="text-[0.65rem] text-text-muted">90d avg</dd>
+                    </div>
+                  )}
+                  {avgResponse !== null && (
+                    <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
+                      <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
+                        <Gauge className="h-3 w-3 shrink-0" aria-hidden />
+                        Response
+                      </dt>
+                      <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-text-primary">
+                        {avgResponse}
+                        <span className="text-sm font-medium text-text-muted">ms</span>
+                      </dd>
+                      <dd className="text-[0.65rem] text-text-muted">avg</dd>
+                    </div>
+                  )}
+                  {totalChecks > 0 && (
+                    <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
+                      <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
+                        <History className="h-3 w-3 shrink-0" aria-hidden />
+                        Checks
+                      </dt>
+                      <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-text-primary">
+                        {totalChecks > 999
+                          ? `${(totalChecks / 1000).toFixed(1)}k`
+                          : totalChecks.toLocaleString()}
+                      </dd>
+                      <dd className="text-[0.65rem] text-text-muted">90 days</dd>
+                    </div>
+                  )}
+                </dl>
+              )}
+            </div>
           </div>
         ) : (
-          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-text-muted">
-            No public services configured.
+          <div className="motion-enter flex flex-col items-center rounded-2xl border border-dashed border-border-muted bg-bg-card/50 px-6 py-14 text-center">
+            <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-muted text-text-muted">
+              <ServerOff className="h-7 w-7" aria-hidden />
+            </div>
+            <p
+              className="mt-4 text-base font-semibold text-text-primary"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              Nothing to show yet
+            </p>
+            <p className="mt-2 max-w-sm text-sm leading-relaxed text-text-muted">
+              When monitors are enabled for the public page, they will appear here with live
+              status and history.
+            </p>
           </div>
         )}
 
-        {/* ── Services list ────────────────────────────────────────── */}
         {hasMonitors && (
-          <section className="mt-6" aria-label="Services">
-            <div className="flex flex-col gap-3">
-              {monitors.map((m) => {
+          <section className="mt-10" aria-labelledby="status-services-heading">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-2 border-b border-border pb-3">
+              <div>
+                <h2
+                  id="status-services-heading"
+                  className="text-sm font-semibold tracking-tight text-text-primary"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Services
+                </h2>
+                <p className="mt-0.5 text-xs text-text-muted">
+                  Last check times refresh about every minute.
+                </p>
+              </div>
+            </div>
+            <ul className="flex flex-col gap-4">
+              {monitors.map((m, idx) => {
                 const favicon = getFaviconUrl(m.url);
                 const isUp = m.currentStatus === true;
                 const isDown = m.currentStatus === false;
@@ -210,205 +296,278 @@ export function StatusPageShell({
                   m.uptimePct === null
                     ? "text-text-muted"
                     : m.uptimePct >= 99.5
-                      ? "text-emerald-600 dark:text-emerald-400"
+                      ? "text-primary"
                       : m.uptimePct >= 95
-                        ? "text-yellow-600 dark:text-yellow-400"
-                        : "text-red-600 dark:text-red-400";
+                        ? "text-chart-hist-warn"
+                        : "text-destructive";
 
                 return (
-                  <div
+                  <li
                     key={m.id}
-                    className="rounded-lg border border-border bg-bg-card px-4 py-3"
+                    className="motion-enter rounded-2xl border border-border bg-bg-card p-4 shadow-sm transition-[border-color,box-shadow] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] hover:border-border-muted dark:shadow-none dark:hover:border-border"
+                    style={
+                      {
+                        "--enter-delay": `${80 + idx * 45}ms`,
+                      } as CSSProperties
+                    }
                   >
-                    {/* Service header row */}
-                    <div className="flex items-center gap-2.5">
-                      {favicon ? (
-                        <img
-                          src={favicon}
-                          alt=""
-                          className="h-5 w-5 shrink-0 rounded"
-                          width={20}
-                          height={20}
-                        />
-                      ) : (
-                        <span
-                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded bg-border text-xs text-text-muted"
-                          aria-hidden
-                        >
-                          •
-                        </span>
-                      )}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="truncate font-medium text-text-primary">
-                            {m.name}
+                    <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+                      <div className="flex min-w-0 flex-1 gap-3">
+                        {favicon ? (
+                          <img
+                            src={favicon}
+                            alt=""
+                            className="mt-0.5 h-9 w-9 shrink-0 rounded-lg border border-border/80 bg-bg-page object-contain p-0.5"
+                            width={36}
+                            height={36}
+                          />
+                        ) : (
+                          <span
+                            className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-bg-page text-text-muted"
+                            aria-hidden
+                          >
+                            <Globe className="h-4 w-4 opacity-70" />
                           </span>
-
-                          {/* Pulsing dot + status label */}
-                          <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium">
-                            {isUp ? (
-                              <>
-                                <span className="relative flex h-2 w-2">
-                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-                                  <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
-                                </span>
-                                <span className="text-emerald-700 dark:text-emerald-400">
-                                  Operational
-                                </span>
-                              </>
-                            ) : isDown ? (
-                              <>
-                                <span className="relative flex h-2 w-2">
-                                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-                                  <span className="relative inline-flex h-2 w-2 rounded-full bg-red-500" />
-                                </span>
-                                <span className="text-red-700 dark:text-red-400">
-                                  Disrupted
-                                </span>
-                              </>
-                            ) : (
-                              <>
-                                <span className="h-2 w-2 rounded-full bg-border" />
-                                <span className="text-text-muted">No data</span>
-                              </>
-                            )}
-                          </span>
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium leading-snug text-text-primary">{m.name}</p>
+                          <p className="mt-1 break-all text-xs leading-relaxed text-text-muted">
+                            {m.url}
+                          </p>
                         </div>
-                        <p className="mt-0.5 truncate text-xs text-text-muted">
-                          {m.url}
-                        </p>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end sm:text-right">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-page px-2.5 py-1 text-xs font-medium">
+                          {isUp ? (
+                            <>
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full bg-primary motion-safe:animate-operational-badge-dot"
+                                aria-hidden
+                              />
+                              <span className="text-primary">Operational</span>
+                            </>
+                          ) : isDown ? (
+                            <>
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full bg-destructive"
+                                aria-hidden
+                              />
+                              <span className="text-destructive">Unavailable</span>
+                            </>
+                          ) : (
+                            <>
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full bg-border"
+                                aria-hidden
+                              />
+                              <span className="text-text-muted">No data yet</span>
+                            </>
+                          )}
+                        </span>
+                        <span className="text-[0.65rem] tabular-nums text-text-muted sm:max-w-[14rem]">
+                          Checked{" "}
+                          {m.lastCheckAt ? (
+                            <time dateTime={m.lastCheckAt}>
+                              {formatRelativeTime(m.lastCheckAt)}
+                            </time>
+                          ) : (
+                            "—"
+                          )}
+                        </span>
                       </div>
                     </div>
 
-                    {/* 90-day uptime chart */}
                     {m.checkCount90d > 0 && (
-                      <div className="mt-3">
+                      <div className="mt-4 border-t border-border/80 pt-4">
+                        <p className="mb-2 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
+                          90-day history
+                          <span className="ml-1 font-normal normal-case text-text-muted/90">
+                            (each segment ≈ 3 days)
+                          </span>
+                        </p>
                         <div
-                          className="flex h-7 gap-px"
-                          aria-label="90-day uptime history"
-                          title="90-day uptime — each bar represents 3 days"
+                          className="flex h-8 gap-px rounded-md bg-border/40 p-px"
+                          role="img"
+                          aria-label="90-day uptime history by segment"
                         >
                           {m.buckets.map((b, i) => {
                             const pct = b.total > 0 ? b.ok / b.total : -1;
-                            const color =
+                            const barClass =
                               pct < 0
-                                ? "var(--color-border)"
+                                ? "bg-border"
                                 : pct >= 1
-                                  ? "#10b981"
+                                  ? "bg-primary"
                                   : pct >= 0.9
-                                    ? "#f59e0b"
-                                    : "#ef4444";
+                                    ? "bg-chart-hist-warn"
+                                    : "bg-destructive";
                             return (
                               <span
                                 key={i}
-                                className="flex-1 rounded-sm transition-opacity hover:opacity-70"
-                                style={{ minWidth: "4px", backgroundColor: color }}
+                                className={cn(
+                                  "min-w-[3px] flex-1 rounded-[2px] transition-opacity duration-150 hover:opacity-80",
+                                  barClass
+                                )}
                                 title={
                                   pct < 0
                                     ? "No data"
-                                    : `${Math.round(pct * 100)}% uptime`
+                                    : `${Math.round(pct * 100)}% successful checks`
                                 }
                               />
                             );
                           })}
                         </div>
-                        <div className="mt-1 flex justify-between text-[10px] text-text-muted">
-                          <span>90 days ago</span>
-                          <span>Today</span>
+                        <div className="mt-2 flex justify-between text-[0.65rem] text-text-muted">
+                          <span>Older</span>
+                          <span>Recent</span>
                         </div>
                       </div>
                     )}
 
-                    {/* Footer stats row */}
-                    <div className="mt-2 flex items-center justify-between gap-2 text-xs text-text-muted">
-                      <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                        {m.uptimePct !== null && (
-                          <span className={uptimeColor}>{m.uptimePct}% uptime</span>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
+                      {m.uptimePct !== null && (
+                        <span className={cn("font-medium", uptimeColor)}>
+                          {m.uptimePct}% uptime
+                        </span>
+                      )}
+                      {m.uptimePct !== null && m.avgResponseTimeMs !== null && (
+                        <span aria-hidden className="text-border">
+                          ·
+                        </span>
+                      )}
+                      {m.avgResponseTimeMs !== null && (
+                        <span>
+                          <span className="font-medium text-text-primary">
+                            {m.avgResponseTimeMs}ms
+                          </span>{" "}
+                          avg response
+                        </span>
+                      )}
+                      {(m.uptimePct !== null || m.avgResponseTimeMs !== null) &&
+                        m.checkCount90d > 0 && (
+                          <span aria-hidden className="text-border">
+                            ·
+                          </span>
                         )}
-                        {m.uptimePct !== null && m.avgResponseTimeMs !== null && (
-                          <span aria-hidden>·</span>
-                        )}
-                        {m.avgResponseTimeMs !== null && (
-                          <span>{m.avgResponseTimeMs}ms avg</span>
-                        )}
-                        {(m.uptimePct !== null || m.avgResponseTimeMs !== null) &&
-                          m.checkCount90d > 0 && (
-                            <span aria-hidden>·</span>
-                          )}
-                        {m.checkCount90d > 0 && (
-                          <span>{m.checkCount90d.toLocaleString()} checks</span>
-                        )}
-                      </div>
-                      <span className="shrink-0">
-                        Checked {formatRelativeTime(m.lastCheckAt)}
-                      </span>
+                      {m.checkCount90d > 0 && (
+                        <span>{m.checkCount90d.toLocaleString()} checks sampled</span>
+                      )}
                     </div>
-                  </div>
+                  </li>
                 );
               })}
-            </div>
-          </section>
-        )}
-
-        {/* ── Active incidents ─────────────────────────────────────── */}
-        {incidents.length > 0 && (
-          <section
-            className="mt-6 rounded-xl border border-red-200 bg-red-50 p-5 dark:border-red-900/30 dark:bg-red-900/10"
-            aria-label="Active incidents"
-          >
-            <div className="flex items-center gap-2">
-              <AlertTriangle
-                className="h-4 w-4 shrink-0 text-red-600 dark:text-red-400"
-                aria-hidden
-              />
-              <h2 className="text-sm font-semibold text-red-800 dark:text-red-400">
-                Active Incidents
-              </h2>
-            </div>
-            <p className="mt-0.5 text-xs text-red-700/60 dark:text-red-400/60">
-              Services currently experiencing issues
-            </p>
-            <ul className="mt-3 flex flex-col gap-2">
-              {incidents.map((m) => (
-                <li key={m.id} className="flex items-start justify-between gap-2 text-sm">
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 text-red-700 dark:text-red-400">
-                      <XCircle className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                      <span className="font-medium truncate">{m.name}</span>
-                    </div>
-                    {(m.lastErrorCode != null || m.lastErrorMessage) && (
-                      <p
-                        className="mt-0.5 ml-5.5 truncate text-xs text-red-600/70 dark:text-red-400/60"
-                        title={[
-                          m.lastErrorCode != null ? `HTTP ${m.lastErrorCode}` : null,
-                          m.lastErrorMessage,
-                        ]
-                          .filter(Boolean)
-                          .join(" · ")}
-                      >
-                        {m.lastErrorCode != null ? `HTTP ${m.lastErrorCode}` : ""}
-                        {m.lastErrorCode != null && m.lastErrorMessage ? " · " : ""}
-                        {m.lastErrorMessage ?? ""}
-                      </p>
-                    )}
-                  </div>
-                  <span className="shrink-0 text-xs text-red-600/70 dark:text-red-400/60">
-                    {m.lastStatusChangedAt
-                      ? `Down for ${formatDuration(m.lastStatusChangedAt)}`
-                      : "Down"}
-                  </span>
-                </li>
-              ))}
             </ul>
           </section>
         )}
 
-        {/* ── Footer ──────────────────────────────────────────────── */}
-        <p className="mt-10 flex items-center justify-center gap-1.5 text-center text-xs text-text-muted">
-          <span>Powered by UPG Monitor</span>
-          <span aria-hidden>·</span>
-          <span>Refreshes every 60s</span>
-        </p>
+        {incidents.length > 0 && (
+          <section
+            className="mt-10 rounded-2xl border border-destructive/25 bg-destructive/5 p-5 sm:p-6"
+            aria-label="Active incidents"
+          >
+            <div className="flex flex-wrap items-start gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/12 text-destructive">
+                <AlertTriangle className="h-5 w-5" aria-hidden />
+              </div>
+              <div className="min-w-0 flex-1">
+                <h2
+                  className="text-base font-semibold text-destructive"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  Active incidents
+                </h2>
+                <p className="mt-1 text-sm text-text-muted">
+                  These services failed the most recent check.
+                </p>
+                <ul className="mt-4 flex flex-col gap-3">
+                  {incidents.map((m) => (
+                    <li
+                      key={m.id}
+                      className="flex flex-col gap-2 rounded-xl border border-destructive/20 bg-bg-card/80 px-4 py-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4"
+                    >
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 text-destructive">
+                          <XCircle className="h-4 w-4 shrink-0" aria-hidden />
+                          <span className="font-medium">{m.name}</span>
+                        </div>
+                        {(m.lastErrorCode != null || m.lastErrorMessage) && (
+                          <p
+                            className="mt-2 pl-6 text-xs leading-relaxed text-text-muted"
+                            title={[
+                              m.lastErrorCode != null ? `HTTP ${m.lastErrorCode}` : null,
+                              m.lastErrorMessage,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          >
+                            {m.lastErrorCode != null ? `HTTP ${m.lastErrorCode}` : ""}
+                            {m.lastErrorCode != null && m.lastErrorMessage ? " · " : ""}
+                            {m.lastErrorMessage ?? ""}
+                          </p>
+                        )}
+                      </div>
+                      <span className="shrink-0 pl-6 text-xs tabular-nums text-text-muted sm:pl-0 sm:text-right">
+                        {m.lastStatusChangedAt
+                          ? `Unhealthy for ${formatDuration(m.lastStatusChangedAt)}`
+                          : "Unhealthy"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!isLoggedIn && (
+          <section
+            className="mt-12 rounded-2xl border border-border bg-bg-card p-5 shadow-sm sm:flex sm:items-center sm:justify-between sm:gap-6 sm:p-6 dark:shadow-none"
+            aria-labelledby="public-status-guest-cta-heading"
+          >
+            <div className="min-w-0">
+              <h2
+                id="public-status-guest-cta-heading"
+                className="text-base font-semibold text-text-primary"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                {tPublic("guestCtaHeading")}
+              </h2>
+              <p className="mt-1.5 text-sm leading-relaxed text-text-muted">
+                {tPublic("guestCtaBody")}
+              </p>
+            </div>
+            <div className="mt-4 shrink-0 sm:mt-0">
+              <Link
+                href="/"
+                aria-label={tPublic("guestCtaButtonAria")}
+                className="inline-flex w-full items-center justify-center rounded-md bg-accent px-4 py-2.5 text-center text-sm font-medium text-bg-page transition-colors hover:bg-accent-hover sm:w-auto"
+              >
+                {tPublic("guestCtaButton")}
+              </Link>
+            </div>
+          </section>
+        )}
+
+        <footer className="mt-14 border-t border-border pt-8">
+          <p className="flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center text-xs text-text-muted">
+            {showPoweredBy && (
+              <>
+                <span>
+                  Powered by{" "}
+                  <Link
+                    href="/"
+                    className="font-medium text-text-primary underline-offset-4 transition-colors hover:text-primary hover:underline"
+                  >
+                    UPG Monitor
+                  </Link>
+                </span>
+                <span aria-hidden className="text-border">
+                  ·
+                </span>
+              </>
+            )}
+            <span>Auto-refresh about every 60s</span>
+          </p>
+        </footer>
       </main>
     </div>
   );

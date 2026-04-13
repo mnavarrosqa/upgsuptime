@@ -9,8 +9,18 @@ export const user = sqliteTable("user", {
   role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
   activityClearedAt: integer("activity_cleared_at", { mode: "timestamp" }),
+  /** JSON array of dismissed activity event ids (check_result.id or degradation_alert_event.id). */
+  activityDismissedIds: text("activity_dismissed_ids"),
   onboardingCompleted: integer("onboarding_completed", { mode: "boolean" }),
   onboardingStep: text("onboarding_step"),
+  /** Optional headline on /status/[username]; falls back to username. */
+  statusPageTitle: text("status_page_title"),
+  /** Optional subtitle under the title on the public status page. */
+  statusPageTagline: text("status_page_tagline"),
+  /** When true, show the default product footer on the public status page. */
+  statusPageShowPoweredBy: integer("status_page_show_powered_by", {
+    mode: "boolean",
+  }).default(true),
 });
 
 export const monitor = sqliteTable("monitor", {
@@ -65,6 +75,17 @@ export const checkResult = sqliteTable("check_result", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+/** Logged when a degradation threshold is crossed (same moment as degradingAlertSentAt is set). */
+export const degradationAlertEvent = sqliteTable("degradation_alert_event", {
+  id: text("id").primaryKey(),
+  monitorId: text("monitor_id")
+    .notNull()
+    .references(() => monitor.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  recentAvgMs: integer("recent_avg_ms").notNull(),
+  baselineP75Ms: integer("baseline_p75_ms").notNull(),
+});
+
 export const settings = sqliteTable("settings", {
   key: text("key").primaryKey(),
   value: text("value").notNull(),
@@ -93,6 +114,8 @@ export type Monitor = typeof monitor.$inferSelect;
 export type NewMonitor = typeof monitor.$inferInsert;
 export type CheckResult = typeof checkResult.$inferSelect;
 export type NewCheckResult = typeof checkResult.$inferInsert;
+export type DegradationAlertEvent = typeof degradationAlertEvent.$inferSelect;
+export type NewDegradationAlertEvent = typeof degradationAlertEvent.$inferInsert;
 export type Settings = typeof settings.$inferSelect;
 export type NewSettings = typeof settings.$inferInsert;
 export type ApiKey = typeof apiKey.$inferSelect;

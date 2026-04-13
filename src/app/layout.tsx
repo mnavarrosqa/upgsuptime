@@ -4,7 +4,7 @@ import { Instrument_Sans, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { pwaSplashStartupImages } from "@/lib/pwa-splash-startup.generated";
-import { getLocale, getMessages } from "next-intl/server";
+import { getLocale, getMessages, getTimeZone } from "next-intl/server";
 import { cn } from "@/lib/utils";
 
 const themeScript = `
@@ -62,6 +62,7 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const timeZone = await getTimeZone();
 
   return (
     <html
@@ -71,7 +72,9 @@ export default async function RootLayout({
     >
       <body className="font-sans antialiased">
         <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
-        <Providers locale={locale} messages={messages}>{children}</Providers>
+        <Providers locale={locale} messages={messages} timeZone={timeZone}>
+          {children}
+        </Providers>
       </body>
     </html>
   );

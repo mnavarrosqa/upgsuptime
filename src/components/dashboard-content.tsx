@@ -18,6 +18,7 @@ import { sortMonitors } from "@/lib/sort-monitors";
 import { isDowntimeAcked } from "@/lib/downtime-ack";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Activity, CheckCircle2, ExternalLink, Layers, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -124,7 +125,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
       {pausedMonitors.length > 0 && (
         <>
           {multipleGroups && (
-            <li className="col-span-full mt-1">
+            <li className="col-span-full mt-8">
               <p className="text-xs font-semibold uppercase tracking-widest text-text-muted">
                 {t("paused")}
               </p>
@@ -138,7 +139,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
       {(upMonitors.length > 0 || uncheckedMonitors.length > 0) && (
         <>
           {multipleGroups && (
-            <li className="col-span-full mt-1">
+            <li className="col-span-full mt-8">
               <p className="text-xs font-semibold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
                 {t("operational")}
               </p>
@@ -242,80 +243,163 @@ export function DashboardContent({
         )}
       </div>
 
-      {/* Subtitle: inline stats or onboarding hint */}
-      {hasMonitors ? (
-        <p className="mt-1.5 flex items-center gap-2 text-sm text-text-muted">
-          <span>{t("monitorCount", { count: monitors.length })}</span>
-          <span aria-hidden>·</span>
-          <span className="text-emerald-600 dark:text-emerald-400">
-            {t("upCount", { count: upCount })}
-          </span>
-          {downCount > 0 && (
-            <>
-              <span aria-hidden>·</span>
-              <span className="text-red-600 dark:text-red-400">
-                {t("downLabel", { count: downCount })}
-              </span>
-            </>
-          )}
-          {username && (
-            <>
-              <span aria-hidden>·</span>
-              <Link
-                href={`/status/${username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hover:text-text-primary"
+      {/* Summary strip + toolbar (when monitors exist) */}
+      {hasMonitors && (
+        <>
+          <div className="mt-4 overflow-hidden rounded-xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
+            <div className="border-b border-border/80 bg-gradient-to-b from-muted/40 to-transparent px-2.5 py-2 dark:from-muted/25 sm:px-3 sm:py-2">
+              <p
+                className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
+                style={{ fontFamily: "var(--font-display)" }}
               >
-                {t("statusPageLink")}
-              </Link>
-            </>
-          )}
-        </p>
-      ) : (
-        <p className="mt-1 text-sm text-text-muted">
-          {t("addFirstMonitor")}
-        </p>
-      )}
-
-      {/* Toolbar: search + sort + add button */}
-      <div className="mt-5 flex items-center gap-3 [--enter-delay:90ms] motion-safe:motion-soft-pop">
-        {hasMonitors && (
-          <div className="flex flex-wrap items-center gap-2 flex-1 sm:flex-nowrap">
-            <div className="flex-1">
-              <SearchWithTypeahead
-                monitors={searchItems}
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder={t("searchPlaceholder")}
-              />
+                {t("summaryHeading")}
+              </p>
             </div>
-            <SortDropdown
-              options={sortOptions}
-              value={sortBy.field}
-              direction={sortBy.direction}
-              onChange={(field, direction) => setSortBy({ field, direction })}
-            />
+            <div className="p-2.5 sm:p-3">
+              <div
+                className={cn(
+                  "flex flex-col gap-3",
+                  username ? "sm:flex-row sm:items-stretch sm:gap-4" : ""
+                )}
+              >
+                <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 sm:gap-2">
+                  <div className="flex min-w-0 flex-col rounded-lg border border-border/80 bg-muted/35 px-2 py-2 dark:bg-muted/20 sm:px-2.5 sm:py-2.5">
+                    <span className="flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider text-text-muted">
+                      <Layers className="size-3 shrink-0 opacity-80" aria-hidden />
+                      {t("statLabelTotal")}
+                    </span>
+                    <p
+                      className="mt-1.5 truncate text-lg font-semibold tabular-nums text-text-primary sm:text-xl"
+                      style={{ fontFamily: "var(--font-display)" }}
+                    >
+                      {monitors.length}
+                    </p>
+                  </div>
+                  <div className="flex min-w-0 flex-col rounded-lg border border-border/80 bg-emerald-500/[0.06] px-2 py-2 dark:bg-emerald-500/10 sm:px-2.5 sm:py-2.5">
+                    <span className="flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400/90">
+                      <CheckCircle2 className="size-3 shrink-0 opacity-90" aria-hidden />
+                      {t("statLabelUp")}
+                    </span>
+                    <p className="mt-1.5 text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400 sm:text-xl">
+                      {upCount}
+                    </p>
+                  </div>
+                  <div
+                    className={cn(
+                      "flex min-w-0 flex-col rounded-lg border px-2 py-2 sm:px-2.5 sm:py-2.5",
+                      downCount > 0
+                        ? "border-red-500/35 bg-red-500/[0.06] dark:bg-red-500/10"
+                        : "border-border/80 bg-muted/35 dark:bg-muted/20"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider",
+                        downCount > 0
+                          ? "text-red-700 dark:text-red-400/90"
+                          : "text-text-muted"
+                      )}
+                    >
+                      <XCircle className="size-3 shrink-0 opacity-90" aria-hidden />
+                      {t("statLabelDown")}
+                    </span>
+                    <p
+                      className={cn(
+                        "mt-1.5 text-lg font-semibold tabular-nums sm:text-xl",
+                        downCount > 0
+                          ? "text-red-700 dark:text-red-400"
+                          : "text-text-muted"
+                      )}
+                    >
+                      {downCount}
+                    </p>
+                  </div>
+                </div>
+                {username ? (
+                  <>
+                    <div
+                      className="hidden w-px shrink-0 bg-border sm:block"
+                      aria-hidden
+                    />
+                    <div className="flex items-center justify-center sm:w-[min(100%,13rem)] sm:shrink-0 sm:flex-col sm:justify-center">
+                      <Link
+                        href={`/status/${username}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex w-full max-w-sm items-center justify-center gap-1.5 rounded-lg border border-border bg-bg-elevated/80 px-2.5 py-2 text-center text-xs font-medium text-text-primary transition-[background-color,box-shadow,color] hover:bg-muted hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-auto sm:min-w-[10rem] sm:text-sm"
+                      >
+                        <ExternalLink
+                          className="size-3.5 shrink-0 text-text-muted sm:size-4"
+                          aria-hidden
+                        />
+                        {t("statusPageLink")}
+                      </Link>
+                    </div>
+                  </>
+                ) : null}
+              </div>
+            </div>
           </div>
-        )}
-        <DashboardAddMonitor />
-      </div>
+
+          <div className="mt-5 rounded-xl border border-border bg-bg-card p-3 sm:p-4 [--enter-delay:90ms] motion-safe:motion-soft-pop">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
+              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
+                <div className="min-w-0 flex-1">
+                  <SearchWithTypeahead
+                    monitors={searchItems}
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder={t("searchPlaceholder")}
+                  />
+                </div>
+                <SortDropdown
+                  options={sortOptions}
+                  value={sortBy.field}
+                  direction={sortBy.direction}
+                  onChange={(field, direction) => setSortBy({ field, direction })}
+                />
+              </div>
+              <div className="flex shrink-0 justify-end sm:justify-start">
+                <DashboardAddMonitor />
+              </div>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* Monitor grid / empty states */}
       {!hasMonitors ? (
-        <div className="mt-8 rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
-          <p className="text-text-muted">
-            {t("noMonitorsYet")}
-          </p>
+        <div className="mt-8 rounded-xl border border-dashed border-border-muted bg-bg-card/50 p-8 text-center sm:p-12">
+          <div className="mx-auto flex max-w-sm flex-col items-center">
+            <span className="flex size-12 items-center justify-center rounded-full bg-muted text-text-muted">
+              <Activity className="size-6" aria-hidden />
+            </span>
+            <h2
+              className="mt-4 text-lg font-semibold tracking-tight text-text-primary"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {t("emptyTitle")}
+            </h2>
+            <p className="mt-2 text-sm text-text-muted">{t("emptyBody")}</p>
+            <div className="mt-6">
+              <DashboardAddMonitor />
+            </div>
+          </div>
         </div>
       ) : filteredMonitors.length === 0 ? (
-        <div className="mt-8 rounded-lg border border-dashed border-border-muted bg-bg-page p-10 text-center">
-          <p className="text-text-muted">{t("noSearchMatch")}</p>
+        <div className="mt-8 rounded-xl border border-dashed border-border-muted bg-bg-card/50 p-8 text-center sm:p-12">
+          <h2
+            className="text-lg font-semibold tracking-tight text-text-primary"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {t("noSearchTitle")}
+          </h2>
+          <p className="mt-2 text-sm text-text-muted">{t("noSearchMatch")}</p>
           <Button
             type="button"
             variant="link"
             onClick={() => setSearchQuery("")}
-            className="mt-3 h-auto p-0 text-sm font-medium text-text-primary underline-offset-2 hover:text-text-muted"
+            className="mt-4 h-auto p-0 text-sm font-medium text-primary underline-offset-4 hover:text-primary/80"
           >
             {t("clearSearch")}
           </Button>

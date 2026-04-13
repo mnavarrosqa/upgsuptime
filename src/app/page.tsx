@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { user } from "@/db/schema";
 import { count } from "drizzle-orm";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const MOCK_MONITORS = [
@@ -19,16 +19,52 @@ const MOCK_MONITORS = [
 export default async function HomePage() {
   // Start session and translations fetches immediately; user-count check is cheap
   // and synchronous relative to the DB call, so we kick everything off in parallel.
-  const [[row], session, t, tCommon] = await Promise.all([
+  const [[row], session, t, tCommon, locale] = await Promise.all([
     db.select({ count: count() }).from(user),
     getServerSession(authOptions),
     getTranslations("landing"),
     getTranslations("common"),
+    getLocale(),
   ]);
 
   if (row.count === 0) redirect("/setup");
   if (session) redirect("/dashboard");
   const upCount = MOCK_MONITORS.filter((m) => m.status).length;
+  const es = locale === "es";
+
+  const mockDetailRows = es
+    ? [
+        { time: "22:23", code: "503", ms: "1245 ms", ok: false },
+        { time: "22:21", code: "503", ms: "987 ms", ok: false },
+        { time: "22:18", code: "0", ms: "—", ok: false },
+        { time: "21:41", code: "503", ms: "1102 ms", ok: false },
+        { time: "20:55", code: "200", ms: "108 ms", ok: true },
+      ]
+    : [
+        { time: "10:23 PM", code: "503", ms: "1245 ms", ok: false },
+        { time: "10:21 PM", code: "503", ms: "987 ms", ok: false },
+        { time: "10:18 PM", code: "0", ms: "—", ok: false },
+        { time: "9:41 PM", code: "503", ms: "1102 ms", ok: false },
+        { time: "8:55 PM", code: "200", ms: "108 ms", ok: true },
+      ];
+
+  const mockActivityRows = es
+    ? [
+        { name: "api.production", down: false, when: "2 min" },
+        { name: "auth.service", down: true, when: "14 min" },
+        { name: "app.production", down: false, when: "1 h" },
+        { name: "auth.service", down: true, when: "1 h" },
+        { name: "cdn.assets", down: false, when: "3 h" },
+        { name: "db.replica", down: false, when: "5 h" },
+      ]
+    : [
+        { name: "api.production", down: false, when: "2m" },
+        { name: "auth.service", down: true, when: "14m" },
+        { name: "app.production", down: false, when: "1h" },
+        { name: "auth.service", down: true, when: "1h" },
+        { name: "cdn.assets", down: false, when: "3h" },
+        { name: "db.replica", down: false, when: "5h" },
+      ];
 
   return (
     <main className="min-h-screen bg-bg-page text-text-primary flex flex-col">
@@ -265,13 +301,7 @@ export default async function HomePage() {
               <span className="text-[9px] uppercase tracking-wider text-text-muted font-semibold text-right">{t("mockColResponse")}</span>
             </div>
             <div className="divide-y divide-border">
-              {[
-                { time: "10:23 PM", code: "503", ms: "1245 ms", ok: false },
-                { time: "10:21 PM", code: "503", ms: "987 ms",  ok: false },
-                { time: "10:18 PM", code: "0",   ms: "—",       ok: false },
-                { time: "09:41 PM", code: "503", ms: "1102 ms", ok: false },
-                { time: "08:55 PM", code: "200", ms: "108 ms",  ok: true  },
-              ].map((row) => (
+              {mockDetailRows.map((row) => (
                 <div key={row.time} className="px-4 py-2 grid grid-cols-[1fr_auto_auto] gap-3 items-center">
                   <span className="text-[11px] text-text-primary tabular-nums">{row.time}</span>
                   <span className={`text-[11px] tabular-nums font-medium ${row.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{row.code}</span>
@@ -298,14 +328,7 @@ export default async function HomePage() {
               <span className="text-[9px] uppercase tracking-wider text-text-muted font-semibold text-right">{t("mockColWhen")}</span>
             </div>
             <div className="divide-y divide-border">
-              {[
-                { name: "api.production", down: false, when: "2m"  },
-                { name: "auth.service",   down: true,  when: "14m" },
-                { name: "app.production", down: false, when: "1h"  },
-                { name: "auth.service",   down: true,  when: "1h"  },
-                { name: "cdn.assets",     down: false, when: "3h"  },
-                { name: "db.replica",     down: false, when: "5h"  },
-              ].map((row) => (
+              {mockActivityRows.map((row) => (
                 <div key={`${row.name}-${row.when}`} className="px-4 py-2.5 grid grid-cols-[1fr_auto_auto] gap-3 items-center">
                   <span className="text-[12px] font-medium text-text-primary truncate">{row.name}</span>
                   <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium flex-shrink-0 ${

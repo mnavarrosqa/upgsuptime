@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useLayoutEffect } from "react";
 import { signOut } from "next-auth/react";
 import Link from "next/link";
 import { ChevronDown, User, LogOut, BookOpen, CircleHelp } from "lucide-react";
@@ -24,9 +24,18 @@ function getInitials(name: string | null | undefined, email: string): string {
   return email.slice(0, 2).toUpperCase();
 }
 
+function getMenuFocusables(panel: HTMLElement): HTMLElement[] {
+  return Array.from(
+    panel.querySelectorAll<HTMLElement>('a[href][role="menuitem"], button[role="menuitem"]'),
+  ).filter((el) => !el.hasAttribute("disabled"));
+}
+
 export function UserMenu({ email, name }: UserMenuProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const menuPanelRef = useRef<HTMLDivElement>(null);
+  const hadOpenedRef = useRef(false);
   const t = useTranslations("nav");
 
   useEffect(() => {
@@ -48,11 +57,54 @@ export function UserMenu({ email, name }: UserMenuProps) {
     };
   }, [open]);
 
+  useLayoutEffect(() => {
+    if (open) {
+      hadOpenedRef.current = true;
+      const panel = menuPanelRef.current;
+      if (panel) {
+        const focusables = getMenuFocusables(panel);
+        focusables[0]?.focus();
+      }
+    } else if (hadOpenedRef.current) {
+      hadOpenedRef.current = false;
+      triggerRef.current?.focus();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !menuPanelRef.current) return;
+    const panel = menuPanelRef.current;
+
+    function onKeyDown(e: KeyboardEvent) {
+      if (e.key !== "Tab") return;
+      const nodes = getMenuFocusables(panel);
+      if (nodes.length === 0) return;
+      const first = nodes[0];
+      const last = nodes[nodes.length - 1];
+      const active = document.activeElement;
+      if (e.shiftKey) {
+        if (active === first) {
+          e.preventDefault();
+          last.focus();
+        }
+      } else {
+        if (active === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    }
+
+    panel.addEventListener("keydown", onKeyDown);
+    return () => panel.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   const initials = getInitials(name, email);
 
   return (
     <div className="relative" ref={ref}>
       <Button
+        ref={triggerRef}
         type="button"
         variant="ghost"
         onClick={() => setOpen((o) => !o)}
@@ -72,6 +124,7 @@ export function UserMenu({ email, name }: UserMenuProps) {
       </Button>
       {open && (
         <div
+          ref={menuPanelRef}
           className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-border bg-bg-card py-1 shadow-lg"
           role="menu"
           aria-label={t("accountActions")}

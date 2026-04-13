@@ -3,10 +3,12 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { Mail, Shield, User } from "lucide-react";
 import { ProfileForm } from "@/components/profile-form";
+import { StatusPageSettingsForm } from "@/components/status-page-settings-form";
+import { StatusPageMonitorsVisibility } from "@/components/status-page-monitors-visibility";
 import { PasswordForm } from "@/components/password-form";
 import { db } from "@/db";
-import { user } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { user, monitor } from "@/db/schema";
+import { asc, eq } from "drizzle-orm";
 import { AccountOnboardingSection } from "@/components/account-onboarding-section";
 import { AccountDataPortability } from "@/components/account-data-portability";
 import { ApiAccessSection } from "@/components/api-access-section";
@@ -36,10 +38,35 @@ export default async function AccountPage() {
   const { email, name, role, id } = session.user;
   const initials = getInitials(name, email ?? "");
 
-  const [userOnboarding] = await db
-    .select({ onboardingCompleted: user.onboardingCompleted, onboardingStep: user.onboardingStep, language: user.language })
+  const [userRow] = await db
+    .select({
+      onboardingCompleted: user.onboardingCompleted,
+      onboardingStep: user.onboardingStep,
+      language: user.language,
+      statusPageTitle: user.statusPageTitle,
+      statusPageTagline: user.statusPageTagline,
+      statusPageShowPoweredBy: user.statusPageShowPoweredBy,
+    })
     .from(user)
     .where(eq(user.id, id));
+
+  const statusMonitors = await db
+    .select({
+      id: monitor.id,
+      name: monitor.name,
+      url: monitor.url,
+      showOnStatusPage: monitor.showOnStatusPage,
+    })
+    .from(monitor)
+    .where(eq(monitor.userId, id))
+    .orderBy(asc(monitor.name));
+
+  const statusMonitorRows = statusMonitors.map((m) => ({
+    id: m.id,
+    name: m.name,
+    url: m.url,
+    showOnStatusPage: m.showOnStatusPage !== false,
+  }));
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -127,7 +154,7 @@ export default async function AccountPage() {
                 {tAccount("profileSubtitle")}
               </p>
               <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
-                <ProfileForm username={name} language={userOnboarding?.language ?? "en"} />
+                <ProfileForm username={name} language={userRow?.language ?? "en"} />
               </div>
             </div>
 
@@ -152,10 +179,56 @@ export default async function AccountPage() {
         }
         guide={
           <AccountOnboardingSection
-            onboardingCompleted={userOnboarding?.onboardingCompleted}
+            onboardingCompleted={userRow?.onboardingCompleted}
             userId={id}
             className="mt-0"
           />
+        }
+        status={
+          <div>
+            <h2
+              className="text-base font-semibold text-text-primary"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {tAccount("statusPageTitle")}
+            </h2>
+            <p className="mt-1 text-sm text-text-muted">{tAccount("statusPageTabIntro")}</p>
+
+            <div className="mt-8">
+              <h3
+                className="text-sm font-semibold text-text-primary"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                {tAccount("statusPageSectionDetails")}
+              </h3>
+              <p className="mt-0.5 text-sm text-text-muted">{tAccount("statusPageSubtitle")}</p>
+              <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
+                <StatusPageSettingsForm
+                  key={`sp-${userRow?.statusPageTitle ?? ""}-${userRow?.statusPageTagline ?? ""}-${String(userRow?.statusPageShowPoweredBy)}`}
+                  username={name}
+                  statusPageTitle={userRow?.statusPageTitle}
+                  statusPageTagline={userRow?.statusPageTagline}
+                  statusPageShowPoweredBy={userRow?.statusPageShowPoweredBy}
+                />
+              </div>
+            </div>
+
+            <div className="mt-10">
+              <h3
+                className="text-sm font-semibold text-text-primary"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                {tAccount("statusPageMonitorsHeading")}
+              </h3>
+              <p className="mt-0.5 text-sm text-text-muted">{tAccount("statusPageMonitorsSubtitle")}</p>
+              <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
+                <StatusPageMonitorsVisibility
+                  key={statusMonitorRows.map((m) => `${m.id}:${m.showOnStatusPage}`).join("|")}
+                  monitors={statusMonitorRows}
+                />
+              </div>
+            </div>
+          </div>
         }
         developer={<ApiAccessSection username={name} className="mt-0" />}
       />

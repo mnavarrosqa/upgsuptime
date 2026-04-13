@@ -1,6 +1,6 @@
 import { cookies, headers } from "next/headers";
 import { getRequestConfig } from "next-intl/server";
-import { DEFAULT_LOCALE, LOCALE_COOKIE, normalizeLocale } from "./config";
+import { DEFAULT_LOCALE, DEFAULT_TIME_ZONE, LOCALE_COOKIE, normalizeLocale } from "./config";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -23,6 +23,7 @@ export default getRequestConfig(async () => {
 
   return {
     locale,
+    timeZone: DEFAULT_TIME_ZONE,
     messages: (await import(`../../messages/${locale}.json`)).default,
   };
 });

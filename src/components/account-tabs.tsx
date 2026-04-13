@@ -5,7 +5,7 @@ import { Tabs } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
 
-const TAB_VALUES = ["profile", "security", "guide", "developer"] as const;
+const TAB_VALUES = ["profile", "security", "status", "guide", "developer"] as const;
 type TabValue = (typeof TAB_VALUES)[number];
 
 function isTabValue(v: string): v is TabValue {
@@ -24,11 +24,18 @@ const panelClass = "mt-6 outline-none";
 interface AccountTabsProps {
   profile: ReactNode;
   security: ReactNode;
+  status: ReactNode;
   guide: ReactNode;
   developer: ReactNode;
 }
 
-export function AccountTabs({ profile, security, guide, developer }: AccountTabsProps) {
+export function AccountTabs({
+  profile,
+  security,
+  status,
+  guide,
+  developer,
+}: AccountTabsProps) {
   const t = useTranslations("account");
   const [tab, setTab] = useState<TabValue>("profile");
 
@@ -36,6 +43,8 @@ export function AccountTabs({ profile, security, guide, developer }: AccountTabs
     const hash = typeof window !== "undefined" ? window.location.hash.slice(1) : "";
     if (hash === "onboarding") {
       setTab("guide");
+    } else if (hash === "status") {
+      setTab("status");
     }
   }, []);
 
@@ -48,6 +57,9 @@ export function AccountTabs({ profile, security, guide, developer }: AccountTabs
         >
           <Tabs.Trigger value="profile" className={triggerClass}>
             {t("tabProfile")}
+          </Tabs.Trigger>
+          <Tabs.Trigger value="status" className={triggerClass}>
+            {t("tabStatusPage")}
           </Tabs.Trigger>
           <Tabs.Trigger value="security" className={triggerClass}>
             {t("tabSecurity")}
@@ -66,6 +78,9 @@ export function AccountTabs({ profile, security, guide, developer }: AccountTabs
       </Tabs.Content>
       <Tabs.Content value="security" className={panelClass}>
         {security}
+      </Tabs.Content>
+      <Tabs.Content value="status" className={panelClass}>
+        {status}
       </Tabs.Content>
       <Tabs.Content value="guide" className={panelClass}>
         {guide}

@@ -88,6 +88,7 @@
     "tabsNavLabel": "Account sections",
     "tabProfile": "Profile",
     "tabSecurity": "Security",
+    "tabStatusPage": "Status page",
     "tabGuide": "Guide",
     "tabDeveloper": "API",
     "notSet": "Not set",
@@ -135,7 +136,28 @@
     "apiExampleCopiedSnippet": "Example copied",
     "apiExampleCorsHint": "Browser widgets: add your site’s origin (for example https://app.example.com) to Allowed origins on the key, or the browser will block the request (CORS).",
     "apiExampleQueryHint": "Optional query: ?monitorId='<id>' limits to one monitor; ?limit=100 caps how many monitors are returned (default 100, max 500).",
-    "apiResponseFieldsHint": "Each monitor in data.monitors includes type, intervalMinutes, paused, method, SSL fields, consecutiveFailures, uptimePct and checkCount90d (90 days), plus status timestamps."
+    "apiResponseFieldsHint": "Each monitor in data.monitors includes type, intervalMinutes, paused, method, SSL fields, consecutiveFailures, uptimePct and checkCount90d (90 days), plus status timestamps.",
+    "statusPageTitle": "Public status page",
+    "statusPageTabIntro": "Configure your public URL (you need a username in Profile), how the page reads, the footer, and which monitors are visible to visitors.",
+    "statusPageSectionDetails": "Page details",
+    "statusPageSubtitle": "Title, tagline, and footer for /status/your-username.",
+    "statusPageMonitorsHeading": "Visible monitors",
+    "statusPageMonitorsSubtitle": "Only checked monitors appear on your public page. Others stay in your account only.",
+    "statusPageMonitorsEmpty": "You don’t have any monitors yet.",
+    "statusPageMonitorsGoToMonitors": "Go to Monitors",
+    "statusPageMonitorShowLabel": "Show on public page",
+    "statusPageMonitorShowAria": "Show {name} on public status page",
+    "statusPageUrlLabel": "Public URL",
+    "statusPageOpen": "Open page",
+    "statusPageTitleLabel": "Page title",
+    "statusPageTitleHelp": "Shown as the main heading. If empty, your username is used.",
+    "statusPageTaglineLabel": "Tagline",
+    "statusPageTaglinePlaceholder": "Short description for visitors",
+    "statusPageTaglineHelp": "Optional subtitle below the title (for example team or product name).",
+    "statusPageShowPoweredBy": "Show “Powered by UPG Monitor” in the footer",
+    "statusPageSave": "Save status page",
+    "statusPageSaved": "Status page settings saved",
+    "statusPageNeedUsername": "Set a username on the Profile tab to get a public URL, then you can customize this page."
   },
   "errors": {
     "fallback": "Request failed",
@@ -167,7 +189,12 @@
     "API_KEY_EXPIRES_INVALID": "Expiration date is invalid.",
     "API_KEY_EXPIRES_PAST": "Expiration date must be in the future.",
     "API_KEY_NOT_FOUND": "API key was not found.",
-    "API_KEY_NO_CHANGES": "No changes were submitted."
+    "API_KEY_NO_CHANGES": "No changes were submitted.",
+    "INVALID_JSON": "Request body must be valid JSON.",
+    "INVALID_BODY": "Invalid request.",
+    "NO_FIELDS": "No valid fields to update.",
+    "STATUS_PAGE_TITLE_TOO_LONG": "Page title must be 120 characters or less.",
+    "STATUS_PAGE_TAGLINE_TOO_LONG": "Tagline must be 400 characters or less."
   },
   "nav": {
     "appTitle": "UPG Monitor",
@@ -188,11 +215,20 @@
     "unreadIncidents": "Unread incidents",
     "accountMenu": "Account menu",
     "accountActions": "Account actions",
-    "backToTop": "Back to top"
+    "backToTop": "Back to top",
+    "skipToContent": "Skip to main content"
   },
   "theme": {
     "switchToLight": "Switch to light theme",
     "switchToDark": "Switch to dark theme"
+  },
+  "publicStatus": {
+    "customizeLink": "Customize your public status page",
+    "customizeAria": "Open account settings to customize your public status page",
+    "guestCtaHeading": "Want a page like this?",
+    "guestCtaBody": "Monitor uptime, share a public status page, and get alerts when something goes wrong.",
+    "guestCtaButton": "Visit UPG Monitor",
+    "guestCtaButtonAria": "Go to the UPG Monitor home page"
   },
   "time": {
     "never": "Never",
@@ -215,9 +251,16 @@
     "monitorCount": "{count, plural, one {# monitor} other {# monitors}}",
     "upCount": "{count} up",
     "downLabel": "{count} down",
-    "statusPageLink": "Status page →",
+    "summaryHeading": "Overview",
+    "statLabelTotal": "Total",
+    "statLabelUp": "Up",
+    "statLabelDown": "Down",
+    "statusPageLink": "Public status page",
     "addFirstMonitor": "Add your first monitor to get started.",
     "searchPlaceholder": "Search by name or URL…",
+    "emptyTitle": "No monitors yet",
+    "emptyBody": "Add your first monitor to track uptime and response time from this dashboard.",
+    "noSearchTitle": "No matches",
     "noMonitorsYet": "No monitors yet. Add one above to get started.",
     "noSearchMatch": "No monitors match your search.",
     "clearSearch": "Clear search",
@@ -230,13 +273,14 @@
     "eventCount": "{count, plural, one {# event} other {# events}}",
     "clearing": "Clearing…",
     "clearAll": "Clear all",
-    "subtitle": "Up to 50 status changes in the last 7 days, {pageSize} per page.",
+    "dismiss": "Dismiss",
+    "dismissAriaLabel": "Remove this event from the list",
+    "subtitle": "Up to 50 events in the last 7 days — downtime, recovery, and slow-response degradation alerts — {pageSize} per page.",
     "empty": "No activity in the last 7 days.",
-    "colMonitor": "Monitor",
-    "colEvent": "Event",
-    "colWhen": "When",
     "wentDown": "Went down",
     "recovered": "Recovered",
+    "degradationBadge": "Slow response",
+    "degradationDetail": "Recent average {recent} ms vs baseline {baseline} ms ({ratio}× normal)",
     "pageOf": "Page {page} of {totalPages}",
     "showingRange": "· {from}–{to} of {total}",
     "previous": "Previous",
@@ -244,6 +288,10 @@
   },
   "monitorsPage": {
     "title": "Monitors",
+    "overviewHeading": "Overview",
+    "tableSectionHeading": "All monitors",
+    "emptyTitle": "No monitors yet",
+    "emptyBody": "Add a monitor to run scheduled checks, or import a JSON backup.",
     "totalCount": "{count} total",
     "searchPlaceholder": "Search by name or URL…",
     "exporting": "Exporting…",
@@ -396,7 +444,7 @@
           "Interval is how often checks run. Timeout is the maximum wait for a response before a check is treated as failed.",
           "HTTP method can be GET or HEAD. Expected status codes describe which responses count as success, for example 200-299.",
           "Email alerts notify you when a monitor goes down or recovers; you can override the destination address or use your account default.",
-          "SSL monitoring reports certificate issues when enabled. Show on status page controls whether this monitor appears on your public /status/username page."
+          "SSL monitoring reports certificate issues when enabled. Show on status page controls whether this monitor appears on your public /status/username page (you can also manage visibility for all monitors from Account → Status page)."
         ]
       },
       "monitorsListAndBulk": {
@@ -464,7 +512,8 @@
         "summary": "Sharing uptime with others.",
         "body": [
           "Your public page lives at /status/your-username. Only monitors with Show on status page enabled appear there.",
-          "Visitors do not need to sign in. The page shows high-level status and history appropriate for external communication."
+          "Visitors do not need to sign in. The page shows high-level status and history appropriate for external communication.",
+          "Under Account → Status page you can set an optional title and tagline, the footer, and which monitors are visible."
         ]
       },
       "themeAndLanguage": {
@@ -560,6 +609,8 @@
     "feature4Body": "Detects sustained response-time slowdowns before they become outages. Learns each site’s normal baseline, then sends one warning when latency stays well above normal across several checks; the episode only ends after a clear recovery, so your inbox is not flooded by repeat alerts."
   },
   "monitorDetail": {
+    "heroEyebrow": "Monitor overview",
+    "statsHeading": "Metrics",
     "breadcrumb": "Monitors",
     "statusPaused": "Paused",
     "statusUp": "Up",

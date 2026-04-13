@@ -41,6 +41,9 @@ export type AccountExportUser = {
   onboardingCompleted: boolean | null;
   onboardingStep: string | null;
   activityClearedAt: string | null;
+  statusPageTitle?: string | null;
+  statusPageTagline?: string | null;
+  statusPageShowPoweredBy?: boolean;
 };
 
 export type AccountExportMonitor = {

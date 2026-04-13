@@ -9,6 +9,7 @@ import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
 import { SslBadge } from "@/components/ssl-badge";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 type MonitorCardProps = {
   id: string;
@@ -103,7 +104,10 @@ export function MonitorCard({
       style={{ "--enter-delay": `${enterDelayMs}ms` } as CSSProperties}
     >
       <div
-        className={`relative flex h-full flex-col rounded-lg border border-border bg-bg-card p-4 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:border-border-muted hover:shadow active:translate-y-0 active:scale-[0.99] ${paused ? "opacity-60" : ""}`}
+        className={cn(
+          "relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-bg-card p-4 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:border-border-muted hover:shadow active:translate-y-0 active:scale-[0.99]",
+          paused ? "opacity-60" : ""
+        )}
       >
         <Link
           href={`/monitors/${id}`}
@@ -111,7 +115,7 @@ export function MonitorCard({
           aria-label={`View details for ${name}`}
         />
         {/* Header: favicon + name + status */}
-        <div className="pointer-events-none relative z-[1] flex flex-1 flex-col">
+        <div className="pointer-events-none relative z-[2] flex flex-1 flex-col">
         <div className="flex items-start gap-2.5">
           {favicon ? (
             <img

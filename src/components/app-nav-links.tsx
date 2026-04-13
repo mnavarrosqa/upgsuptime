@@ -4,12 +4,14 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useActivity } from "@/components/activity-context";
+import {
+  APP_PRIMARY_NAV_LINKS,
+  isAdminNavActive,
+  isPrimaryNavActive,
+} from "@/lib/app-main-nav";
 
-const links = [
-  { href: "/dashboard", labelKey: "dashboard" as const },
-  { href: "/monitors", labelKey: "monitors" as const },
-  { href: "/activity", labelKey: "activity" as const },
-] as const;
+const navLinkClass =
+  "relative flex items-center gap-1.5 border-b-2 px-2 text-sm font-medium transition motion-safe:active:scale-95";
 
 export function AppNavLinks({ role }: { role?: string | null }) {
   const pathname = usePathname();
@@ -18,18 +20,16 @@ export function AppNavLinks({ role }: { role?: string | null }) {
 
   return (
     <nav className="flex h-full items-stretch gap-1" aria-label={t("mainNav")}>
-      {links.map(({ href, labelKey }) => {
+      {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
         const label = t(labelKey);
-        const active =
-          href === "/dashboard"
-            ? pathname === "/dashboard"
-            : pathname.startsWith(href);
+        const active = isPrimaryNavActive(pathname, href);
         const hasUnread = href === "/activity" && unreadCount > 0;
         return (
           <Link
             key={href}
             href={href}
-            className={`relative flex items-center gap-1.5 border-b-2 px-2 text-sm font-medium transition active:scale-95 ${
+            aria-current={active ? "page" : undefined}
+            className={`${navLinkClass} ${
               active
                 ? "border-accent text-text-primary"
                 : "border-transparent text-text-muted hover:text-text-primary"
@@ -45,8 +45,9 @@ export function AppNavLinks({ role }: { role?: string | null }) {
       {role === "admin" && (
         <Link
           href="/admin"
-          className={`flex items-center border-b-2 px-2 text-sm font-medium transition active:scale-95 ${
-            pathname.startsWith("/admin")
+          aria-current={isAdminNavActive(pathname) ? "page" : undefined}
+          className={`flex items-center border-b-2 px-2 text-sm font-medium transition motion-safe:active:scale-95 ${
+            isAdminNavActive(pathname)
               ? "border-accent text-text-primary"
               : "border-transparent text-text-muted hover:text-text-primary"
           }`}
