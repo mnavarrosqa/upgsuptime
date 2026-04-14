@@ -7,11 +7,15 @@ import { toast } from "sonner";
 import { Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { MAX_ACCOUNT_IMPORT_BODY_BYTES } from "@/lib/account-data";
 
 const btnSecondaryClass =
   "inline-flex items-center justify-center gap-2 rounded-md border border-border bg-bg-card px-3.5 py-2.5 text-sm font-medium text-text-primary hover:bg-bg-muted/60 focus:outline-none focus:ring-2 focus:ring-input-focus disabled:opacity-50";
 
 const labelClass = "flex cursor-pointer items-start gap-2 text-sm text-text-primary";
+const MAX_ACCOUNT_IMPORT_BODY_MB = Math.floor(
+  MAX_ACCOUNT_IMPORT_BODY_BYTES / (1024 * 1024)
+);
 
 export function AccountDataPortability({ className }: { className?: string }) {
   const { update } = useSession();
@@ -53,6 +57,11 @@ export function AccountDataPortability({ className }: { className?: string }) {
   async function handleImportFile(file: File) {
     setImporting(true);
     try {
+      if (file.size > MAX_ACCOUNT_IMPORT_BODY_BYTES) {
+        throw new Error(
+          `Import file is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum is ${MAX_ACCOUNT_IMPORT_BODY_MB}MB. Export again without check history for smaller files.`
+        );
+      }
       const text = await file.text();
       let json: unknown;
       try {
@@ -83,6 +92,11 @@ export function AccountDataPortability({ className }: { className?: string }) {
         profileUpdated?: boolean;
       };
       if (!res.ok) {
+        if (res.status === 413) {
+          throw new Error(
+            "Import file exceeds server upload limit. Export again without check history, or increase upload body size on your reverse proxy."
+          );
+        }
         throw new Error(data.error ?? "Import failed");
       }
       const parts: string[] = [];
@@ -208,7 +222,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
           />
           <p className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
             <Upload className="size-3.5 shrink-0" aria-hidden />
-            Choosing a file starts the import immediately.
+            Choosing a file starts the import immediately (max {MAX_ACCOUNT_IMPORT_BODY_MB}MB).
           </p>
         </div>
       </div>
