@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Download, Upload } from "lucide-react";
+import { Download, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { MAX_ACCOUNT_IMPORT_BODY_BYTES } from "@/lib/account-data";
@@ -220,6 +220,25 @@ export function AccountDataPortability({ className }: { className?: string }) {
               if (f) void handleImportFile(f);
             }}
           />
+          {importing ? (
+            <div className="mt-3 rounded-md border border-border bg-bg-muted/40 p-3">
+              <p className="flex items-center gap-2 text-sm font-medium text-text-primary">
+                <Loader2 className="size-4 animate-spin" aria-hidden />
+                Importing backup...
+              </p>
+              <p className="mt-1 text-xs text-text-muted">
+                Uploading and applying your data. Keep this tab open until it finishes.
+              </p>
+              <div
+                className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bg-card"
+                role="status"
+                aria-live="polite"
+                aria-label="Import in progress"
+              >
+                <div className="h-full w-1/3 animate-pulse rounded-full bg-accent" />
+              </div>
+            </div>
+          ) : null}
           <p className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
             <Upload className="size-3.5 shrink-0" aria-hidden />
             Choosing a file starts the import immediately (max {MAX_ACCOUNT_IMPORT_BODY_MB}MB).
