@@ -38,9 +38,11 @@ export function parseImportedDate(value: unknown): Date | null {
 export type AccountExportUser = {
   email: string;
   username: string | null;
+  language?: "en" | "es";
   onboardingCompleted: boolean | null;
   onboardingStep: string | null;
   activityClearedAt: string | null;
+  activityDismissedIds?: string | null;
   statusPageTitle?: string | null;
   statusPageTagline?: string | null;
   statusPageShowPoweredBy?: boolean;
@@ -66,6 +68,18 @@ export type AccountExportMonitor = {
   sslLastCheckedAt: string | null;
   showOnStatusPage: boolean;
   paused: boolean;
+  consecutiveFailures?: number | null;
+  type?: "http" | "keyword" | "dns";
+  keywordContains?: string | null;
+  keywordShouldExist?: boolean;
+  dnsRecordType?: string | null;
+  dnsExpectedValue?: string | null;
+  degradationAlertEnabled?: boolean;
+  baselineP75Ms?: number | null;
+  baselineSampleCount?: number | null;
+  consecutiveDegradedChecks?: number | null;
+  degradingAlertSentAt?: string | null;
+  baselineResetAt?: string | null;
   createdAt: string;
 };
 
@@ -107,6 +121,18 @@ export type ParsedMonitorRow = {
   sslLastCheckedAt: Date | null;
   showOnStatusPage: boolean;
   paused: boolean;
+  consecutiveFailures: number | null;
+  type: "http" | "keyword" | "dns";
+  keywordContains: string | null;
+  keywordShouldExist: boolean;
+  dnsRecordType: string | null;
+  dnsExpectedValue: string | null;
+  degradationAlertEnabled: boolean;
+  baselineP75Ms: number | null;
+  baselineSampleCount: number | null;
+  consecutiveDegradedChecks: number | null;
+  degradingAlertSentAt: Date | null;
+  baselineResetAt: Date | null;
   createdAt: Date;
 };
 
@@ -204,12 +230,49 @@ export function parseMonitorFromImport(
   const showOnStatusPage =
     typeof item.showOnStatusPage === "boolean" ? item.showOnStatusPage : true;
   const paused = item.paused === true;
+  const consecutiveFailures =
+    typeof item.consecutiveFailures === "number" &&
+    Number.isFinite(item.consecutiveFailures)
+      ? Math.max(0, Math.round(item.consecutiveFailures))
+      : null;
+  const type =
+    item.type === "keyword" || item.type === "dns" ? item.type : "http";
+  const keywordContains =
+    typeof item.keywordContains === "string" && item.keywordContains.trim()
+      ? item.keywordContains.trim()
+      : null;
+  const keywordShouldExist = item.keywordShouldExist !== false;
+  const dnsRecordType =
+    typeof item.dnsRecordType === "string" && item.dnsRecordType.trim()
+      ? item.dnsRecordType.trim().toUpperCase()
+      : null;
+  const dnsExpectedValue =
+    typeof item.dnsExpectedValue === "string" && item.dnsExpectedValue.trim()
+      ? item.dnsExpectedValue.trim()
+      : null;
+  const degradationAlertEnabled = item.degradationAlertEnabled === true;
+  const baselineP75Ms =
+    typeof item.baselineP75Ms === "number" && Number.isFinite(item.baselineP75Ms)
+      ? Math.max(0, Math.round(item.baselineP75Ms))
+      : null;
+  const baselineSampleCount =
+    typeof item.baselineSampleCount === "number" &&
+    Number.isFinite(item.baselineSampleCount)
+      ? Math.max(0, Math.round(item.baselineSampleCount))
+      : null;
+  const consecutiveDegradedChecks =
+    typeof item.consecutiveDegradedChecks === "number" &&
+    Number.isFinite(item.consecutiveDegradedChecks)
+      ? Math.max(0, Math.round(item.consecutiveDegradedChecks))
+      : null;
 
   const lastCheckAt = parseImportedDate(item.lastCheckAt);
   const lastStatusChangedAt = parseImportedDate(item.lastStatusChangedAt);
   const downtimeAckEpisodeAt = parseImportedDate(item.downtimeAckEpisodeAt);
   const sslExpiresAt = parseImportedDate(item.sslExpiresAt);
   const sslLastCheckedAt = parseImportedDate(item.sslLastCheckedAt);
+  const degradingAlertSentAt = parseImportedDate(item.degradingAlertSentAt);
+  const baselineResetAt = parseImportedDate(item.baselineResetAt);
   const createdAt = parseImportedDate(item.createdAt);
   if (!createdAt) {
     return {
@@ -251,6 +314,18 @@ export function parseMonitorFromImport(
       sslLastCheckedAt,
       showOnStatusPage,
       paused,
+      consecutiveFailures,
+      type,
+      keywordContains,
+      keywordShouldExist,
+      dnsRecordType,
+      dnsExpectedValue,
+      degradationAlertEnabled,
+      baselineP75Ms,
+      baselineSampleCount,
+      consecutiveDegradedChecks,
+      degradingAlertSentAt,
+      baselineResetAt,
       createdAt,
     },
   };

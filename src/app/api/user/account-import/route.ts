@@ -117,8 +117,10 @@ export async function POST(request: Request) {
     const u = obj.user as Record<string, unknown>;
     const patch: {
       username?: string | null;
+      language?: "en" | "es";
       onboardingCompleted?: boolean | null;
       onboardingStep?: string | null;
+      activityDismissedIds?: string | null;
       statusPageTitle?: string | null;
       statusPageTagline?: string | null;
       statusPageShowPoweredBy?: boolean;
@@ -158,9 +160,16 @@ export async function POST(request: Request) {
           ? u.onboardingCompleted
           : null;
     }
+    if ("language" in u) {
+      patch.language = u.language === "es" ? "es" : "en";
+    }
     if ("onboardingStep" in u) {
       patch.onboardingStep =
         typeof u.onboardingStep === "string" ? u.onboardingStep : null;
+    }
+    if ("activityDismissedIds" in u) {
+      patch.activityDismissedIds =
+        typeof u.activityDismissedIds === "string" ? u.activityDismissedIds : null;
     }
 
     if ("statusPageTitle" in u) {
@@ -269,6 +278,18 @@ export async function POST(request: Request) {
             sslLastCheckedAt: m.sslLastCheckedAt,
             showOnStatusPage: m.showOnStatusPage,
             paused: m.paused,
+            consecutiveFailures: m.consecutiveFailures,
+            type: m.type,
+            keywordContains: m.keywordContains,
+            keywordShouldExist: m.keywordShouldExist,
+            dnsRecordType: m.dnsRecordType,
+            dnsExpectedValue: m.dnsExpectedValue,
+            degradationAlertEnabled: m.degradationAlertEnabled,
+            baselineP75Ms: m.baselineP75Ms,
+            baselineSampleCount: m.baselineSampleCount,
+            consecutiveDegradedChecks: m.consecutiveDegradedChecks,
+            degradingAlertSentAt: m.degradingAlertSentAt,
+            baselineResetAt: m.baselineResetAt,
             createdAt: m.createdAt,
           })
           .run();
@@ -339,6 +360,18 @@ export async function POST(request: Request) {
           sslLastCheckedAt: null,
           showOnStatusPage: m.showOnStatusPage,
           paused: m.paused,
+          consecutiveFailures: m.consecutiveFailures,
+          type: m.type,
+          keywordContains: m.keywordContains,
+          keywordShouldExist: m.keywordShouldExist,
+          dnsRecordType: m.dnsRecordType,
+          dnsExpectedValue: m.dnsExpectedValue,
+          degradationAlertEnabled: m.degradationAlertEnabled,
+          baselineP75Ms: m.baselineP75Ms,
+          baselineSampleCount: m.baselineSampleCount,
+          consecutiveDegradedChecks: m.consecutiveDegradedChecks,
+          degradingAlertSentAt: m.degradingAlertSentAt,
+          baselineResetAt: m.baselineResetAt,
           createdAt: now,
         })
         .run();
