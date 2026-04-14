@@ -173,7 +173,28 @@ export function AccountDataPortability({ className }: { className?: string }) {
 
         <hr className="border-border" />
 
-        <div>
+        <div className="relative">
+          {importing ? (
+            <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-bg-card/85 backdrop-blur-[1px]">
+              <div className="w-full max-w-sm rounded-md border border-border bg-bg-card p-4 shadow-sm">
+                <p className="flex items-center gap-2 text-sm font-semibold text-text-primary">
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Importing backup...
+                </p>
+                <p className="mt-1 text-xs text-text-muted">
+                  Uploading and applying your data. Keep this tab open until it finishes.
+                </p>
+                <div
+                  className="mt-3 h-2 w-full overflow-hidden rounded-full bg-bg-muted"
+                  role="status"
+                  aria-live="polite"
+                  aria-label="Import in progress"
+                >
+                  <div className="h-full w-1/3 animate-pulse rounded-full bg-accent" />
+                </div>
+              </div>
+            </div>
+          ) : null}
           <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
             Import
           </p>
@@ -220,25 +241,6 @@ export function AccountDataPortability({ className }: { className?: string }) {
               if (f) void handleImportFile(f);
             }}
           />
-          {importing ? (
-            <div className="mt-3 rounded-md border border-border bg-bg-muted/40 p-3">
-              <p className="flex items-center gap-2 text-sm font-medium text-text-primary">
-                <Loader2 className="size-4 animate-spin" aria-hidden />
-                Importing backup...
-              </p>
-              <p className="mt-1 text-xs text-text-muted">
-                Uploading and applying your data. Keep this tab open until it finishes.
-              </p>
-              <div
-                className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-bg-card"
-                role="status"
-                aria-live="polite"
-                aria-label="Import in progress"
-              >
-                <div className="h-full w-1/3 animate-pulse rounded-full bg-accent" />
-              </div>
-            </div>
-          ) : null}
           <p className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
             <Upload className="size-3.5 shrink-0" aria-hidden />
             Choosing a file starts the import immediately (max {MAX_ACCOUNT_IMPORT_BODY_MB}MB).
