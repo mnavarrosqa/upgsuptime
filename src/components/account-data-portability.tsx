@@ -16,6 +16,7 @@ const labelClass = "flex cursor-pointer items-start gap-2 text-sm text-text-prim
 const MAX_ACCOUNT_IMPORT_BODY_MB = Math.floor(
   MAX_ACCOUNT_IMPORT_BODY_BYTES / (1024 * 1024)
 );
+const TARGET_CHUNK_BYTES = 450 * 1024;
 
 export function AccountDataPortability({ className }: { className?: string }) {
   const { update } = useSession();
@@ -26,6 +27,120 @@ export function AccountDataPortability({ className }: { className?: string }) {
   const [includeHistory, setIncludeHistory] = useState(true);
   const [restoreMode, setRestoreMode] = useState(true);
   const [applyProfile, setApplyProfile] = useState(false);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [chunkProgressPct, setChunkProgressPct] = useState<number | null>(null);
+
+  function chunkCheckResultsBySize(items: unknown[]): unknown[][] {
+    const chunks: unknown[][] = [];
+    let current: unknown[] = [];
+    let currentSize = 2;
+    for (const item of items) {
+      const row = JSON.stringify(item);
+      const rowSize = row.length + 1;
+      if (current.length > 0 && currentSize + rowSize > TARGET_CHUNK_BYTES) {
+        chunks.push(current);
+        current = [];
+        currentSize = 2;
+      }
+      current.push(item);
+      currentSize += rowSize;
+    }
+    if (current.length > 0) chunks.push(current);
+    return chunks;
+  }
+
+  async function importChunkedRestore(
+    obj: Record<string, unknown>
+  ): Promise<{
+    monitorsImported: number;
+    checkResultsImported: number;
+    monitorErrors: { index: number; error: string }[];
+    checkErrors: { index: number; error: string }[];
+    profileUpdated: boolean;
+  }> {
+    const checkResults = Array.isArray(obj.checkResults) ? obj.checkResults : [];
+    const chunks = chunkCheckResultsBySize(checkResults);
+    const monitorErrors: { index: number; error: string }[] = [];
+    const checkErrors: { index: number; error: string }[] = [];
+    let monitorsImported = 0;
+    let checkResultsImported = 0;
+    let profileUpdated = false;
+
+    setImportStatus("Preparing restore...");
+    setChunkProgressPct(5);
+    const initRes = await fetch("/api/user/account-import/chunked", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        upgAccountExportVersion: obj.upgAccountExportVersion,
+        upgsAccountExportVersion: obj.upgsAccountExportVersion,
+        stage: "init",
+        applyProfile,
+        user: obj.user,
+        monitors: obj.monitors,
+      }),
+    });
+    const initData = (await initRes.json().catch(() => ({}))) as {
+      error?: string;
+      monitorsImported?: number;
+      monitorErrors?: { index: number; error: string }[];
+      profileUpdated?: boolean;
+    };
+    if (!initRes.ok) throw new Error(initData.error ?? "Chunked import init failed");
+    monitorsImported = initData.monitorsImported ?? 0;
+    if (initData.monitorErrors?.length) monitorErrors.push(...initData.monitorErrors);
+    profileUpdated = initData.profileUpdated === true;
+
+    for (let i = 0; i < chunks.length; i++) {
+      const pct = 10 + Math.round(((i + 1) / Math.max(chunks.length, 1)) * 80);
+      setImportStatus(`Importing history chunk ${i + 1}/${chunks.length}...`);
+      setChunkProgressPct(pct);
+      const checksRes = await fetch("/api/user/account-import/chunked", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          upgAccountExportVersion: obj.upgAccountExportVersion,
+          upgsAccountExportVersion: obj.upgsAccountExportVersion,
+          stage: "checks",
+          checkResults: chunks[i],
+        }),
+      });
+      const checksData = (await checksRes.json().catch(() => ({}))) as {
+        error?: string;
+        checkResultsImported?: number;
+        checkErrors?: { index: number; error: string }[];
+      };
+      if (!checksRes.ok) throw new Error(checksData.error ?? "Chunked check import failed");
+      checkResultsImported += checksData.checkResultsImported ?? 0;
+      if (checksData.checkErrors?.length) checkErrors.push(...checksData.checkErrors);
+    }
+
+    setImportStatus("Finalizing and running checks...");
+    setChunkProgressPct(95);
+    const finalizeRes = await fetch("/api/user/account-import/chunked", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        upgAccountExportVersion: obj.upgAccountExportVersion,
+        upgsAccountExportVersion: obj.upgsAccountExportVersion,
+        stage: "finalize",
+      }),
+    });
+    const finalizeData = (await finalizeRes.json().catch(() => ({}))) as {
+      error?: string;
+    };
+    if (!finalizeRes.ok) {
+      throw new Error(finalizeData.error ?? "Chunked import finalize failed");
+    }
+    setChunkProgressPct(100);
+    return {
+      monitorsImported,
+      checkResultsImported,
+      monitorErrors,
+      checkErrors,
+      profileUpdated,
+    };
+  }
 
   async function handleExport() {
     setExporting(true);
@@ -56,12 +171,9 @@ export function AccountDataPortability({ className }: { className?: string }) {
 
   async function handleImportFile(file: File) {
     setImporting(true);
+    setImportStatus("Reading import file...");
+    setChunkProgressPct(null);
     try {
-      if (file.size > MAX_ACCOUNT_IMPORT_BODY_BYTES) {
-        throw new Error(
-          `Import file is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum is ${MAX_ACCOUNT_IMPORT_BODY_MB}MB. Export again without check history for smaller files.`
-        );
-      }
       const text = await file.text();
       let json: unknown;
       try {
@@ -77,12 +189,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
         replaceExistingMonitors: restoreMode,
         applyProfile,
       };
-      const res = await fetch("/api/user/account-import", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = (await res.json().catch(() => ({}))) as {
+      let data: {
         error?: string;
         monitorsImported?: number;
         checkResultsImported?: number;
@@ -91,12 +198,16 @@ export function AccountDataPortability({ className }: { className?: string }) {
         note?: string;
         profileUpdated?: boolean;
       };
-      if (!res.ok) {
-        if (res.status === 413) {
-          throw new Error(
-            "Import file exceeds server upload limit. Export again without check history, or increase upload body size on your reverse proxy."
-          );
-        }
+      const res = await fetch("/api/user/account-import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      data = (await res.json().catch(() => ({}))) as typeof data;
+      if (!res.ok && res.status === 413 && restoreMode) {
+        toast.info("Large backup detected. Retrying with chunked import...");
+        data = await importChunkedRestore(json as Record<string, unknown>);
+      } else if (!res.ok) {
         throw new Error(data.error ?? "Import failed");
       }
       const parts: string[] = [];
@@ -124,6 +235,8 @@ export function AccountDataPortability({ className }: { className?: string }) {
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Import failed");
     } finally {
+      setImportStatus(null);
+      setChunkProgressPct(null);
       setImporting(false);
     }
   }
@@ -182,7 +295,8 @@ export function AccountDataPortability({ className }: { className?: string }) {
                   Importing backup...
                 </p>
                 <p className="mt-1 text-xs text-text-muted">
-                  Uploading and applying your data. Keep this tab open until it finishes.
+                  {importStatus ??
+                    "Uploading and applying your data. Keep this tab open until it finishes."}
                 </p>
                 <div
                   className="mt-3 h-2 w-full overflow-hidden rounded-full bg-bg-muted"
@@ -190,7 +304,10 @@ export function AccountDataPortability({ className }: { className?: string }) {
                   aria-live="polite"
                   aria-label="Import in progress"
                 >
-                  <div className="h-full w-1/3 animate-pulse rounded-full bg-accent" />
+                  <div
+                    className="h-full animate-pulse rounded-full bg-accent transition-[width] duration-300"
+                    style={{ width: `${chunkProgressPct ?? 33}%` }}
+                  />
                 </div>
               </div>
             </div>
