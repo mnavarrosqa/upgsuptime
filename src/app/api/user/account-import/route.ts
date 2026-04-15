@@ -10,6 +10,7 @@ import {
   ACCOUNT_DATA_VERSION,
   MAX_ACCOUNT_IMPORT_BODY_BYTES,
   parseCheckResultFromImport,
+  parseImportedDate,
   parseMonitorFromImport,
   type AccountImportMonitorError,
   type ParsedMonitorRow,
@@ -120,6 +121,7 @@ export async function POST(request: Request) {
       language?: "en" | "es";
       onboardingCompleted?: boolean | null;
       onboardingStep?: string | null;
+      activityClearedAt?: Date | null;
       activityDismissedIds?: string | null;
       statusPageTitle?: string | null;
       statusPageTagline?: string | null;
@@ -170,6 +172,27 @@ export async function POST(request: Request) {
     if ("activityDismissedIds" in u) {
       patch.activityDismissedIds =
         typeof u.activityDismissedIds === "string" ? u.activityDismissedIds : null;
+    }
+
+    if ("activityClearedAt" in u) {
+      if (u.activityClearedAt === null) {
+        patch.activityClearedAt = null;
+      } else {
+        const cleared = parseImportedDate(u.activityClearedAt);
+        if (cleared) {
+          patch.activityClearedAt = cleared;
+        } else if (
+          typeof u.activityClearedAt === "string" &&
+          u.activityClearedAt.trim() === ""
+        ) {
+          patch.activityClearedAt = null;
+        } else {
+          return NextResponse.json(
+            { error: "activityClearedAt must be a valid date or null" },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     if ("statusPageTitle" in u) {

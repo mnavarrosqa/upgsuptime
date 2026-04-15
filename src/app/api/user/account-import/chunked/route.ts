@@ -8,6 +8,7 @@ import { checkBodySizeLimit } from "@/lib/validate-monitor";
 import {
   ACCOUNT_DATA_VERSION,
   parseCheckResultFromImport,
+  parseImportedDate,
   parseMonitorFromImport,
   type AccountImportMonitorError,
   type ParsedMonitorRow,
@@ -37,6 +38,7 @@ async function applyProfilePatch(
     language?: "en" | "es";
     onboardingCompleted?: boolean | null;
     onboardingStep?: string | null;
+    activityClearedAt?: Date | null;
     activityDismissedIds?: string | null;
     statusPageTitle?: string | null;
     statusPageTagline?: string | null;
@@ -76,6 +78,23 @@ async function applyProfilePatch(
   if ("activityDismissedIds" in u) {
     patch.activityDismissedIds =
       typeof u.activityDismissedIds === "string" ? u.activityDismissedIds : null;
+  }
+  if ("activityClearedAt" in u) {
+    if (u.activityClearedAt === null) {
+      patch.activityClearedAt = null;
+    } else {
+      const cleared = parseImportedDate(u.activityClearedAt);
+      if (cleared) {
+        patch.activityClearedAt = cleared;
+      } else if (
+        typeof u.activityClearedAt === "string" &&
+        u.activityClearedAt.trim() === ""
+      ) {
+        patch.activityClearedAt = null;
+      } else {
+        return { ok: false, error: "activityClearedAt must be a valid date or null" };
+      }
+    }
   }
   if ("statusPageTitle" in u) {
     if (u.statusPageTitle === null) patch.statusPageTitle = null;

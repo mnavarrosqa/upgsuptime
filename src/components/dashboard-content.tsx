@@ -2,6 +2,13 @@
 
 import { useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
+import {
+  Provider as TooltipProvider,
+  Root as TooltipRoot,
+  Trigger as TooltipTrigger,
+  Portal as TooltipPortal,
+  Content as TooltipContent,
+} from "@radix-ui/react-tooltip";
 import type { Monitor } from "@/db/schema";
 import { MonitorCard } from "@/components/monitor-card";
 import {
@@ -18,7 +25,7 @@ import { sortMonitors } from "@/lib/sort-monitors";
 import { isDowntimeAcked } from "@/lib/downtime-ack";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Activity, CheckCircle2, ExternalLink, Layers, XCircle } from "lucide-react";
+import { Activity, CheckCircle2, CircleHelp, ExternalLink, Layers, MapPin, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -35,6 +42,7 @@ type DashboardContentProps = {
     onboardingStep?: string | null;
   };
   userId: string;
+  checkLocation: string | null;
 };
 
 type MonitorGridProps = {
@@ -164,6 +172,7 @@ export function DashboardContent({
   username,
   onboarding,
   userId,
+  checkLocation,
 }: DashboardContentProps) {
   const router = useRouter();
   const t = useTranslations("dashboard");
@@ -262,7 +271,7 @@ export function DashboardContent({
                   username ? "sm:flex-row sm:items-stretch sm:gap-4" : ""
                 )}
               >
-                <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5 sm:gap-2">
+                <div className="grid min-w-0 flex-1 grid-cols-2 gap-1.5 sm:grid-cols-4 sm:gap-2">
                   <div className="flex min-w-0 flex-col rounded-lg border border-border/80 bg-muted/35 px-2 py-2 dark:bg-muted/20 sm:px-2.5 sm:py-2.5">
                     <span className="flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider text-text-muted">
                       <Layers className="size-3 shrink-0 opacity-80" aria-hidden />
@@ -312,6 +321,37 @@ export function DashboardContent({
                       )}
                     >
                       {downCount}
+                    </p>
+                  </div>
+                  <div className="flex min-w-0 flex-col rounded-lg border border-border/80 bg-muted/35 px-2 py-2 dark:bg-muted/20 sm:px-2.5 sm:py-2.5">
+                    <span className="flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider text-text-muted">
+                      <MapPin className="size-3 shrink-0 opacity-80" aria-hidden />
+                      {t("statLabelLocation")}
+                      <TooltipProvider delayDuration={140}>
+                        <TooltipRoot>
+                          <TooltipTrigger asChild>
+                            <button
+                              type="button"
+                              className="inline-flex items-center text-text-muted/90 transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1"
+                              aria-label={t("statLocationTooltip")}
+                            >
+                              <CircleHelp className="size-3 shrink-0" aria-hidden />
+                            </button>
+                          </TooltipTrigger>
+                          <TooltipPortal>
+                            <TooltipContent
+                              side="top"
+                              sideOffset={6}
+                              className="z-50 max-w-[20rem] rounded-md border border-border bg-bg-card px-2.5 py-2 text-[11px] font-medium normal-case tracking-normal text-text-primary shadow-md"
+                            >
+                              {t("statLocationTooltip")}
+                            </TooltipContent>
+                          </TooltipPortal>
+                        </TooltipRoot>
+                      </TooltipProvider>
+                    </span>
+                    <p className="mt-1.5 truncate text-sm font-medium text-text-primary sm:text-base">
+                      {checkLocation ?? t("statValueLocationUnknown")}
                     </p>
                   </div>
                 </div>

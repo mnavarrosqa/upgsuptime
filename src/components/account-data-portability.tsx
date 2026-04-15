@@ -251,8 +251,9 @@ export function AccountDataPortability({ className }: { className?: string }) {
       </h2>
       <p className="mt-0.5 text-sm text-text-muted">
         Download everything tied to your account (profile, monitors, and
-        optional check history), or restore from a backup file. Passwords are
-        never included in exports.
+        optional check history), including monitor type-specific settings and
+        degradation alert configuration. Restore from a backup file to recover
+        the same setup. Passwords are never included in exports.
       </p>
 
       <div className="mt-4 space-y-4 rounded-lg border border-border bg-bg-card px-6 py-5">
@@ -317,8 +318,9 @@ export function AccountDataPortability({ className }: { className?: string }) {
           </p>
           <p className="mt-2 text-sm text-text-muted">
             Use a file from this app&apos;s account export. Restore replaces
-            all your monitors and their history; append adds monitors only and
-            ignores history in the file.
+            all your monitors and their history while keeping monitor settings
+            (HTTP/keyword/DNS options and degradation alert config). Append
+            adds monitors only and ignores history in the file.
           </p>
           <label className={`${labelClass} mt-3`}>
             <input
@@ -343,8 +345,9 @@ export function AccountDataPortability({ className }: { className?: string }) {
               className="mt-0.5 size-4 rounded border-border text-accent focus:ring-input-focus"
             />
             <span className="text-text-muted">
-              Also apply username and onboarding state from the file (email in
-              the file is ignored)
+              Also apply profile fields from the file: username, language,
+              onboarding, activity feed clear/dismiss state, and public status
+              page copy. Email in the file is ignored.
             </span>
           </label>
           <input
