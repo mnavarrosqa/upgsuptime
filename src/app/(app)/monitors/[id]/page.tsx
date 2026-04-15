@@ -30,6 +30,15 @@ function getFaviconUrl(url: string, monitorType?: string | null): string {
   }
 }
 
+/** Absolute href for opening the monitored target in a new tab (DNS stores hostname only). */
+function monitorOpenHref(url: string, monitorType: string): string {
+  if (monitorType === "dns") {
+    const host = url.replace(/^https?:\/\//i, "").split("/")[0]?.trim() ?? url;
+    return host ? `https://${host}` : url;
+  }
+  return url;
+}
+
 export default async function MonitorDetailPage({
   params,
   searchParams,
@@ -144,11 +153,14 @@ export default async function MonitorDetailPage({
                 </span>
               )}
             </div>
-            {monitorType === "dns" ? (
-              <p className="mt-1 break-all font-mono text-sm text-text-muted">{m.url}</p>
-            ) : (
-              <p className="mt-1 break-all text-sm text-text-muted">{m.url}</p>
-            )}
+            <a
+              href={monitorOpenHref(m.url, monitorType)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`mt-1 block break-all text-sm text-text-muted underline-offset-2 transition-colors hover:text-text-primary hover:underline ${monitorType === "dns" ? "font-mono" : ""}`}
+            >
+              {m.url}
+            </a>
             {/* Config meta — chips */}
             <div className="mt-1.5 flex flex-wrap gap-2">
               {monitorType !== "dns" && (
