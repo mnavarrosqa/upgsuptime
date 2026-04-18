@@ -5,7 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, Percent, Timer, Zap } from "lucide-react";
-import type { ChartResultRow } from "@/components/uptime-trend-charts";
+import type { ChartDetailMode, ChartResultRow } from "@/components/uptime-trend-charts";
 
 const UptimeTrendChartsInner = dynamic(
   () => import("@/components/uptime-trend-charts").then((m) => ({ default: m.UptimeTrendCharts })),
@@ -71,6 +71,7 @@ export function MonitorDetailHistoryClient({
 }) {
   const t = useTranslations("monitorDetail");
   const [range, setRange] = useState<ChartRange>("24h");
+  const [chartDetail, setChartDetail] = useState<ChartDetailMode>("averages");
   const [rangeResults, setRangeResults] = useState<ChartResultRow[]>(initialResults);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -121,6 +122,15 @@ export function MonitorDetailHistoryClient({
         { id: "7d" as const, label: t("chartRange7d") },
         { id: "1m" as const, label: t("chartRange1m") },
       ] satisfies ReadonlyArray<{ id: ChartRange; label: string }>,
+    [t]
+  );
+
+  const detailOptions = useMemo(
+    () =>
+      [
+        { id: "averages" as const, label: t("chartDetailAverages") },
+        { id: "full" as const, label: t("chartDetailFull") },
+      ] satisfies ReadonlyArray<{ id: ChartDetailMode; label: string }>,
     [t]
   );
 
@@ -231,38 +241,65 @@ export function MonitorDetailHistoryClient({
             </h2>
             <p className="mt-1 text-sm text-text-muted">{t("historySubtitle")}</p>
           </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2 sm:justify-end">
-            <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
-              {t("chartRangeLabel")}
-            </span>
-            <div className="inline-flex rounded-lg border border-border bg-bg-page p-0.5">
-              {rangeOptions.map((opt) => {
-                const active = range === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => {
-                      if (opt.id !== range) {
-                        setIsLoading(true);
-                        setRange(opt.id);
-                      }
-                    }}
-                    className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
-                      active
-                        ? "bg-bg-card text-text-primary shadow-sm"
-                        : "text-text-muted hover:text-text-primary"
-                    }`}
-                    aria-pressed={active}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
+          <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
+                {t("chartRangeLabel")}
+              </span>
+              <div className="inline-flex rounded-lg border border-border bg-bg-page p-0.5">
+                {rangeOptions.map((opt) => {
+                  const active = range === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => {
+                        if (opt.id !== range) {
+                          setIsLoading(true);
+                          setRange(opt.id);
+                        }
+                      }}
+                      className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+                        active
+                          ? "bg-bg-card text-text-primary shadow-sm"
+                          : "text-text-muted hover:text-text-primary"
+                      }`}
+                      aria-pressed={active}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+              {isLoading && (
+                <span className="text-xs text-text-muted">{t("chartLoading")}</span>
+              )}
             </div>
-            {isLoading && (
-              <span className="text-xs text-text-muted">{t("chartLoading")}</span>
-            )}
+            <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+              <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
+                {t("chartDetailLabel")}
+              </span>
+              <div className="inline-flex rounded-lg border border-border bg-bg-page p-0.5">
+                {detailOptions.map((opt) => {
+                  const active = chartDetail === opt.id;
+                  return (
+                    <button
+                      key={opt.id}
+                      type="button"
+                      onClick={() => setChartDetail(opt.id)}
+                      className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+                        active
+                          ? "bg-bg-card text-text-primary shadow-sm"
+                          : "text-text-muted hover:text-text-primary"
+                      }`}
+                      aria-pressed={active}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -271,6 +308,7 @@ export function MonitorDetailHistoryClient({
           results={rangeResults}
           baselineP75Ms={baselineP75Ms}
           degradationAlertEnabled={degradationAlertEnabled}
+          detailMode={chartDetail}
         />
         </div>
       </section>

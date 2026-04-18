@@ -35,7 +35,11 @@ export type ChartResultRow = {
   createdAt: string;
   ok: boolean;
   responseTimeMs: number | null;
+  /** Set when this row is a time-bucket aggregate (averages mode). */
+  bucketCheckCount?: number;
 };
+
+export type ChartDetailMode = "averages" | "full";
 
 type ScatterPoint = {
   x: number;
@@ -43,6 +47,7 @@ type ScatterPoint = {
   ok: boolean;
   label: string;
   ms: number | null;
+  bucketCheckCount?: number;
 };
 
 // ─── formatters ───────────────────────────────────────────────────────────────
@@ -165,6 +170,65 @@ function formatUptimeBucketRange(fromMs: number, toMs: number) {
   return `${formatAxisTime(from.toISOString())} – ${formatAxisTime(to.toISOString())}`;
 }
 
+const CHART_AVG_MAX_BUCKETS = 96;
+
+/** Time-bucket averages over the series span; skips empty buckets. */
+function buildAveragedChartSeries(
+  chronological: ChartResultRow[],
+  maxBuckets: number
+): ChartResultRow[] {
+  const n = chronological.length;
+  if (n === 0) return [];
+
+  if (n <= maxBuckets) {
+    return chronological.map((r) => ({ ...r, bucketCheckCount: 1 }));
+  }
+
+  const times = chronological.map((r) => new Date(r.createdAt).getTime());
+  const tMin = Math.min(...times);
+  const tMax = Math.max(...times);
+  const span = Math.max(tMax - tMin, 1);
+  const bucketCount = maxBuckets;
+
+  const buckets: ChartResultRow[][] = Array.from({ length: bucketCount }, () => []);
+
+  for (const r of chronological) {
+    const t = new Date(r.createdAt).getTime();
+    let idx = Math.floor(((t - tMin) / span) * bucketCount);
+    if (idx >= bucketCount) idx = bucketCount - 1;
+    if (idx < 0) idx = 0;
+    buckets[idx]!.push(r);
+  }
+
+  const out: ChartResultRow[] = [];
+  for (let i = 0; i < bucketCount; i++) {
+    const checks = buckets[i]!;
+    if (checks.length === 0) continue;
+
+    const fromMs = tMin + (span * i) / bucketCount;
+    const toMs = tMin + (span * (i + 1)) / bucketCount;
+    const midMs = (fromMs + toMs) / 2;
+
+    const okTimes = checks
+      .filter((c) => c.ok && c.responseTimeMs != null)
+      .map((c) => c.responseTimeMs as number);
+    const avgMs =
+      okTimes.length > 0
+        ? Math.round(okTimes.reduce((a, b) => a + b, 0) / okTimes.length)
+        : null;
+    const allOk = checks.every((c) => c.ok);
+
+    out.push({
+      id: `avg-bucket-${i}`,
+      createdAt: new Date(midMs).toISOString(),
+      ok: allOk,
+      responseTimeMs: avgMs,
+      bucketCheckCount: checks.length,
+    });
+  }
+  return out;
+}
+
 // ─── tooltips ─────────────────────────────────────────────────────────────────
 
 function ResponseTooltip({
@@ -174,14 +238,24 @@ function ResponseTooltip({
   labelUp,
   labelDown,
   labelResponse,
-}: TooltipProps<number, string> & { labelUp: string; labelDown: string; labelResponse: string }) {
+  labelBucketChecks,
+}: TooltipProps<number, string> & {
+  labelUp: string;
+  labelDown: string;
+  labelResponse: string;
+  labelBucketChecks: (n: number) => string;
+}) {
   if (!active || !payload?.length) return null;
   const row = payload[0].payload as ChartResultRow;
   const ms = row.responseTimeMs;
+  const bc = row.bucketCheckCount;
   const timeLabel = typeof label === "string" ? formatAxisTime(label) : String(label);
   return (
     <div className="rounded-md border border-border bg-bg-card px-3 py-2 text-xs shadow-sm">
       <p className="text-text-muted">{timeLabel}</p>
+      {bc != null && bc > 1 && (
+        <p className="mt-0.5 text-text-muted">{labelBucketChecks(bc)}</p>
+      )}
       <p className="mt-1 font-medium text-text-primary">{row.ok ? labelUp : labelDown}</p>
       <p className="mt-0.5 text-text-muted">
         {labelResponse}:{" "}
@@ -220,12 +294,22 @@ function ScatterTooltip({
   labelUp,
   labelDown,
   labelResponse,
-}: TooltipProps<number, string> & { labelUp: string; labelDown: string; labelResponse: string }) {
+  labelBucketChecks,
+}: TooltipProps<number, string> & {
+  labelUp: string;
+  labelDown: string;
+  labelResponse: string;
+  labelBucketChecks: (n: number) => string;
+}) {
   if (!active || !payload?.length) return null;
   const pt = payload[0].payload as ScatterPoint;
+  const bc = pt.bucketCheckCount;
   return (
     <div className="rounded-md border border-border bg-bg-card px-3 py-2 text-xs shadow-sm">
       <p className="text-text-muted">{pt.label}</p>
+      {bc != null && bc > 1 && (
+        <p className="mt-0.5 text-text-muted">{labelBucketChecks(bc)}</p>
+      )}
       <p className={`mt-1 font-medium ${pt.ok ? "text-text-primary" : "text-destructive"}`}>
         {pt.ok ? labelUp : labelDown}
       </p>
@@ -244,10 +328,12 @@ export function UptimeTrendCharts({
   results,
   baselineP75Ms,
   degradationAlertEnabled,
+  detailMode = "averages",
 }: {
   results: ChartResultRow[];
   baselineP75Ms?: number | null;
   degradationAlertEnabled?: boolean | null;
+  detailMode?: ChartDetailMode;
 }) {
   const t = useTranslations("monitorDetail");
   const gradientId = useId().replace(/:/g, "");
@@ -295,13 +381,19 @@ export function UptimeTrendCharts({
   ];
   const hasHistData = histBuckets.some((b) => b.count > 0);
 
-  // ── scatter points ────────────────────────────────────────────────────────
-  const allScatterPoints: ScatterPoint[] = chronological.map((r) => ({
+  const trendSeries: ChartResultRow[] =
+    detailMode === "full"
+      ? chronological
+      : buildAveragedChartSeries(chronological, CHART_AVG_MAX_BUCKETS);
+
+  // ── scatter points (same resolution as response trend) ─────────────────────
+  const allScatterPoints: ScatterPoint[] = trendSeries.map((r) => ({
     x: new Date(r.createdAt).getTime(),
     y: r.ok && r.responseTimeMs != null ? r.responseTimeMs : 0,
     ok: r.ok,
     label: formatAxisTime(r.createdAt),
     ms: r.responseTimeMs,
+    bucketCheckCount: r.bucketCheckCount,
   }));
   const scatterOk = allScatterPoints.filter((p) => p.ok && p.y > 0);
   const scatterFailed = allScatterPoints.filter((p) => !p.ok);
@@ -440,10 +532,13 @@ export function UptimeTrendCharts({
         <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
           {t("chartResponseTrend")}
         </p>
+        <p className="mt-0.5 text-[10px] text-text-muted">
+          {detailMode === "averages" ? t("chartResponseTrendSubAverages") : t("chartResponseTrendSubFull")}
+        </p>
         <div className="mt-2 h-[160px] w-full">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
-              data={chronological}
+              data={trendSeries}
               margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
             >
               <defs>
@@ -471,6 +566,7 @@ export function UptimeTrendCharts({
                     labelUp={t("statusBadgeUp")}
                     labelDown={t("statusBadgeDown")}
                     labelResponse={t("tooltipResponse")}
+                    labelBucketChecks={(n) => t("tooltipBucketChecks", { n })}
                   />
                 }
               />
@@ -545,7 +641,7 @@ export function UptimeTrendCharts({
             {t("chartTimeline")}
           </p>
           <p className="mt-0.5 text-[10px] text-text-muted">
-            {t("chartTimelineSub")}
+            {detailMode === "averages" ? t("chartTimelineSubAverages") : t("chartTimelineSubFull")}
           </p>
           <div className="mt-2 h-[160px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -575,6 +671,7 @@ export function UptimeTrendCharts({
                       labelUp={t("statusBadgeUp")}
                       labelDown={t("statusBadgeDown")}
                       labelResponse={t("tooltipResponse")}
+                      labelBucketChecks={(n) => t("tooltipBucketChecks", { n })}
                     />
                   }
                   cursor={{ strokeDasharray: "3 3" }}
