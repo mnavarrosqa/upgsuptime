@@ -39,5 +39,12 @@ export async function GET(
     buildMonitorPublicStatusItem(m, stats.get(m.id))
   );
 
-  return NextResponse.json({ username: u.username, monitors });
+  return NextResponse.json(
+    { username: u.username, monitors },
+    {
+      headers: {
+        "Cache-Control": "public, max-age=30, stale-while-revalidate=60",
+      },
+    }
+  );
 }

@@ -27,7 +27,16 @@ const TYPE_LABELS: Record<string, string> = {
   http: "HTTP – check status code",
   keyword: "Keyword – check response body",
   dns: "DNS – check record resolution",
+  tcp: "TCP – check port connectivity",
 };
+
+function toDatetimeLocal(value: Date | string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
+  return local.toISOString().slice(0, 16);
+}
 
 export function EditMonitorForm({
   monitor,
@@ -42,7 +51,7 @@ export function EditMonitorForm({
   const tDegradationHint = useTranslations("degradationFormHint");
 
   // Type is read-only after creation
-  const monitorType = (monitor.type ?? "http") as "http" | "keyword" | "dns";
+  const monitorType = (monitor.type ?? "http") as "http" | "keyword" | "dns" | "tcp";
 
   const [name, setName] = useState(monitor.name);
   const [url, setUrl] = useState(monitor.url);
@@ -55,13 +64,20 @@ export function EditMonitorForm({
 
   // HTTP / keyword fields
   const [timeoutSeconds, setTimeoutSeconds] = useState(monitor.timeoutSeconds ?? 15);
-  const [method, setMethod] = useState<"GET" | "HEAD">(
-    monitor.method === "HEAD" ? "HEAD" : "GET"
+  const [method, setMethod] = useState<"GET" | "HEAD" | "POST" | "PUT" | "PATCH">(
+    ["GET", "HEAD", "POST", "PUT", "PATCH"].includes(monitor.method) ? monitor.method : "GET"
   );
   const [expectedStatusCodes, setExpectedStatusCodes] = useState(
     monitor.expectedStatusCodes ?? "200-299"
   );
   const [sslMonitoring, setSslMonitoring] = useState(!!monitor.sslMonitoring);
+  const [requestHeaders, setRequestHeaders] = useState(monitor.requestHeaders ?? "[]");
+  const [requestBody, setRequestBody] = useState(monitor.requestBody ?? "");
+  const [requestBodyType, setRequestBodyType] = useState<"none" | "text" | "json" | "form">(
+    monitor.requestBodyType ?? "none"
+  );
+  const [followRedirects, setFollowRedirects] = useState(monitor.followRedirects !== false);
+  const [maxRedirects, setMaxRedirects] = useState(monitor.maxRedirects ?? 20);
 
   // Keyword-specific
   const [keywordContains, setKeywordContains] = useState(monitor.keywordContains ?? "");
@@ -72,6 +88,14 @@ export function EditMonitorForm({
   // DNS-specific
   const [dnsRecordType, setDnsRecordType] = useState(monitor.dnsRecordType ?? "A");
   const [dnsExpectedValue, setDnsExpectedValue] = useState(monitor.dnsExpectedValue ?? "");
+  const [tcpPort, setTcpPort] = useState(monitor.tcpPort ?? 443);
+  const [maintenanceStartsAt, setMaintenanceStartsAt] = useState(
+    toDatetimeLocal(monitor.maintenanceStartsAt)
+  );
+  const [maintenanceEndsAt, setMaintenanceEndsAt] = useState(
+    toDatetimeLocal(monitor.maintenanceEndsAt)
+  );
+  const [maintenanceNote, setMaintenanceNote] = useState(monitor.maintenanceNote ?? "");
 
   const [degradationAlertEnabled, setDegradationAlertEnabled] = useState(
     !!monitor.degradationAlertEnabled
@@ -84,14 +108,16 @@ export function EditMonitorForm({
 
   const isDns = monitorType === "dns";
   const isKeyword = monitorType === "keyword";
+  const isTcp = monitorType === "tcp";
 
   useEffect(() => {
     setShowDegradationDeferHint(
       !isDns &&
+        !isTcp &&
         !monitor.degradationAlertEnabled &&
         isDegradationCalloutDismissed(monitor.id)
     );
-  }, [isDns, monitor.degradationAlertEnabled, monitor.id]);
+  }, [isDns, isTcp, monitor.degradationAlertEnabled, monitor.id]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -109,10 +135,20 @@ export function EditMonitorForm({
 
       if (!isDns) {
         bodyObj.timeoutSeconds = timeoutSeconds;
-        bodyObj.method = isKeyword ? "GET" : method;
-        bodyObj.expectedStatusCodes = expectedStatusCodes.trim() || "200-299";
-        bodyObj.sslMonitoring = sslMonitoring;
-        bodyObj.degradationAlertEnabled = degradationAlertEnabled;
+        if (!isTcp) {
+          bodyObj.method = isKeyword ? "GET" : method;
+          bodyObj.expectedStatusCodes = expectedStatusCodes.trim() || "200-299";
+          bodyObj.sslMonitoring = sslMonitoring;
+          bodyObj.degradationAlertEnabled = degradationAlertEnabled;
+        }
+      }
+
+      if (monitorType === "http") {
+        bodyObj.requestHeaders = requestHeaders.trim() || "[]";
+        bodyObj.requestBody = requestBodyType === "none" ? null : requestBody;
+        bodyObj.requestBodyType = requestBodyType;
+        bodyObj.followRedirects = followRedirects;
+        bodyObj.maxRedirects = maxRedirects;
       }
 
       if (isKeyword) {
@@ -125,6 +161,15 @@ export function EditMonitorForm({
         bodyObj.dnsExpectedValue = dnsExpectedValue;
       }
 
+      if (isTcp) {
+        bodyObj.tcpHost = url;
+        bodyObj.tcpPort = tcpPort;
+      }
+
+      bodyObj.maintenanceStartsAt = maintenanceStartsAt || null;
+      bodyObj.maintenanceEndsAt = maintenanceEndsAt || null;
+      bodyObj.maintenanceNote = maintenanceNote.trim() || null;
+
       const res = await fetch(`/api/monitors/${monitor.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -135,7 +180,7 @@ export function EditMonitorForm({
         setError(data.error ?? "Failed to update");
         return;
       }
-      if (!isDns && degradationAlertEnabled) {
+      if (!isDns && !isTcp && degradationAlertEnabled) {
         clearDegradationCalloutDismissed(monitor.id);
         setShowDegradationDeferHint(false);
       }
@@ -188,25 +233,25 @@ export function EditMonitorForm({
       {/* URL / Hostname */}
       <div>
         <Label htmlFor="edit-url" className={labelClass}>
-          {isDns ? "Hostname" : "URL"}
+          {isDns || isTcp ? "Hostname" : "URL"}
         </Label>
         <Input
           id="edit-url"
-          type={isDns ? "text" : "url"}
+          type={isDns || isTcp ? "text" : "url"}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder={isDns ? "example.com" : "https://example.com"}
+          placeholder={isDns || isTcp ? "example.com" : "https://example.com"}
           required
           className={inputClass}
         />
         <p className={hintClass}>
-          {isDns
+          {isDns || isTcp
             ? "Enter a hostname without https://"
             : "Must be a valid HTTP or HTTPS URL."}
         </p>
       </div>
 
-      {/* HTTP/Keyword options */}
+      {/* Check options */}
       {isDns ? (
         <div>
           <Label htmlFor="edit-interval" className={labelClass}>
@@ -221,6 +266,51 @@ export function EditMonitorForm({
             onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
             className={inputClass}
           />
+        </div>
+      ) : isTcp ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <Label htmlFor="edit-interval" className={labelClass}>
+              Interval (min)
+            </Label>
+            <Input
+              id="edit-interval"
+              type="number"
+              min={1}
+              max={60}
+              value={intervalMinutes}
+              onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-timeout" className={labelClass}>
+              Timeout (sec)
+            </Label>
+            <Input
+              id="edit-timeout"
+              type="number"
+              min={5}
+              max={120}
+              value={timeoutSeconds}
+              onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-tcp-port" className={labelClass}>
+              Port
+            </Label>
+            <Input
+              id="edit-tcp-port"
+              type="number"
+              min={1}
+              max={65535}
+              value={tcpPort}
+              onChange={(e) => setTcpPort(Number(e.target.value) || 443)}
+              className={inputClass}
+            />
+          </div>
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
@@ -245,12 +335,15 @@ export function EditMonitorForm({
             <select
               id="edit-method"
               value={isKeyword ? "GET" : method}
-              onChange={(e) => setMethod(e.target.value as "GET" | "HEAD")}
+              onChange={(e) => setMethod(e.target.value as "GET" | "HEAD" | "POST" | "PUT" | "PATCH")}
               disabled={isKeyword}
               className={selectClass}
             >
               <option value="GET">GET</option>
               <option value="HEAD">HEAD</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
             </select>
             {isKeyword && (
               <p className={hintClass}>Keyword monitors always use GET.</p>
@@ -284,6 +377,85 @@ export function EditMonitorForm({
             />
           </div>
         </div>
+      )}
+
+      {monitorType === "http" && (
+        <details className="rounded-md border border-border bg-bg-page px-3 py-2">
+          <summary className="cursor-pointer text-sm font-medium text-text-primary">
+            Advanced request settings
+          </summary>
+          <div className="mt-3 grid gap-3">
+            <div>
+              <Label htmlFor="edit-request-headers" className={labelClass}>
+                Headers JSON
+              </Label>
+              <textarea
+                id="edit-request-headers"
+                value={requestHeaders}
+                onChange={(e) => setRequestHeaders(e.target.value)}
+                placeholder={'[{"name":"Authorization","value":"Bearer token"}]'}
+                className={`${inputClass} min-h-24 resize-y font-mono`}
+              />
+              <p className={hintClass}>Sensitive headers are redacted from exports.</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <Label htmlFor="edit-body-type" className={labelClass}>
+                  Body type
+                </Label>
+                <select
+                  id="edit-body-type"
+                  value={requestBodyType}
+                  onChange={(e) => setRequestBodyType(e.target.value as "none" | "text" | "json" | "form")}
+                  disabled={method === "GET" || method === "HEAD"}
+                  className={selectClass}
+                >
+                  <option value="none">None</option>
+                  <option value="text">Text</option>
+                  <option value="json">JSON</option>
+                  <option value="form">Form encoded</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="edit-max-redirects" className={labelClass}>
+                  Max redirects
+                </Label>
+                <Input
+                  id="edit-max-redirects"
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={maxRedirects}
+                  onChange={(e) => setMaxRedirects(Number(e.target.value) || 0)}
+                  disabled={!followRedirects}
+                  className={inputClass}
+                />
+              </div>
+              <label className="mt-7 flex cursor-pointer items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={followRedirects}
+                  onChange={(e) => setFollowRedirects(e.target.checked)}
+                  className="h-4 w-4 rounded border-input-border accent-accent"
+                />
+                <span className="text-sm text-text-primary">Follow redirects</span>
+              </label>
+            </div>
+            {requestBodyType !== "none" && method !== "GET" && method !== "HEAD" && (
+              <div>
+                <Label htmlFor="edit-request-body" className={labelClass}>
+                  Request body
+                </Label>
+                <textarea
+                  id="edit-request-body"
+                  value={requestBody}
+                  onChange={(e) => setRequestBody(e.target.value)}
+                  className={`${inputClass} min-h-28 resize-y font-mono`}
+                />
+              </div>
+            )}
+          </div>
+        </details>
       )}
 
       {/* Keyword section */}
@@ -410,7 +582,7 @@ export function EditMonitorForm({
             />
           </div>
         )}
-        {!isDns && showDegradationDeferHint && (
+        {!isDns && !isTcp && showDegradationDeferHint && (
           <div
             role="note"
             className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-950/90 dark:border-amber-800/40 dark:bg-amber-950/25 dark:text-amber-100/90"
@@ -418,7 +590,7 @@ export function EditMonitorForm({
             {tDegradationHint("editReminder")}
           </div>
         )}
-        {!isDns && (
+        {!isDns && !isTcp && (
           <div className="mt-3">
             <label className={`flex items-center gap-2.5 ${alertEmail ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
               <input
@@ -443,7 +615,7 @@ export function EditMonitorForm({
       </div>
 
       {/* SSL monitoring — only for HTTP/keyword HTTPS */}
-      {!isDns && url.startsWith("https://") && (
+      {!isDns && !isTcp && url.startsWith("https://") && (
         <div className="border-t border-border pt-4">
           <p className="mb-3 text-sm font-medium text-text-primary">SSL monitoring</p>
           <label className="flex cursor-pointer items-center gap-2.5">
@@ -462,6 +634,50 @@ export function EditMonitorForm({
           )}
         </div>
       )}
+
+      <div className="border-t border-border pt-4">
+        <p className="mb-3 text-sm font-medium text-text-primary">Maintenance window</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="edit-maintenance-start" className={labelClass}>
+              Starts
+            </Label>
+            <Input
+              id="edit-maintenance-start"
+              type="datetime-local"
+              value={maintenanceStartsAt}
+              onChange={(e) => setMaintenanceStartsAt(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <Label htmlFor="edit-maintenance-end" className={labelClass}>
+              Ends
+            </Label>
+            <Input
+              id="edit-maintenance-end"
+              type="datetime-local"
+              value={maintenanceEndsAt}
+              onChange={(e) => setMaintenanceEndsAt(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+        </div>
+        <div className="mt-3">
+          <Label htmlFor="edit-maintenance-note" className={labelClass}>
+            Note
+          </Label>
+          <Input
+            id="edit-maintenance-note"
+            type="text"
+            value={maintenanceNote}
+            onChange={(e) => setMaintenanceNote(e.target.value)}
+            placeholder="Planned deployment"
+            className={inputClass}
+          />
+          <p className={hintClass}>Alerts are suppressed while the window is active.</p>
+        </div>
+      </div>
 
       {/* Status page */}
       <div className="border-t border-border pt-4">

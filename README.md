@@ -26,6 +26,9 @@ npm install && npm run db:push && npm run build && npm run start
 - App listens on **3077** — terminate HTTPS at your reverse proxy (Nginx, Caddy, …).
 - Cron (every 1–5 min): `curl -H "x-cron-secret: YOUR_CRON_SECRET" "https://your-domain/api/cron/run-checks"`
 - After `git pull`: `npm run db:push` and restart the process if the schema changed.
+- Pick one scheduler owner per environment: either the in-process scheduler or an external cron hitting `/api/cron/run-checks`. Running both is safe enough for small installs but wastes work under concurrency.
+- Login/API rate limits are in-memory and per Node process. For multi-instance deployments, put rate limiting at the proxy/load balancer or move buckets to a shared store.
+- The production CSP is intentionally compatible with Next.js defaults. If you need a stricter policy, plan a nonce-based CSP pass before removing inline/eval allowances.
 
 ---
 
@@ -43,6 +46,8 @@ npm install && npm run db:push && npm run build && npm run start
 | `npm run db:check-users` | List user emails in the DB |
 | `npm run lint` | ESLint |
 | `npm run knip` | Find unused files/exports/deps ([Knip](https://github.com/webpro-nl/knip)) |
+
+For remote development, set `ALLOWED_DEV_ORIGINS` in `.env` as a comma-separated list of hostnames/IPs that should be allowed to open the dev server.
 
 ---
 

@@ -63,9 +63,11 @@ export function PwaInstallBanner() {
     }
 
     if (p === "ios") {
-      setPlatform("ios");
       // Small delay so the page settles before the banner slides up
-      const t = setTimeout(() => setVisible(true), 1500);
+      const t = setTimeout(() => {
+        setPlatform("ios");
+        setVisible(true);
+      }, 1500);
       return () => clearTimeout(t);
     }
   }, []);

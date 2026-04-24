@@ -10,6 +10,7 @@ const secret = process.env.NEXTAUTH_SECRET;
 if (process.env.NODE_ENV === "production" && (typeof secret !== "string" || secret.length === 0)) {
   throw new Error("NEXTAUTH_SECRET is required in production");
 }
+const authDebugEnabled = process.env.NODE_ENV !== "production" && process.env.AUTH_DEBUG === "true";
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -22,7 +23,7 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         const identifier = credentials?.login?.trim();
         const password = credentials?.password;
-        if (process.env.NODE_ENV !== "production") {
+        if (authDebugEnabled) {
           console.log("[auth] credentials:", identifier ? "identifier present" : "missing identifier", password ? "password present" : "missing password");
         }
         if (!identifier || !password) return null;
@@ -53,12 +54,12 @@ export const authOptions: NextAuthOptions = {
               .where(sql`LOWER(${userTable.email}) = LOWER(${identifier})`);
           }
         }
-        if (process.env.NODE_ENV !== "production") {
+        if (authDebugEnabled) {
           console.log("[auth] user lookup:", u ? `found user id=${u.id}` : "no user found");
         }
         if (!u) return null;
         const ok = await bcrypt.compare(password, u.passwordHash);
-        if (process.env.NODE_ENV !== "production" && !ok) {
+        if (authDebugEnabled && !ok) {
           console.log("[auth] password mismatch for user id=", u.id);
         }
         if (!ok) return null;

@@ -41,6 +41,8 @@ type MonitorStat = {
   avgResponseTimeMs: number | null;
   lastErrorMessage: string | null;
   lastErrorCode: number | null;
+  maintenanceActive?: boolean;
+  maintenanceNote?: string | null;
 };
 
 export function StatusPageShell({
@@ -108,7 +110,7 @@ export function StatusPageShell({
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
               <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-text-muted">
-                Public status
+                {tPublic("eyebrow")}
               </p>
               <h1
                 className="mt-1.5 text-2xl font-semibold tracking-tight text-text-primary sm:text-[1.65rem]"
@@ -126,13 +128,13 @@ export function StatusPageShell({
                 {pageTagline
                   ? pageTagline
                   : hasMonitors
-                    ? `${monitors.length} service${monitors.length !== 1 ? "s" : ""} on this page`
-                    : "No services are published yet"}
+                    ? tPublic("servicesOnPage", { count: monitors.length })
+                    : tPublic("noServicesPublished")}
               </p>
             </div>
             <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
               <p className="text-xs tabular-nums text-text-muted">
-                Updated{" "}
+                {tPublic("updated")}{" "}
                 <time dateTime={generatedAt}>{formatRelativeTime(generatedAt)}</time>
               </p>
               <ThemeToggle />
@@ -189,13 +191,13 @@ export function StatusPageShell({
                     style={{ fontFamily: "var(--font-display)" }}
                   >
                     {allOperational
-                      ? "All systems operational"
-                      : `${downCount} service${downCount !== 1 ? "s" : ""} unavailable`}
+                      ? tPublic("allOperational")
+                      : tPublic("servicesUnavailable", { count: downCount })}
                   </p>
                   <p className="mt-1 text-sm text-text-muted">
                     {allOperational
-                      ? "Every published endpoint reported success on the last check."
-                      : "One or more checks failed on the last run. Details below."}
+                      ? tPublic("allOperationalBody")
+                      : tPublic("servicesUnavailableBody")}
                   </p>
                 </div>
               </div>
@@ -205,7 +207,7 @@ export function StatusPageShell({
                     <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
                       <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
                         <Activity className="h-3 w-3 shrink-0" aria-hidden />
-                        Uptime
+                        {tPublic("uptime")}
                       </dt>
                       <dd
                         className={cn(
@@ -219,34 +221,34 @@ export function StatusPageShell({
                       >
                         {avgUptime}%
                       </dd>
-                      <dd className="text-[0.65rem] text-text-muted">90d avg</dd>
+                      <dd className="text-[0.65rem] text-text-muted">{tPublic("ninetyDayAverage")}</dd>
                     </div>
                   )}
                   {avgResponse !== null && (
                     <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
                       <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
                         <Gauge className="h-3 w-3 shrink-0" aria-hidden />
-                        Response
+                        {tPublic("response")}
                       </dt>
                       <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-text-primary">
                         {avgResponse}
                         <span className="text-sm font-medium text-text-muted">ms</span>
                       </dd>
-                      <dd className="text-[0.65rem] text-text-muted">avg</dd>
+                      <dd className="text-[0.65rem] text-text-muted">{tPublic("average")}</dd>
                     </div>
                   )}
                   {totalChecks > 0 && (
                     <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
                       <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
                         <History className="h-3 w-3 shrink-0" aria-hidden />
-                        Checks
+                        {tPublic("checks")}
                       </dt>
                       <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-text-primary">
                         {totalChecks > 999
                           ? `${(totalChecks / 1000).toFixed(1)}k`
                           : totalChecks.toLocaleString()}
                       </dd>
-                      <dd className="text-[0.65rem] text-text-muted">90 days</dd>
+                      <dd className="text-[0.65rem] text-text-muted">{tPublic("ninetyDays")}</dd>
                     </div>
                   )}
                 </dl>
@@ -262,11 +264,10 @@ export function StatusPageShell({
               className="mt-4 text-base font-semibold text-text-primary"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              Nothing to show yet
+              {tPublic("emptyTitle")}
             </p>
             <p className="mt-2 max-w-sm text-sm leading-relaxed text-text-muted">
-              When monitors are enabled for the public page, they will appear here with live
-              status and history.
+              {tPublic("emptyBody")}
             </p>
           </div>
         )}
@@ -280,18 +281,19 @@ export function StatusPageShell({
                   className="text-sm font-semibold tracking-tight text-text-primary"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
-                  Services
+                  {tPublic("servicesHeading")}
                 </h2>
                 <p className="mt-0.5 text-xs text-text-muted">
-                  Last check times refresh about every minute.
+                  {tPublic("servicesRefreshHint")}
                 </p>
               </div>
             </div>
             <ul className="flex flex-col gap-4">
               {monitors.map((m, idx) => {
                 const favicon = getFaviconUrl(m.url);
+                const inMaintenance = m.maintenanceActive === true;
                 const isUp = m.currentStatus === true;
-                const isDown = m.currentStatus === false;
+                const isDown = m.currentStatus === false && !inMaintenance;
                 const uptimeColor =
                   m.uptimePct === null
                     ? "text-text-muted"
@@ -338,13 +340,21 @@ export function StatusPageShell({
                       </div>
                       <div className="flex shrink-0 flex-col items-start gap-1 sm:items-end sm:text-right">
                         <span className="inline-flex items-center gap-2 rounded-full border border-border bg-bg-page px-2.5 py-1 text-xs font-medium">
-                          {isUp ? (
+                          {inMaintenance ? (
+                            <>
+                              <span
+                                className="h-2 w-2 shrink-0 rounded-full bg-chart-hist-warn"
+                                aria-hidden
+                              />
+                              <span className="text-chart-hist-warn">{tPublic("statusMaintenance")}</span>
+                            </>
+                          ) : isUp ? (
                             <>
                               <span
                                 className="h-2 w-2 shrink-0 rounded-full bg-primary motion-safe:animate-operational-badge-dot"
                                 aria-hidden
                               />
-                              <span className="text-primary">Operational</span>
+                              <span className="text-primary">{tPublic("statusOperational")}</span>
                             </>
                           ) : isDown ? (
                             <>
@@ -352,7 +362,7 @@ export function StatusPageShell({
                                 className="h-2 w-2 shrink-0 rounded-full bg-destructive"
                                 aria-hidden
                               />
-                              <span className="text-destructive">Unavailable</span>
+                              <span className="text-destructive">{tPublic("statusUnavailable")}</span>
                             </>
                           ) : (
                             <>
@@ -360,12 +370,17 @@ export function StatusPageShell({
                                 className="h-2 w-2 shrink-0 rounded-full bg-border"
                                 aria-hidden
                               />
-                              <span className="text-text-muted">No data yet</span>
+                              <span className="text-text-muted">{tPublic("statusNoData")}</span>
                             </>
                           )}
                         </span>
+                        {inMaintenance && m.maintenanceNote && (
+                          <span className="max-w-[14rem] text-[0.65rem] text-text-muted">
+                            {m.maintenanceNote}
+                          </span>
+                        )}
                         <span className="text-[0.65rem] tabular-nums text-text-muted sm:max-w-[14rem]">
-                          Checked{" "}
+                          {tPublic("checked")}{" "}
                           {m.lastCheckAt ? (
                             <time dateTime={m.lastCheckAt}>
                               {formatRelativeTime(m.lastCheckAt)}
@@ -380,15 +395,15 @@ export function StatusPageShell({
                     {m.checkCount90d > 0 && (
                       <div className="mt-4 border-t border-border/80 pt-4">
                         <p className="mb-2 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
-                          90-day history
+                          {tPublic("history90d")}
                           <span className="ml-1 font-normal normal-case text-text-muted/90">
-                            (each segment ≈ 3 days)
+                            {tPublic("historySegmentHint")}
                           </span>
                         </p>
                         <div
                           className="flex h-8 gap-px rounded-md bg-border/40 p-px"
                           role="img"
-                          aria-label="90-day uptime history by segment"
+                          aria-label={tPublic("historyAria")}
                         >
                           {m.buckets.map((b, i) => {
                             const pct = b.total > 0 ? b.ok / b.total : -1;
@@ -409,16 +424,16 @@ export function StatusPageShell({
                                 )}
                                 title={
                                   pct < 0
-                                    ? "No data"
-                                    : `${Math.round(pct * 100)}% successful checks`
+                                    ? tPublic("noData")
+                                    : tPublic("successfulChecksTitle", { percent: Math.round(pct * 100) })
                                 }
                               />
                             );
                           })}
                         </div>
                         <div className="mt-2 flex justify-between text-[0.65rem] text-text-muted">
-                          <span>Older</span>
-                          <span>Recent</span>
+                          <span>{tPublic("older")}</span>
+                          <span>{tPublic("recent")}</span>
                         </div>
                       </div>
                     )}
@@ -426,7 +441,7 @@ export function StatusPageShell({
                     <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-muted">
                       {m.uptimePct !== null && (
                         <span className={cn("font-medium", uptimeColor)}>
-                          {m.uptimePct}% uptime
+                          {tPublic("uptimePercent", { percent: m.uptimePct })}
                         </span>
                       )}
                       {m.uptimePct !== null && m.avgResponseTimeMs !== null && (
@@ -439,7 +454,7 @@ export function StatusPageShell({
                           <span className="font-medium text-text-primary">
                             {m.avgResponseTimeMs}ms
                           </span>{" "}
-                          avg response
+                          {tPublic("avgResponse")}
                         </span>
                       )}
                       {(m.uptimePct !== null || m.avgResponseTimeMs !== null) &&
@@ -449,7 +464,7 @@ export function StatusPageShell({
                           </span>
                         )}
                       {m.checkCount90d > 0 && (
-                        <span>{m.checkCount90d.toLocaleString()} checks sampled</span>
+                        <span>{tPublic("checksSampled", { count: m.checkCount90d.toLocaleString() })}</span>
                       )}
                     </div>
                   </li>
@@ -462,7 +477,7 @@ export function StatusPageShell({
         {incidents.length > 0 && (
           <section
             className="mt-10 rounded-2xl border border-destructive/25 bg-destructive/5 p-5 sm:p-6"
-            aria-label="Active incidents"
+            aria-label={tPublic("activeIncidents")}
           >
             <div className="flex flex-wrap items-start gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-destructive/12 text-destructive">
@@ -473,10 +488,10 @@ export function StatusPageShell({
                   className="text-base font-semibold text-destructive"
                   style={{ fontFamily: "var(--font-display)" }}
                 >
-                  Active incidents
+                  {tPublic("activeIncidents")}
                 </h2>
                 <p className="mt-1 text-sm text-text-muted">
-                  These services failed the most recent check.
+                  {tPublic("activeIncidentsBody")}
                 </p>
                 <ul className="mt-4 flex flex-col gap-3">
                   {incidents.map((m) => (
@@ -507,8 +522,8 @@ export function StatusPageShell({
                       </div>
                       <span className="shrink-0 pl-6 text-xs tabular-nums text-text-muted sm:pl-0 sm:text-right">
                         {m.lastStatusChangedAt
-                          ? `Unhealthy for ${formatDuration(m.lastStatusChangedAt)}`
-                          : "Unhealthy"}
+                          ? tPublic("unhealthyFor", { duration: formatDuration(m.lastStatusChangedAt) })
+                          : tPublic("unhealthy")}
                       </span>
                     </li>
                   ))}
@@ -552,7 +567,7 @@ export function StatusPageShell({
             {showPoweredBy && (
               <>
                 <span>
-                  Powered by{" "}
+                  {tPublic("poweredBy")}{" "}
                   <Link
                     href="/"
                     className="font-medium text-text-primary underline-offset-4 transition-colors hover:text-primary hover:underline"
@@ -565,7 +580,7 @@ export function StatusPageShell({
                 </span>
               </>
             )}
-            <span>Auto-refresh about every 60s</span>
+            <span>{tPublic("autoRefresh")}</span>
           </p>
         </footer>
       </main>

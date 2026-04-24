@@ -8,11 +8,8 @@ import { randomUUID } from "crypto";
 import {
   checkBodySizeLimit,
   MAX_BULK_JSON_BODY_BYTES,
-  validateEmail,
-  validateExpectedStatusCodes,
-  validateMonitorName,
-  validateMonitorUrl,
 } from "@/lib/validate-monitor";
+import { parseMonitorConfigForCreate, type ParsedMonitorConfig } from "@/lib/monitor-config";
 import { runCheck } from "@/lib/run-check";
 import type { Monitor } from "@/db/schema";
 
@@ -59,97 +56,22 @@ export async function POST(request: Request) {
     );
   }
 
-  type ValidEntry = {
-    name: string;
-    url: string;
-    method: "GET" | "HEAD";
-    intervalMinutes: number;
-    timeoutSeconds: number;
-    expectedStatusCodes: string;
-    alertEmail: boolean;
-    alertEmailTo: string | null;
-    sslMonitoring: boolean;
-    showOnStatusPage: boolean;
-  };
-
-  const valid: ValidEntry[] = [];
+  const valid: ParsedMonitorConfig[] = [];
   const errors: ImportError[] = [];
 
   for (let i = 0; i < body.length; i++) {
     const item = body[i] as Record<string, unknown>;
-    const name =
-      typeof item.name === "string" && item.name.trim()
-        ? item.name.trim()
-        : "";
-    const url =
-      typeof item.url === "string" && item.url.trim() ? item.url.trim() : "";
-
-    const nameError = name ? validateMonitorName(name) : "Name is required";
-    if (nameError) {
-      errors.push({ index: i + 1, name, url, error: nameError });
+    const parsed = parseMonitorConfigForCreate(item);
+    if (!parsed.ok) {
+      errors.push({
+        index: i + 1,
+        name: typeof item.name === "string" ? item.name : "",
+        url: typeof item.url === "string" ? item.url : "",
+        error: parsed.error,
+      });
       continue;
     }
-
-    const urlError = url ? validateMonitorUrl(url) : "URL is required";
-    if (urlError) {
-      errors.push({ index: i + 1, name, url, error: urlError });
-      continue;
-    }
-
-    const expectedStatusCodes =
-      typeof item.expectedStatusCodes === "string" &&
-      item.expectedStatusCodes.trim()
-        ? item.expectedStatusCodes.trim()
-        : "200-299";
-    const codesError = validateExpectedStatusCodes(expectedStatusCodes);
-    if (codesError) {
-      errors.push({ index: i + 1, name, url, error: codesError });
-      continue;
-    }
-
-    const alertEmailTo =
-      typeof item.alertEmailTo === "string" && item.alertEmailTo.trim()
-        ? item.alertEmailTo.trim()
-        : null;
-    if (alertEmailTo) {
-      const emailError = validateEmail(alertEmailTo);
-      if (emailError) {
-        errors.push({
-          index: i + 1,
-          name,
-          url,
-          error: `Alert email: ${emailError}`,
-        });
-        continue;
-      }
-    }
-
-    const intervalMinutes =
-      typeof item.intervalMinutes === "number" && item.intervalMinutes >= 1
-        ? Math.min(Math.round(item.intervalMinutes), 60)
-        : 5;
-    const timeoutSeconds =
-      typeof item.timeoutSeconds === "number" && item.timeoutSeconds >= 5
-        ? Math.min(Math.round(item.timeoutSeconds), 120)
-        : 15;
-    const method = item.method === "HEAD" ? "HEAD" : ("GET" as const);
-    const alertEmail = item.alertEmail === true;
-    const sslMonitoring = item.sslMonitoring === true;
-    const showOnStatusPage =
-      typeof item.showOnStatusPage === "boolean" ? item.showOnStatusPage : true;
-
-    valid.push({
-      name,
-      url,
-      method,
-      intervalMinutes,
-      timeoutSeconds,
-      expectedStatusCodes,
-      alertEmail,
-      alertEmailTo,
-      sslMonitoring,
-      showOnStatusPage,
-    });
+    valid.push(parsed.config);
   }
 
   if (valid.length === 0) {
@@ -170,16 +92,7 @@ export async function POST(request: Request) {
         .values({
           id,
           userId: session.user!.id,
-          name: entry.name,
-          url: entry.url,
-          intervalMinutes: entry.intervalMinutes,
-          timeoutSeconds: entry.timeoutSeconds,
-          method: entry.method,
-          expectedStatusCodes: entry.expectedStatusCodes,
-          alertEmail: entry.alertEmail,
-          alertEmailTo: entry.alertEmailTo,
-          sslMonitoring: entry.sslMonitoring,
-          showOnStatusPage: entry.showOnStatusPage,
+          ...entry,
           createdAt: now,
         })
         .run();

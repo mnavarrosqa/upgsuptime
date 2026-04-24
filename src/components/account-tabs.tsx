@@ -40,12 +40,15 @@ export function AccountTabs({
   const [tab, setTab] = useState<TabValue>("profile");
 
   useEffect(() => {
-    const hash = typeof window !== "undefined" ? window.location.hash.slice(1) : "";
-    if (hash === "onboarding") {
-      setTab("guide");
-    } else if (hash === "status") {
-      setTab("status");
-    }
+    const id = window.setTimeout(() => {
+      const hash = window.location.hash.slice(1);
+      if (hash === "onboarding") {
+        setTab("guide");
+      } else if (hash === "status") {
+        setTab("status");
+      }
+    }, 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   return (

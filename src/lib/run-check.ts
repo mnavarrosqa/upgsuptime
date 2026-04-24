@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { lookup as dnsLookup, resolve as dnsResolve } from "dns/promises";
+import { connect as netConnect } from "net";
 import { fetch as undiciFetch, buildConnector, Agent } from "undici";
 import { db } from "@/db";
 import { monitor, checkResult, degradationAlertEvent } from "@/db/schema";
@@ -10,6 +11,7 @@ import { sendNotifications, sendSslNotifications } from "@/lib/notify";
 import type { SslAlertType } from "@/lib/notify";
 import { evaluateDegradation, sendDegradationAlert } from "@/lib/degradation";
 import { checkSSL } from "@/lib/check-ssl";
+import { isMaintenanceActive, parseStoredRequestHeaders } from "@/lib/monitor-config";
 
 export type RunCheckResult = {
   monitorId: string;
@@ -17,6 +19,11 @@ export type RunCheckResult = {
   statusCode?: number;
   responseTimeMs: number;
   message?: string;
+};
+
+export type RunCheckOptions = {
+  maintenanceActive?: boolean;
+  manual?: boolean;
 };
 
 /** Number of consecutive failures required before transitioning to DOWN and alerting. */
@@ -113,9 +120,18 @@ async function applyCheckResult(
   responseTimeMs: number,
   message: string | undefined,
   sslPromise: Promise<import("@/lib/check-ssl").SslCheckResult | null>,
-  ownerEmail: string
+  ownerEmail: string,
+  opts: RunCheckOptions = {}
 ): Promise<RunCheckResult> {
   const now = new Date();
+  const maintenanceActive = opts.maintenanceActive ?? isMaintenanceActive(m, now);
+  const effectiveMessage =
+    message ??
+    (maintenanceActive && opts.manual
+      ? "Manual check during maintenance window"
+      : maintenanceActive
+        ? m.maintenanceNote || "Maintenance window active"
+        : undefined);
 
   const id = randomUUID();
   await db.insert(checkResult).values({
@@ -124,7 +140,7 @@ async function applyCheckResult(
     statusCode: statusCode ?? null,
     responseTimeMs,
     ok,
-    message: message ?? null,
+    message: effectiveMessage ?? null,
     createdAt: now,
   });
 
@@ -178,7 +194,7 @@ async function applyCheckResult(
   let shouldSendDegradationAlert = false;
   let degradationAlertArgs: { recentAvgMs: number; baselineP75Ms: number } | null = null;
 
-  if (ok && m.type !== "dns" && m.degradationAlertEnabled) {
+  if (ok && (m.type === "http" || m.type === "keyword") && m.degradationAlertEnabled) {
     const deg = await evaluateDegradation(m);
     degradationFields = {
       baselineP75Ms: deg.baselineP75Ms,
@@ -230,11 +246,11 @@ async function applyCheckResult(
     ok,
     statusCode,
     responseTimeMs,
-    message,
+    message: effectiveMessage,
   };
 
   // Fire-and-forget: notification errors must not propagate
-  if (shouldNotify) {
+  if (shouldNotify && !maintenanceActive) {
     sendNotifications(m, ok, result, ownerEmail, {
       downEpisodeAt: !ok ? now : undefined,
     }).catch((err) => {
@@ -243,13 +259,13 @@ async function applyCheckResult(
   }
   // Only send standalone SSL alerts when the site is up — if it's down, SSL
   // failure is expected and would just add noise to the inbox.
-  if (ok && sslResult && sslAlertType) {
+  if (ok && sslResult && sslAlertType && !maintenanceActive) {
     sendSslNotifications(m, sslResult, sslAlertType, ownerEmail).catch((err) => {
       console.error("[run-check] SSL notification error for monitor", m.id, err);
     });
   }
 
-  if (shouldSendDegradationAlert && degradationAlertArgs && m.alertEmail) {
+  if (shouldSendDegradationAlert && degradationAlertArgs && m.alertEmail && !maintenanceActive) {
     sendDegradationAlert(m, degradationAlertArgs.recentAvgMs, degradationAlertArgs.baselineP75Ms, ownerEmail).catch((err) => {
       console.error("[run-check] degradation alert error for monitor", m.id, err);
     });
@@ -260,9 +276,49 @@ async function applyCheckResult(
 
 // ─── HTTP check ───────────────────────────────────────────────────────────────
 
-async function runCheckHttp(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+function buildHttpRequestOptions(m: Monitor): {
+  method: "GET" | "HEAD" | "POST" | "PUT" | "PATCH";
+  headers: Record<string, string>;
+  body?: string;
+  redirect: "follow" | "manual";
+  maxRedirections: number;
+} {
+  const method = (["GET", "HEAD", "POST", "PUT", "PATCH"].includes(m.method)
+    ? m.method
+    : "GET") as "GET" | "HEAD" | "POST" | "PUT" | "PATCH";
+  const headers: Record<string, string> = { "User-Agent": "UPGMonitor/1.0" };
+  for (const header of parseStoredRequestHeaders(m.requestHeaders)) {
+    headers[header.name] = header.value;
+  }
+
+  const body = m.requestBody ?? undefined;
+  if (body && method !== "GET" && method !== "HEAD") {
+    const hasContentType = Object.keys(headers).some(
+      (name) => name.toLowerCase() === "content-type"
+    );
+    if (!hasContentType && m.requestBodyType === "json") {
+      headers["Content-Type"] = "application/json";
+    } else if (!hasContentType && m.requestBodyType === "form") {
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+    }
+  }
+
+  return {
+    method,
+    headers,
+    body: body && method !== "GET" && method !== "HEAD" ? body : undefined,
+    redirect: m.followRedirects === false ? "manual" : "follow",
+    maxRedirections: Math.min(20, Math.max(0, m.maxRedirects ?? 20)),
+  };
+}
+
+async function runCheckHttp(
+  m: Monitor,
+  ownerEmail: string,
+  opts: RunCheckOptions = {}
+): Promise<RunCheckResult> {
   const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
-  const method = (m.method === "HEAD" ? "HEAD" : "GET") as "GET" | "HEAD";
+  const requestOptions = buildHttpRequestOptions(m);
   const isSuccess = parseExpectedStatusCodes(m.expectedStatusCodes ?? "200-299");
 
   let ok = false;
@@ -285,12 +341,16 @@ async function runCheckHttp(m: Monitor, ownerEmail: string): Promise<RunCheckRes
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
       try {
-        const res = await undiciFetch(m.url, {
-          method,
+        const fetchOptions = {
+          method: requestOptions.method,
           signal: controller.signal,
-          headers: { "User-Agent": "UPGMonitor/1.0" },
+          headers: requestOptions.headers,
+          body: requestOptions.body,
+          redirect: requestOptions.redirect,
+          maxRedirections: requestOptions.maxRedirections,
           dispatcher: ssrfGuardAgent,
-        });
+        } as unknown as Parameters<typeof undiciFetch>[1];
+        const res = await undiciFetch(m.url, fetchOptions);
         statusCode = res.status;
         ok = isSuccess(res.status);
         // Drain body so undici can reuse the connection
@@ -316,12 +376,16 @@ async function runCheckHttp(m: Monitor, ownerEmail: string): Promise<RunCheckRes
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
-  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, ownerEmail);
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, ownerEmail, opts);
 }
 
 // ─── Keyword check ────────────────────────────────────────────────────────────
 
-async function runCheckKeyword(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+async function runCheckKeyword(
+  m: Monitor,
+  ownerEmail: string,
+  opts: RunCheckOptions = {}
+): Promise<RunCheckResult> {
   const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
   const isSuccess = parseExpectedStatusCodes(m.expectedStatusCodes ?? "200-299");
   const keyword = (m.keywordContains ?? "").toLowerCase();
@@ -418,12 +482,16 @@ async function runCheckKeyword(m: Monitor, ownerEmail: string): Promise<RunCheck
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
-  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, ownerEmail);
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, ownerEmail, opts);
 }
 
 // ─── DNS check ────────────────────────────────────────────────────────────────
 
-async function runCheckDns(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+async function runCheckDns(
+  m: Monitor,
+  ownerEmail: string,
+  opts: RunCheckOptions = {}
+): Promise<RunCheckResult> {
   const hostname = m.url; // DNS monitors store bare hostname in url column
   const recordType = (m.dnsRecordType ?? "A") as "A" | "AAAA" | "CNAME" | "MX" | "TXT" | "NS";
   const expected = (m.dnsExpectedValue ?? "").trim().toLowerCase();
@@ -465,23 +533,84 @@ async function runCheckDns(m: Monitor, ownerEmail: string): Promise<RunCheckResu
     }
 
     // DNS monitors never run SSL checks
-    return applyCheckResult(m, ok, undefined, responseTimeMs, message, Promise.resolve(null), ownerEmail);
+    return applyCheckResult(m, ok, undefined, responseTimeMs, message, Promise.resolve(null), ownerEmail, opts);
   } catch (err) {
     const responseTimeMs = Date.now() - start;
     message = err instanceof Error ? err.message : String(err);
-    return applyCheckResult(m, false, undefined, responseTimeMs, message, Promise.resolve(null), ownerEmail);
+    return applyCheckResult(m, false, undefined, responseTimeMs, message, Promise.resolve(null), ownerEmail, opts);
   }
+}
+
+// ─── TCP check ────────────────────────────────────────────────────────────────
+
+async function runCheckTcp(
+  m: Monitor,
+  ownerEmail: string,
+  opts: RunCheckOptions = {}
+): Promise<RunCheckResult> {
+  const host = (m.tcpHost ?? m.url).trim();
+  const port = m.tcpPort ?? 0;
+  const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
+  const start = Date.now();
+  let ok = false;
+  let message: string | undefined;
+
+  try {
+    const addresses = await dnsLookup(host, { all: true });
+    if (!addresses.length) {
+      message = "Could not resolve TCP host";
+    } else if (addresses.some(({ address }) => isBlockedIP(address))) {
+      message = "TCP host resolves to a disallowed address";
+    } else {
+      await new Promise<void>((resolve, reject) => {
+        const socket = netConnect({ host: addresses[0].address, port });
+        const timeout = setTimeout(() => {
+          socket.destroy();
+          reject(new Error("TCP connection timed out"));
+        }, timeoutMs);
+
+        socket.once("connect", () => {
+          clearTimeout(timeout);
+          ok = true;
+          socket.end();
+          resolve();
+        });
+        socket.once("error", (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+    }
+  } catch (err) {
+    message = err instanceof Error ? err.message : String(err);
+  }
+
+  return applyCheckResult(
+    m,
+    ok,
+    undefined,
+    Date.now() - start,
+    message,
+    Promise.resolve(null),
+    ownerEmail,
+    opts
+  );
 }
 
 // ─── Public entry point ───────────────────────────────────────────────────────
 
 /**
  * Run a single uptime check for a monitor. Dispatches to the appropriate
- * check handler based on monitor type (http | keyword | dns).
+ * check handler based on monitor type (http | keyword | dns | tcp).
  */
-export async function runCheck(m: Monitor, ownerEmail: string): Promise<RunCheckResult> {
+export async function runCheck(
+  m: Monitor,
+  ownerEmail: string,
+  opts: RunCheckOptions = {}
+): Promise<RunCheckResult> {
   const monitorType = m.type ?? "http";
-  if (monitorType === "dns") return runCheckDns(m, ownerEmail);
-  if (monitorType === "keyword") return runCheckKeyword(m, ownerEmail);
-  return runCheckHttp(m, ownerEmail);
+  if (monitorType === "dns") return runCheckDns(m, ownerEmail, opts);
+  if (monitorType === "keyword") return runCheckKeyword(m, ownerEmail, opts);
+  if (monitorType === "tcp") return runCheckTcp(m, ownerEmail, opts);
+  return runCheckHttp(m, ownerEmail, opts);
 }

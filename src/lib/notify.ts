@@ -64,6 +64,8 @@ export async function sendEmailAlert(
     subject = `[Down] ${m.name} — DNS check failed`;
   } else if (monitorType === "keyword") {
     subject = `[Down] ${m.name} — keyword check failed`;
+  } else if (monitorType === "tcp") {
+    subject = `[Down] ${m.name} — TCP port check failed`;
   } else {
     subject = `[Down] ${m.name} — unreachable`;
   }
@@ -87,7 +89,7 @@ export async function sendEmailAlert(
 
   const textParts: (string | null)[] = [
     `Monitor: ${m.name}`,
-    `${monitorType === "dns" ? "Host" : "URL"}: ${m.url}`,
+    `${monitorType === "dns" || monitorType === "tcp" ? "Host" : "URL"}: ${m.url}`,
     monitorDetailUrl ? `View monitor: ${monitorDetailUrl}` : null,
     `Status: ${newStatus ? "UP" : "DOWN"}`,
     ``,

@@ -1,9 +1,5 @@
-import {
-  validateEmail,
-  validateExpectedStatusCodes,
-  validateMonitorName,
-  validateMonitorUrl,
-} from "@/lib/validate-monitor";
+import { parseMonitorConfigForCreate } from "@/lib/monitor-config";
+import type { HttpMethod, RequestBodyType } from "@/lib/validate-monitor";
 
 /** Bump when the export shape changes incompatibly. */
 export const ACCOUNT_DATA_VERSION = 1;
@@ -54,8 +50,13 @@ export type AccountExportMonitor = {
   url: string;
   intervalMinutes: number;
   timeoutSeconds: number;
-  method: "GET" | "HEAD";
+  method: HttpMethod;
   expectedStatusCodes: string;
+  requestHeaders?: string;
+  requestBody?: string | null;
+  requestBodyType?: RequestBodyType;
+  followRedirects?: boolean;
+  maxRedirects?: number;
   lastCheckAt: string | null;
   currentStatus: boolean | null;
   lastStatusChangedAt: string | null;
@@ -69,11 +70,16 @@ export type AccountExportMonitor = {
   showOnStatusPage: boolean;
   paused: boolean;
   consecutiveFailures?: number | null;
-  type?: "http" | "keyword" | "dns";
+  type?: "http" | "keyword" | "dns" | "tcp";
   keywordContains?: string | null;
   keywordShouldExist?: boolean;
   dnsRecordType?: string | null;
   dnsExpectedValue?: string | null;
+  tcpHost?: string | null;
+  tcpPort?: number | null;
+  maintenanceStartsAt?: string | null;
+  maintenanceEndsAt?: string | null;
+  maintenanceNote?: string | null;
   degradationAlertEnabled?: boolean;
   baselineP75Ms?: number | null;
   baselineSampleCount?: number | null;
@@ -107,8 +113,13 @@ export type ParsedMonitorRow = {
   url: string;
   intervalMinutes: number;
   timeoutSeconds: number;
-  method: "GET" | "HEAD";
+  method: HttpMethod;
   expectedStatusCodes: string;
+  requestHeaders: string;
+  requestBody: string | null;
+  requestBodyType: RequestBodyType;
+  followRedirects: boolean;
+  maxRedirects: number;
   lastCheckAt: Date | null;
   currentStatus: boolean | null;
   lastStatusChangedAt: Date | null;
@@ -122,11 +133,16 @@ export type ParsedMonitorRow = {
   showOnStatusPage: boolean;
   paused: boolean;
   consecutiveFailures: number | null;
-  type: "http" | "keyword" | "dns";
+  type: "http" | "keyword" | "dns" | "tcp";
   keywordContains: string | null;
   keywordShouldExist: boolean;
   dnsRecordType: string | null;
   dnsExpectedValue: string | null;
+  tcpHost: string | null;
+  tcpPort: number | null;
+  maintenanceStartsAt: Date | null;
+  maintenanceEndsAt: Date | null;
+  maintenanceNote: string | null;
   degradationAlertEnabled: boolean;
   baselineP75Ms: number | null;
   baselineSampleCount: number | null;
@@ -149,106 +165,40 @@ export function parseMonitorFromImport(
   index: number
 ): { ok: true; row: ParsedMonitorRow } | { ok: false; error: AccountImportMonitorError } {
   const id = typeof item.id === "string" ? item.id.trim() : "";
+  const fallbackName = typeof item.name === "string" ? item.name : "";
+  const fallbackUrl = typeof item.url === "string" ? item.url : "";
   if (!id || !isUuid(id)) {
     return {
       ok: false,
       error: {
         index: index + 1,
         id,
-        name: typeof item.name === "string" ? item.name : "",
-        url: typeof item.url === "string" ? item.url : "",
+        name: fallbackName,
+        url: fallbackUrl,
         error: "Each monitor must have a valid id (UUID)",
       },
     };
   }
 
-  const name =
-    typeof item.name === "string" && item.name.trim() ? item.name.trim() : "";
-  const url =
-    typeof item.url === "string" && item.url.trim() ? item.url.trim() : "";
-
-  const nameError = name ? validateMonitorName(name) : "Name is required";
-  if (nameError) {
+  const parsedConfig = parseMonitorConfigForCreate(item);
+  if (!parsedConfig.ok) {
     return {
       ok: false,
-      error: { index: index + 1, id, name, url, error: nameError },
+      error: {
+        index: index + 1,
+        id,
+        name: fallbackName,
+        url: fallbackUrl,
+        error: parsedConfig.error,
+      },
     };
   }
-
-  const urlError = url ? validateMonitorUrl(url) : "URL is required";
-  if (urlError) {
-    return {
-      ok: false,
-      error: { index: index + 1, id, name, url, error: urlError },
-    };
-  }
-
-  const expectedStatusCodes =
-    typeof item.expectedStatusCodes === "string" &&
-    item.expectedStatusCodes.trim()
-      ? item.expectedStatusCodes.trim()
-      : "200-299";
-  const codesError = validateExpectedStatusCodes(expectedStatusCodes);
-  if (codesError) {
-    return {
-      ok: false,
-      error: { index: index + 1, id, name, url, error: codesError },
-    };
-  }
-
-  const alertEmailTo =
-    typeof item.alertEmailTo === "string" && item.alertEmailTo.trim()
-      ? item.alertEmailTo.trim()
-      : null;
-  if (alertEmailTo) {
-    const emailError = validateEmail(alertEmailTo);
-    if (emailError) {
-      return {
-        ok: false,
-        error: {
-          index: index + 1,
-          id,
-          name,
-          url,
-          error: `Alert email: ${emailError}`,
-        },
-      };
-    }
-  }
-
-  const intervalMinutes =
-    typeof item.intervalMinutes === "number" && item.intervalMinutes >= 1
-      ? Math.min(Math.round(item.intervalMinutes), 60)
-      : 5;
-  const timeoutSeconds =
-    typeof item.timeoutSeconds === "number" && item.timeoutSeconds >= 5
-      ? Math.min(Math.round(item.timeoutSeconds), 120)
-      : 15;
-  const method = item.method === "HEAD" ? "HEAD" : ("GET" as const);
-  const alertEmail = item.alertEmail === true;
-  const sslMonitoring = item.sslMonitoring === true;
-  const showOnStatusPage =
-    typeof item.showOnStatusPage === "boolean" ? item.showOnStatusPage : true;
+  const config = parsedConfig.config;
   const paused = item.paused === true;
   const consecutiveFailures =
     typeof item.consecutiveFailures === "number" &&
     Number.isFinite(item.consecutiveFailures)
       ? Math.max(0, Math.round(item.consecutiveFailures))
-      : null;
-  const type =
-    item.type === "keyword" || item.type === "dns" ? item.type : "http";
-  const keywordContains =
-    typeof item.keywordContains === "string" && item.keywordContains.trim()
-      ? item.keywordContains.trim()
-      : null;
-  const keywordShouldExist = item.keywordShouldExist !== false;
-  const dnsRecordType =
-    typeof item.dnsRecordType === "string" && item.dnsRecordType.trim()
-      ? item.dnsRecordType.trim().toUpperCase()
-      : null;
-  const dnsExpectedValue =
-    typeof item.dnsExpectedValue === "string" && item.dnsExpectedValue.trim()
-      ? item.dnsExpectedValue.trim()
       : null;
   const degradationAlertEnabled = item.degradationAlertEnabled === true;
   const baselineP75Ms =
@@ -271,6 +221,8 @@ export function parseMonitorFromImport(
   const downtimeAckEpisodeAt = parseImportedDate(item.downtimeAckEpisodeAt);
   const sslExpiresAt = parseImportedDate(item.sslExpiresAt);
   const sslLastCheckedAt = parseImportedDate(item.sslLastCheckedAt);
+  const maintenanceStartsAt = parseImportedDate(item.maintenanceStartsAt);
+  const maintenanceEndsAt = parseImportedDate(item.maintenanceEndsAt);
   const degradingAlertSentAt = parseImportedDate(item.degradingAlertSentAt);
   const baselineResetAt = parseImportedDate(item.baselineResetAt);
   const createdAt = parseImportedDate(item.createdAt);
@@ -280,8 +232,8 @@ export function parseMonitorFromImport(
       error: {
         index: index + 1,
         id,
-        name,
-        url,
+        name: config.name,
+        url: config.url,
         error: "createdAt is required and must be a valid date",
       },
     };
@@ -296,30 +248,40 @@ export function parseMonitorFromImport(
     ok: true,
     row: {
       id,
-      name,
-      url,
-      intervalMinutes,
-      timeoutSeconds,
-      method,
-      expectedStatusCodes,
+      name: config.name,
+      url: config.url,
+      intervalMinutes: config.intervalMinutes,
+      timeoutSeconds: config.timeoutSeconds,
+      method: config.method,
+      expectedStatusCodes: config.expectedStatusCodes,
+      requestHeaders: config.requestHeaders,
+      requestBody: config.requestBody,
+      requestBodyType: config.requestBodyType,
+      followRedirects: config.followRedirects,
+      maxRedirects: config.maxRedirects,
       lastCheckAt,
       currentStatus,
       lastStatusChangedAt,
       downtimeAckEpisodeAt,
-      alertEmail,
-      alertEmailTo,
-      sslMonitoring,
+      alertEmail: config.alertEmail,
+      alertEmailTo: config.alertEmailTo,
+      sslMonitoring: config.sslMonitoring,
       sslValid,
       sslExpiresAt,
       sslLastCheckedAt,
-      showOnStatusPage,
+      showOnStatusPage: config.showOnStatusPage,
       paused,
       consecutiveFailures,
-      type,
-      keywordContains,
-      keywordShouldExist,
-      dnsRecordType,
-      dnsExpectedValue,
+      type: config.type,
+      keywordContains: config.keywordContains,
+      keywordShouldExist: config.keywordShouldExist !== false,
+      dnsRecordType: config.dnsRecordType,
+      dnsExpectedValue: config.dnsExpectedValue,
+      tcpHost: config.tcpHost,
+      tcpPort: config.tcpPort,
+      maintenanceStartsAt,
+      maintenanceEndsAt,
+      maintenanceNote: config.maintenanceNote,
       degradationAlertEnabled,
       baselineP75Ms,
       baselineSampleCount,

@@ -8,6 +8,7 @@ import {
   type AccountExportPayload,
   toIsoTimestamp,
 } from "@/lib/account-data";
+import { redactRequestHeaders } from "@/lib/monitor-config";
 
 export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
@@ -62,6 +63,11 @@ export async function GET(request: Request) {
       timeoutSeconds: m.timeoutSeconds,
       method: m.method,
       expectedStatusCodes: m.expectedStatusCodes,
+      requestHeaders: JSON.stringify(redactRequestHeaders(m.requestHeaders)),
+      requestBody: null,
+      requestBodyType: m.requestBodyType ?? "none",
+      followRedirects: m.followRedirects !== false,
+      maxRedirects: m.maxRedirects ?? 20,
       lastCheckAt: toIsoTimestamp(m.lastCheckAt ?? undefined),
       currentStatus: m.currentStatus ?? null,
       lastStatusChangedAt: toIsoTimestamp(m.lastStatusChangedAt ?? undefined),
@@ -80,6 +86,11 @@ export async function GET(request: Request) {
       keywordShouldExist: m.keywordShouldExist !== false,
       dnsRecordType: m.dnsRecordType ?? null,
       dnsExpectedValue: m.dnsExpectedValue ?? null,
+      tcpHost: m.tcpHost ?? null,
+      tcpPort: m.tcpPort ?? null,
+      maintenanceStartsAt: toIsoTimestamp(m.maintenanceStartsAt ?? undefined),
+      maintenanceEndsAt: toIsoTimestamp(m.maintenanceEndsAt ?? undefined),
+      maintenanceNote: m.maintenanceNote ?? null,
       degradationAlertEnabled: m.degradationAlertEnabled ?? false,
       baselineP75Ms: m.baselineP75Ms ?? null,
       baselineSampleCount: m.baselineSampleCount ?? null,

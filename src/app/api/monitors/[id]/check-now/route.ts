@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { monitor } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { runCheck } from "@/lib/run-check";
+import { isMaintenanceActive } from "@/lib/monitor-config";
 
 export async function POST(
   _request: Request,
@@ -25,7 +26,10 @@ export async function POST(
   }
 
   try {
-    const result = await runCheck(m, session.user.email ?? "");
+    const result = await runCheck(m, session.user.email ?? "", {
+      maintenanceActive: isMaintenanceActive(m),
+      manual: true,
+    });
     return NextResponse.json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

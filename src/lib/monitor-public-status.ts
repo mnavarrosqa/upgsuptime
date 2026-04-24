@@ -1,5 +1,4 @@
 import { and, gte, inArray, sql } from "drizzle-orm";
-import { db } from "@/db";
 import { checkResult, monitor } from "@/db/schema";
 
 export const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
@@ -17,10 +16,12 @@ export type MonitorPublicStatusItem = {
   id: string;
   name: string;
   url: string;
-  type: "http" | "keyword" | "dns";
+  type: "http" | "keyword" | "dns" | "tcp";
   intervalMinutes: number;
   paused: boolean | null;
-  method: "GET" | "HEAD";
+  method: "GET" | "HEAD" | "POST" | "PUT" | "PATCH";
+  maintenanceActive: boolean;
+  maintenanceNote: string | null;
   sslMonitoring: boolean | null;
   sslValid: boolean | null;
   sslExpiresAt: string | null;
@@ -48,6 +49,12 @@ export function buildMonitorPublicStatusItem(
     intervalMinutes: m.intervalMinutes,
     paused: m.paused ?? null,
     method: m.method,
+    maintenanceActive:
+      !!m.maintenanceStartsAt &&
+      !!m.maintenanceEndsAt &&
+      m.maintenanceStartsAt.getTime() <= Date.now() &&
+      m.maintenanceEndsAt.getTime() > Date.now(),
+    maintenanceNote: m.maintenanceNote ?? null,
     sslMonitoring: m.sslMonitoring ?? null,
     sslValid: m.sslValid ?? null,
     sslExpiresAt: m.sslExpiresAt ? new Date(m.sslExpiresAt).toISOString() : null,
@@ -69,6 +76,7 @@ export async function getUptimeStats90d(
   const map = new Map<string, { total: number; okCount: number }>();
   if (monitorIds.length === 0) return map;
 
+  const { db } = await import("@/db");
   const rows = await db
     .select({
       monitorId: checkResult.monitorId,

@@ -3,7 +3,9 @@
 import { useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { Pause, Play, RefreshCw } from "lucide-react";
+import { toast } from "sonner";
 import { MonitorCardTrend, type TrendPoint } from "@/components/monitor-card-trend";
 import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
@@ -15,7 +17,7 @@ type MonitorCardProps = {
   id: string;
   name: string;
   url: string;
-  monitorType?: "http" | "keyword" | "dns" | null;
+  monitorType?: "http" | "keyword" | "dns" | "tcp" | null;
   paused?: boolean | null;
   latest: { ok: boolean; responseTimeMs: number | null; message?: string | null } | undefined;
   trendResults: TrendPoint[];
@@ -27,8 +29,8 @@ type MonitorCardProps = {
   downtimeAcked?: boolean;
 };
 
-function getFaviconUrl(url: string, monitorType?: "http" | "keyword" | "dns" | null): string {
-  if (monitorType === "dns") return "";
+function getFaviconUrl(url: string, monitorType?: "http" | "keyword" | "dns" | "tcp" | null): string {
+  if (monitorType === "dns" || monitorType === "tcp") return "";
   try {
     const host = new URL(url).hostname;
     return `/api/favicon?domain=${host}`;
@@ -64,6 +66,8 @@ export function MonitorCard({
   downtimeAcked = false,
 }: MonitorCardProps) {
   const router = useRouter();
+  const t = useTranslations("monitorsPage");
+  const tCommon = useTranslations("common");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
 
@@ -80,22 +84,40 @@ export function MonitorCard({
     e.preventDefault();
     e.stopPropagation();
     setLoading(true);
-    await fetch(`/api/monitors/${id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ paused: !paused }),
-    });
-    router.refresh();
-    setLoading(false);
+    try {
+      const res = await fetch(`/api/monitors/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ paused: !paused }),
+      });
+      if (!res.ok) {
+        throw new Error(paused ? t("failedToResume") : t("failedToPause"));
+      }
+      toast.success(paused ? t("monitorResumed") : t("monitorPaused"));
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : t("failedToUpdate"));
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function handleCheckNow(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
     setChecking(true);
-    await fetch(`/api/monitors/${id}/check-now`, { method: "POST" });
-    router.refresh();
-    setChecking(false);
+    try {
+      const res = await fetch(`/api/monitors/${id}/check-now`, { method: "POST" });
+      if (!res.ok) {
+        throw new Error(t("checkNowFailed"));
+      }
+      toast.success(t("checkNowQueued"));
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : tCommon("somethingWentWrong"));
+    } finally {
+      setChecking(false);
+    }
   }
 
   return (
@@ -112,7 +134,7 @@ export function MonitorCard({
         <Link
           href={`/monitors/${id}`}
           className="absolute inset-0 z-0 rounded-lg outline-offset-2"
-          aria-label={`View details for ${name}`}
+          aria-label={t("viewDetailsFor", { name })}
         />
         {/* Header: favicon + name + status */}
         <div className="pointer-events-none relative z-[2] flex flex-1 flex-col">
@@ -130,7 +152,7 @@ export function MonitorCard({
               className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-border text-xs text-text-muted"
               aria-hidden
             >
-              {type === "dns" ? "D" : type === "keyword" ? "K" : "•"}
+              {type === "dns" ? "D" : type === "keyword" ? "K" : type === "tcp" ? "T" : "•"}
             </span>
           )}
           <div className="min-w-0 flex-1">
@@ -141,7 +163,7 @@ export function MonitorCard({
                 </span>
                 {type !== "http" && (
                   <span className="shrink-0 rounded-full bg-border px-2 py-0.5 text-xs font-medium text-text-muted">
-                    {type === "dns" ? "DNS" : "Keyword"}
+                    {type === "dns" ? "DNS" : type === "tcp" ? "TCP" : "Keyword"}
                   </span>
                 )}
               </div>
@@ -150,7 +172,7 @@ export function MonitorCard({
                 {downtimeAcked ? <DowntimeAckBadge /> : null}
               </div>
             </div>
-            {type === "dns" ? (
+            {type === "dns" || type === "tcp" ? (
               <span
                 className="mt-0.5 block truncate font-mono text-xs text-text-muted"
                 title={url}
@@ -208,7 +230,7 @@ export function MonitorCard({
                 <span>{latest.responseTimeMs}ms</span>
               </>
             )}
-            {sslMonitoring && type !== "dns" && (
+            {sslMonitoring && type !== "dns" && type !== "tcp" && (
               <>
                 <span aria-hidden>·</span>
                 <SslBadge
@@ -232,7 +254,8 @@ export function MonitorCard({
           variant="outline"
           size="icon-sm"
           onClick={handleCheckNow}
-          title="Check now"
+          title={t("checkNow")}
+          aria-label={t("checkNowFor", { name })}
           disabled={checking || !!paused}
           className="h-9 w-9 rounded border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:bg-bg-card/90 hover:text-text-primary md:h-11 md:w-11 md:bg-bg-card"
         >
@@ -243,7 +266,8 @@ export function MonitorCard({
           variant="outline"
           size="icon-sm"
           onClick={handlePauseToggle}
-          title={paused ? "Resume" : "Pause"}
+          title={paused ? t("resume") : t("pause")}
+          aria-label={paused ? t("resumeMonitor", { name }) : t("pauseMonitor", { name })}
           disabled={loading}
           className="h-9 w-9 rounded border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:bg-bg-card/90 hover:text-text-primary md:h-11 md:w-11 md:bg-bg-card"
         >

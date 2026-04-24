@@ -1,6 +1,11 @@
 export const MAX_URL_LENGTH = 2048;
 export const MAX_NAME_LENGTH = 200;
 export const MAX_JSON_BODY_BYTES = 16 * 1024;
+export const MAX_REQUEST_BODY_CHARS = 16 * 1024;
+export const MAX_REQUEST_HEADERS = 20;
+export const MAX_REQUEST_HEADER_NAME_LENGTH = 80;
+export const MAX_REQUEST_HEADER_VALUE_LENGTH = 2048;
+export const MAX_MAINTENANCE_NOTE_LENGTH = 500;
 
 /**
  * Validates expectedStatusCodes format: comma-separated codes or ranges (e.g. "200", "200,201", "200-299").
@@ -74,6 +79,12 @@ export const MAX_KEYWORD_LENGTH = 500;
 export const DNS_RECORD_TYPES = ["A", "AAAA", "CNAME", "MX", "TXT", "NS"] as const;
 export type DnsRecordType = (typeof DNS_RECORD_TYPES)[number];
 
+export const HTTP_METHODS = ["GET", "HEAD", "POST", "PUT", "PATCH"] as const;
+export type HttpMethod = (typeof HTTP_METHODS)[number];
+
+export const REQUEST_BODY_TYPES = ["none", "text", "json", "form"] as const;
+export type RequestBodyType = (typeof REQUEST_BODY_TYPES)[number];
+
 /**
  * Validates a bare hostname for DNS monitors (no protocol).
  * Returns error message or null.
@@ -109,6 +120,51 @@ export function validateKeywordContains(value: string): string | null {
   if (!value || value.trim().length === 0) return "Keyword is required";
   if (value.length > MAX_KEYWORD_LENGTH)
     return `Keyword must be at most ${MAX_KEYWORD_LENGTH} characters`;
+  return null;
+}
+
+export function validateHttpMethod(value: string): string | null {
+  if (!HTTP_METHODS.includes(value as HttpMethod)) {
+    return `Method must be one of: ${HTTP_METHODS.join(", ")}`;
+  }
+  return null;
+}
+
+export function validateRequestBodyType(value: string): string | null {
+  if (!REQUEST_BODY_TYPES.includes(value as RequestBodyType)) {
+    return `Request body type must be one of: ${REQUEST_BODY_TYPES.join(", ")}`;
+  }
+  return null;
+}
+
+export function validateRequestBody(value: string | null): string | null {
+  if (value != null && value.length > MAX_REQUEST_BODY_CHARS) {
+    return `Request body must be at most ${MAX_REQUEST_BODY_CHARS} characters`;
+  }
+  return null;
+}
+
+export function validateTcpPort(value: number): string | null {
+  if (!Number.isInteger(value) || value < 1 || value > 65535) {
+    return "TCP port must be between 1 and 65535";
+  }
+  return null;
+}
+
+export function validateMaintenanceWindow(
+  startsAt: Date | null,
+  endsAt: Date | null,
+  note: string | null
+): string | null {
+  if ((startsAt && !endsAt) || (!startsAt && endsAt)) {
+    return "Maintenance window requires both start and end times";
+  }
+  if (startsAt && endsAt && startsAt.getTime() >= endsAt.getTime()) {
+    return "Maintenance end time must be after start time";
+  }
+  if (note && note.length > MAX_MAINTENANCE_NOTE_LENGTH) {
+    return `Maintenance note must be at most ${MAX_MAINTENANCE_NOTE_LENGTH} characters`;
+  }
   return null;
 }
 

@@ -11,6 +11,14 @@ const withSerwist = withSerwistInit({
 });
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+function getAllowedDevOrigins(): string[] {
+  const configured = process.env.ALLOWED_DEV_ORIGINS?.split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean) ?? [];
+
+  return Array.from(new Set([...configured, "localhost:3077"]));
+}
+
 const nextConfig: NextConfig = {
   serverExternalPackages: ["better-sqlite3"],
   webpack(config, { isServer }) {
@@ -19,9 +27,9 @@ const nextConfig: NextConfig = {
     }
     return config;
   },
-  // Allow dev server to be opened by IP (e.g. http://192.168.x.x:3077) instead of only localhost
+  // Allow dev server to be opened by configured hostnames/IPs instead of only localhost.
   ...(process.env.NODE_ENV !== "production"
-    ? { allowedDevOrigins: ["192.168.68.114", "192.168.68.114:3077", "localhost:3077"] }
+    ? { allowedDevOrigins: getAllowedDevOrigins() }
     : {}),
   // So NextAuth accepts login when the app is opened by IP
   env: process.env.NODE_ENV !== "production" ? { AUTH_TRUST_HOST: "true" } : {},

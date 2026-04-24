@@ -6,6 +6,7 @@ import { monitor, user, checkResult } from "@/db/schema";
 import { eq, and, gte, desc } from "drizzle-orm";
 import { StatusPageShell } from "@/components/status-page-shell";
 import { daysAgoUtc, unixNowMs } from "@/lib/server-relative-time";
+import { isMaintenanceActive } from "@/lib/monitor-config";
 
 export async function generateMetadata({
   params,
@@ -125,10 +126,14 @@ export default async function StatusPage({
         lastErrorCode = lastFailed?.statusCode ?? null;
       }
 
+      const maintenanceActive = isMaintenanceActive(m);
+
       return {
         id: m.id,
         name: m.name,
         url: m.url,
+        maintenanceActive,
+        maintenanceNote: m.maintenanceNote ?? null,
         currentStatus: m.currentStatus,
         lastCheckAt: m.lastCheckAt ? new Date(m.lastCheckAt).toISOString() : null,
         lastStatusChangedAt: m.lastStatusChangedAt
@@ -144,8 +149,12 @@ export default async function StatusPage({
     })
   );
 
-  const downCount = monitorsWithStats.filter((m) => m.currentStatus === false).length;
-  const incidents = monitorsWithStats.filter((m) => m.currentStatus === false);
+  const downCount = monitorsWithStats.filter(
+    (m) => m.currentStatus === false && !m.maintenanceActive
+  ).length;
+  const incidents = monitorsWithStats.filter(
+    (m) => m.currentStatus === false && !m.maintenanceActive
+  );
 
   const pageTitle = (u.statusPageTitle?.trim() || u.username || username).trim();
   const pageTagline = u.statusPageTagline?.trim() || null;

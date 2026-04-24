@@ -81,7 +81,6 @@ export function MonitorDetailHistoryClient({
 
   useEffect(() => {
     const ac = new AbortController();
-    setIsLoading(true);
 
     fetch(`/api/monitors/${encodeURIComponent(monitorId)}/results?range=${range}`, { signal: ac.signal })
       .then(async (res) => {

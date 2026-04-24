@@ -46,8 +46,8 @@ export function BulkEditMonitorsForm({
   const alertTos = monitors.map((m) => (m.alertEmailTo ?? "").trim());
   const ssls = monitors.map((m) => !!m.sslMonitoring);
   const statusPages = monitors.map((m) => m.showOnStatusPage !== false);
-  const nonDnsMonitors = monitors.filter((m) => m.type !== "dns");
-  const degradations = nonDnsMonitors.map((m) => !!m.degradationAlertEnabled);
+  const httpLikeMonitors = monitors.filter((m) => m.type === "http" || m.type === "keyword");
+  const degradations = httpLikeMonitors.map((m) => !!m.degradationAlertEnabled);
 
   const [intervalMinutes, setIntervalMinutes] = useState<string>(
     allEqual(intervals) ? String(intervals[0] ?? 5) : ""
@@ -107,7 +107,7 @@ export function BulkEditMonitorsForm({
   }, [degradationAlertEnabled]);
 
   const anyHttps = monitors.some((m) => m.url.startsWith("https://"));
-  const anyNonDns = nonDnsMonitors.length > 0;
+  const anyHttpLike = httpLikeMonitors.length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -349,7 +349,7 @@ export function BulkEditMonitorsForm({
             />
           </div>
         )}
-        {anyNonDns && (
+        {anyHttpLike && (
           <div className="mt-3">
             <label className={`flex items-center gap-2.5 ${alertEmail === true ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
               <input

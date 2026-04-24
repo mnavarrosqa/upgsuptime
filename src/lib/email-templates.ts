@@ -207,6 +207,8 @@ export function buildUptimeAlertHtml(
       ? `DNS check for <span style="color:${COLORS.down};">${escHtml(m.name)}</span> failed`
       : monitorType === "keyword"
         ? `<span style="color:${COLORS.down};">${escHtml(m.name)}</span> — keyword check failed`
+        : monitorType === "tcp"
+          ? `TCP check for <span style="color:${COLORS.down};">${escHtml(m.name)}</span> failed`
         : `<span style="color:${COLORS.down};">${escHtml(m.name)}</span> is unreachable`;
 
   const headline = isUp

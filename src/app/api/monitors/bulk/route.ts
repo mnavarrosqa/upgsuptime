@@ -8,11 +8,8 @@ import { randomUUID } from "crypto";
 import {
   checkBodySizeLimit,
   MAX_BULK_JSON_BODY_BYTES,
-  validateEmail,
-  validateExpectedStatusCodes,
-  validateMonitorName,
-  validateMonitorUrl,
 } from "@/lib/validate-monitor";
+import { parseMonitorConfigForCreate, type ParsedMonitorConfig } from "@/lib/monitor-config";
 import { deriveMonitorNameFromUrl } from "@/lib/derive-monitor-name";
 import { runCheck } from "@/lib/run-check";
 import type { Monitor } from "@/db/schema";
@@ -72,55 +69,21 @@ export async function POST(request: Request) {
     );
   }
 
-  const intervalMinutes =
-    typeof body.intervalMinutes === "number" && body.intervalMinutes >= 1
-      ? Math.min(body.intervalMinutes, 60)
-      : 5;
-  const timeoutSeconds =
-    typeof body.timeoutSeconds === "number" && body.timeoutSeconds >= 5
-      ? Math.min(body.timeoutSeconds, 120)
-      : 15;
-  const method = body.method === "HEAD" ? "HEAD" : "GET";
-  const expectedStatusCodes =
-    typeof body.expectedStatusCodes === "string" &&
-    body.expectedStatusCodes.trim()
-      ? body.expectedStatusCodes.trim()
-      : "200-299";
-  const alertEmail = body.alertEmail === true;
-  const alertEmailTo =
-    typeof body.alertEmailTo === "string" && body.alertEmailTo.trim()
-      ? body.alertEmailTo.trim()
-      : null;
-  const sslMonitoring = body.sslMonitoring === true;
-  const showOnStatusPage =
-    typeof body.showOnStatusPage === "boolean" ? body.showOnStatusPage : true;
-
-  const codesError = validateExpectedStatusCodes(expectedStatusCodes);
-  if (codesError) {
-    return NextResponse.json({ error: codesError }, { status: 400 });
-  }
-  if (alertEmailTo) {
-    const emailError = validateEmail(alertEmailTo);
-    if (emailError) {
-      return NextResponse.json(
-        { error: `Alert email: ${emailError}` },
-        { status: 400 }
-      );
-    }
-  }
-
   const details: BulkDetail[] = [];
+  const valid: ParsedMonitorConfig[] = [];
   for (let i = 0; i < entries.length; i++) {
     const { url, name } = entries[i];
-    const urlError = validateMonitorUrl(url);
-    if (urlError) {
-      details.push({ index: i + 1, url, error: urlError });
+    const parsed = parseMonitorConfigForCreate({
+      ...body,
+      type: "http",
+      name,
+      url,
+    });
+    if (!parsed.ok) {
+      details.push({ index: i + 1, url, error: parsed.error });
       continue;
     }
-    const nameError = validateMonitorName(name);
-    if (nameError) {
-      details.push({ index: i + 1, url, error: nameError });
-    }
+    valid.push(parsed.config);
   }
   if (details.length > 0) {
     return NextResponse.json(
@@ -136,23 +99,14 @@ export async function POST(request: Request) {
   const ids: string[] = [];
 
   db.transaction((tx) => {
-    for (const { url, name } of entries) {
+    for (const config of valid) {
       const id = randomUUID();
       ids.push(id);
       tx.insert(monitor)
         .values({
           id,
           userId: session.user!.id,
-          name,
-          url,
-          intervalMinutes,
-          timeoutSeconds,
-          method,
-          expectedStatusCodes,
-          alertEmail,
-          alertEmailTo,
-          sslMonitoring,
-          showOnStatusPage,
+          ...config,
           createdAt: now,
         })
         .run();

@@ -33,9 +33,13 @@ export function AddMonitorForm({
 }) {
   const router = useRouter();
   const tDegradationHint = useTranslations("degradationFormHint");
+  const tMonitorTypes = useTranslations("monitorTypes");
+  const tForm = useTranslations("monitorForm");
+  const tCommon = useTranslations("common");
+  const tMonitors = useTranslations("monitorsPage");
 
   // Monitor type
-  const [monitorType, setMonitorType] = useState<"http" | "keyword" | "dns">("http");
+  const [monitorType, setMonitorType] = useState<"http" | "keyword" | "dns" | "tcp">("http");
 
   // Common fields
   const [name, setName] = useState("");
@@ -47,9 +51,14 @@ export function AddMonitorForm({
 
   // HTTP / keyword fields
   const [timeoutSeconds, setTimeoutSeconds] = useState(15);
-  const [method, setMethod] = useState<"GET" | "HEAD">("GET");
+  const [method, setMethod] = useState<"GET" | "HEAD" | "POST" | "PUT" | "PATCH">("GET");
   const [expectedStatusCodes, setExpectedStatusCodes] = useState("200-299");
   const [sslMonitoring, setSslMonitoring] = useState(false);
+  const [requestHeaders, setRequestHeaders] = useState("");
+  const [requestBody, setRequestBody] = useState("");
+  const [requestBodyType, setRequestBodyType] = useState<"none" | "text" | "json" | "form">("none");
+  const [followRedirects, setFollowRedirects] = useState(true);
+  const [maxRedirects, setMaxRedirects] = useState(20);
 
   // Keyword-specific
   const [keywordContains, setKeywordContains] = useState("");
@@ -58,6 +67,14 @@ export function AddMonitorForm({
   // DNS-specific
   const [dnsRecordType, setDnsRecordType] = useState("A");
   const [dnsExpectedValue, setDnsExpectedValue] = useState("");
+
+  // TCP-specific
+  const [tcpPort, setTcpPort] = useState(443);
+
+  // Scheduled maintenance
+  const [maintenanceStartsAt, setMaintenanceStartsAt] = useState("");
+  const [maintenanceEndsAt, setMaintenanceEndsAt] = useState("");
+  const [maintenanceNote, setMaintenanceNote] = useState("");
 
   const [degradationAlertEnabled, setDegradationAlertEnabled] = useState(false);
 
@@ -70,7 +87,7 @@ export function AddMonitorForm({
     setShowDegradationDeferHint(isGlobalDegradationDeferHint());
   }, []);
 
-  function handleTypeChange(newType: "http" | "keyword" | "dns") {
+  function handleTypeChange(newType: "http" | "keyword" | "dns" | "tcp") {
     setMonitorType(newType);
     // Reset URL when switching to/from DNS to avoid confusion
     setUrl("");
@@ -94,10 +111,20 @@ export function AddMonitorForm({
 
       if (!isDns) {
         bodyObj.timeoutSeconds = timeoutSeconds;
-        bodyObj.method = isKeyword ? "GET" : method;
-        bodyObj.expectedStatusCodes = expectedStatusCodes.trim() || "200-299";
-        bodyObj.sslMonitoring = sslMonitoring;
-        bodyObj.degradationAlertEnabled = degradationAlertEnabled;
+        if (!isTcp) {
+          bodyObj.method = isKeyword ? "GET" : method;
+          bodyObj.expectedStatusCodes = expectedStatusCodes.trim() || "200-299";
+          bodyObj.sslMonitoring = sslMonitoring;
+          bodyObj.degradationAlertEnabled = degradationAlertEnabled;
+        }
+      }
+
+      if (monitorType === "http") {
+        bodyObj.requestHeaders = requestHeaders.trim() || "[]";
+        bodyObj.requestBody = requestBodyType === "none" ? null : requestBody;
+        bodyObj.requestBodyType = requestBodyType;
+        bodyObj.followRedirects = followRedirects;
+        bodyObj.maxRedirects = maxRedirects;
       }
 
       if (monitorType === "keyword") {
@@ -110,6 +137,15 @@ export function AddMonitorForm({
         bodyObj.dnsExpectedValue = dnsExpectedValue;
       }
 
+      if (monitorType === "tcp") {
+        bodyObj.tcpHost = url;
+        bodyObj.tcpPort = tcpPort;
+      }
+
+      bodyObj.maintenanceStartsAt = maintenanceStartsAt || null;
+      bodyObj.maintenanceEndsAt = maintenanceEndsAt || null;
+      bodyObj.maintenanceNote = maintenanceNote.trim() || null;
+
       const res = await fetch("/api/monitors", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -117,11 +153,11 @@ export function AddMonitorForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to add monitor");
+        setError(data.error ?? tForm("addFailed"));
         return;
       }
 
-      if (!isDns && degradationAlertEnabled) {
+      if (!isDns && !isTcp && degradationAlertEnabled) {
         clearGlobalDegradationDeferHint();
         setShowDegradationDeferHint(false);
       }
@@ -133,6 +169,11 @@ export function AddMonitorForm({
       setTimeoutSeconds(15);
       setMethod("GET");
       setExpectedStatusCodes("200-299");
+      setRequestHeaders("");
+      setRequestBody("");
+      setRequestBodyType("none");
+      setFollowRedirects(true);
+      setMaxRedirects(20);
       setAlertEmail(false);
       setAlertEmailTo("");
       setDegradationAlertEnabled(false);
@@ -142,12 +183,16 @@ export function AddMonitorForm({
       setKeywordShouldExist(true);
       setDnsRecordType("A");
       setDnsExpectedValue("");
+      setTcpPort(443);
+      setMaintenanceStartsAt("");
+      setMaintenanceEndsAt("");
+      setMaintenanceNote("");
 
-      toast.success("Monitor added");
+      toast.success(tForm("addSuccess"));
       router.refresh();
       onSuccess?.();
     } catch {
-      setError("Something went wrong");
+      setError(tCommon("somethingWentWrong"));
     } finally {
       setSubmitting(false);
     }
@@ -155,6 +200,7 @@ export function AddMonitorForm({
 
   const isDns = monitorType === "dns";
   const isKeyword = monitorType === "keyword";
+  const isTcp = monitorType === "tcp";
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
@@ -170,31 +216,32 @@ export function AddMonitorForm({
       {/* Monitor type selector */}
       <div>
         <Label htmlFor="add-type" className={labelClass}>
-          Monitor type
+          {tMonitorTypes("typeLabel")}
         </Label>
         <select
           id="add-type"
           value={monitorType}
-          onChange={(e) => handleTypeChange(e.target.value as "http" | "keyword" | "dns")}
+          onChange={(e) => handleTypeChange(e.target.value as "http" | "keyword" | "dns" | "tcp")}
           className={selectClass}
         >
-          <option value="http">HTTP – check status code</option>
-          <option value="keyword">Keyword – check response body</option>
-          <option value="dns">DNS – check record resolution</option>
+          <option value="http">{tMonitorTypes("http")}</option>
+          <option value="keyword">{tMonitorTypes("keyword")}</option>
+          <option value="dns">{tMonitorTypes("dns")}</option>
+          <option value="tcp">{tMonitorTypes("tcp")}</option>
         </select>
       </div>
 
       {/* Name */}
       <div>
         <Label htmlFor="add-name" className={labelClass}>
-          Name
+          {tForm("name")}
         </Label>
         <Input
           id="add-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="My API"
+          placeholder={tForm("namePlaceholder")}
           required
           className={inputClass}
         />
@@ -203,29 +250,29 @@ export function AddMonitorForm({
       {/* URL / Hostname */}
       <div>
         <Label htmlFor="add-url" className={labelClass}>
-          {isDns ? "Hostname" : "URL"}
+          {isDns || isTcp ? tMonitorTypes("hostnameLabel") : tForm("url")}
         </Label>
         <Input
           id="add-url"
-          type={isDns ? "text" : "url"}
+          type={isDns || isTcp ? "text" : "url"}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder={isDns ? "example.com" : "https://example.com"}
+          placeholder={isDns || isTcp ? tMonitorTypes("hostnamePlaceholder") : "https://example.com"}
           required
           className={inputClass}
         />
         <p className={hintClass}>
-          {isDns
-            ? "Enter a hostname without https://"
-            : "Must be a valid HTTP or HTTPS URL."}
+          {isDns || isTcp
+            ? tMonitorTypes("hostnameHint")
+            : tForm("urlHint")}
         </p>
       </div>
 
-      {/* HTTP/Keyword options: interval + method + timeout + status codes */}
+      {/* Check options */}
       {isDns ? (
         <div>
           <Label htmlFor="add-interval" className={labelClass}>
-            Interval (min)
+            {tForm("intervalMinutes")}
           </Label>
           <Input
             id="add-interval"
@@ -237,11 +284,56 @@ export function AddMonitorForm({
             className={inputClass}
           />
         </div>
+      ) : isTcp ? (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div>
+            <Label htmlFor="add-interval" className={labelClass}>
+              {tForm("intervalMinutes")}
+            </Label>
+            <Input
+              id="add-interval"
+              type="number"
+              min={1}
+              max={60}
+              value={intervalMinutes}
+              onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <Label htmlFor="add-timeout" className={labelClass}>
+              {tForm("timeoutSeconds")}
+            </Label>
+            <Input
+              id="add-timeout"
+              type="number"
+              min={5}
+              max={120}
+              value={timeoutSeconds}
+              onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <Label htmlFor="add-tcp-port" className={labelClass}>
+              {tForm("port")}
+            </Label>
+            <Input
+              id="add-tcp-port"
+              type="number"
+              min={1}
+              max={65535}
+              value={tcpPort}
+              onChange={(e) => setTcpPort(Number(e.target.value) || 443)}
+              className={inputClass}
+            />
+          </div>
+        </div>
       ) : (
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Label htmlFor="add-interval" className={labelClass}>
-              Interval (min)
+              {tForm("intervalMinutes")}
             </Label>
             <Input
               id="add-interval"
@@ -255,25 +347,28 @@ export function AddMonitorForm({
           </div>
           <div>
             <Label htmlFor="add-method" className={labelClass}>
-              Method
+              {tForm("method")}
             </Label>
             <select
               id="add-method"
               value={isKeyword ? "GET" : method}
-              onChange={(e) => setMethod(e.target.value as "GET" | "HEAD")}
+              onChange={(e) => setMethod(e.target.value as "GET" | "HEAD" | "POST" | "PUT" | "PATCH")}
               disabled={isKeyword}
               className={selectClass}
             >
               <option value="GET">GET</option>
               <option value="HEAD">HEAD</option>
+              <option value="POST">POST</option>
+              <option value="PUT">PUT</option>
+              <option value="PATCH">PATCH</option>
             </select>
             {isKeyword && (
-              <p className={hintClass}>Keyword monitors always use GET.</p>
+              <p className={hintClass}>{tMonitorTypes("methodLockedToGet")}</p>
             )}
           </div>
           <div>
             <Label htmlFor="add-timeout" className={labelClass}>
-              Timeout (sec)
+              {tForm("timeoutSeconds")}
             </Label>
             <Input
               id="add-timeout"
@@ -287,7 +382,7 @@ export function AddMonitorForm({
           </div>
           <div>
             <Label htmlFor="add-expectedCodes" className={labelClass}>
-              Status codes
+              {tForm("statusCodes")}
             </Label>
             <Input
               id="add-expectedCodes"
@@ -301,24 +396,103 @@ export function AddMonitorForm({
         </div>
       )}
 
+      {monitorType === "http" && (
+        <details className="rounded-md border border-border bg-bg-page px-3 py-2">
+          <summary className="cursor-pointer text-sm font-medium text-text-primary">
+            {tForm("advancedRequestSettings")}
+          </summary>
+          <div className="mt-3 grid gap-3">
+            <div>
+              <Label htmlFor="add-request-headers" className={labelClass}>
+                {tForm("headersJson")}
+              </Label>
+              <textarea
+                id="add-request-headers"
+                value={requestHeaders}
+                onChange={(e) => setRequestHeaders(e.target.value)}
+                placeholder={'[{"name":"Authorization","value":"Bearer token"}]'}
+                className={`${inputClass} min-h-24 resize-y font-mono`}
+              />
+              <p className={hintClass}>{tForm("headersRedactedHint")}</p>
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <div>
+                <Label htmlFor="add-body-type" className={labelClass}>
+                  {tForm("bodyType")}
+                </Label>
+                <select
+                  id="add-body-type"
+                  value={requestBodyType}
+                  onChange={(e) => setRequestBodyType(e.target.value as "none" | "text" | "json" | "form")}
+                  disabled={method === "GET" || method === "HEAD"}
+                  className={selectClass}
+                >
+                  <option value="none">{tForm("bodyTypeNone")}</option>
+                  <option value="text">{tForm("bodyTypeText")}</option>
+                  <option value="json">JSON</option>
+                  <option value="form">{tForm("bodyTypeForm")}</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="add-max-redirects" className={labelClass}>
+                  {tForm("maxRedirects")}
+                </Label>
+                <Input
+                  id="add-max-redirects"
+                  type="number"
+                  min={0}
+                  max={20}
+                  value={maxRedirects}
+                  onChange={(e) => setMaxRedirects(Number(e.target.value) || 0)}
+                  disabled={!followRedirects}
+                  className={inputClass}
+                />
+              </div>
+              <label className="mt-7 flex cursor-pointer items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={followRedirects}
+                  onChange={(e) => setFollowRedirects(e.target.checked)}
+                  className="h-4 w-4 rounded border-input-border accent-accent"
+                />
+                <span className="text-sm text-text-primary">{tForm("followRedirects")}</span>
+              </label>
+            </div>
+            {requestBodyType !== "none" && method !== "GET" && method !== "HEAD" && (
+              <div>
+                <Label htmlFor="add-request-body" className={labelClass}>
+                  {tForm("requestBody")}
+                </Label>
+                <textarea
+                  id="add-request-body"
+                  value={requestBody}
+                  onChange={(e) => setRequestBody(e.target.value)}
+                  className={`${inputClass} min-h-28 resize-y font-mono`}
+                />
+              </div>
+            )}
+          </div>
+        </details>
+      )}
+
       {/* Keyword section */}
       {isKeyword && (
         <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">Keyword check</p>
+          <p className="mb-3 text-sm font-medium text-text-primary">{tMonitorTypes("keywordSectionTitle")}</p>
           <div>
             <Label htmlFor="add-keyword" className={labelClass}>
-              Keyword
+              {tMonitorTypes("keywordLabel")}
             </Label>
             <Input
               id="add-keyword"
               type="text"
               value={keywordContains}
               onChange={(e) => setKeywordContains(e.target.value)}
-              placeholder="expected text"
+              placeholder={tForm("keywordPlaceholder")}
               required
               className={inputClass}
             />
-            <p className={hintClass}>Case-insensitive search in response body (up to 2 MB read).</p>
+            <p className={hintClass}>{tMonitorTypes("keywordHint")}</p>
           </div>
           <div className="mt-3 flex gap-4">
             <label className="flex cursor-pointer items-center gap-2">
@@ -329,7 +503,7 @@ export function AddMonitorForm({
                 onChange={() => setKeywordShouldExist(true)}
                 className="h-4 w-4 accent-accent"
               />
-              <span className="text-sm text-text-primary">Should contain</span>
+              <span className="text-sm text-text-primary">{tMonitorTypes("keywordShouldContain")}</span>
             </label>
             <label className="flex cursor-pointer items-center gap-2">
               <input
@@ -339,7 +513,7 @@ export function AddMonitorForm({
                 onChange={() => setKeywordShouldExist(false)}
                 className="h-4 w-4 accent-accent"
               />
-              <span className="text-sm text-text-primary">Should not contain</span>
+              <span className="text-sm text-text-primary">{tMonitorTypes("keywordShouldNotContain")}</span>
             </label>
           </div>
         </div>
@@ -348,11 +522,11 @@ export function AddMonitorForm({
       {/* DNS section */}
       {isDns && (
         <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">DNS check</p>
+          <p className="mb-3 text-sm font-medium text-text-primary">{tMonitorTypes("dnsSectionTitle")}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="add-dns-record-type" className={labelClass}>
-                Record type
+                {tMonitorTypes("dnsRecordTypeLabel")}
               </Label>
               <select
                 id="add-dns-record-type"
@@ -369,7 +543,7 @@ export function AddMonitorForm({
             </div>
             <div>
               <Label htmlFor="add-dns-expected" className={labelClass}>
-                Expected value
+                {tMonitorTypes("dnsExpectedValueLabel")}
               </Label>
               <Input
                 id="add-dns-expected"
@@ -390,8 +564,8 @@ export function AddMonitorForm({
               />
               <p className={hintClass}>
                 {dnsRecordType === "TXT"
-                  ? "Substring match (case-insensitive)"
-                  : "Exact match (case-insensitive)"}
+                  ? tMonitorTypes("dnsExpectedHintSubstring")
+                  : tMonitorTypes("dnsExpectedHintExact")}
               </p>
             </div>
           </div>
@@ -400,7 +574,7 @@ export function AddMonitorForm({
 
       {/* Notifications */}
       <div className="border-t border-border pt-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">Notifications</p>
+        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("notifications")}</p>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
@@ -408,12 +582,12 @@ export function AddMonitorForm({
             onChange={(e) => setAlertEmail(e.target.checked)}
             className="h-4 w-4 rounded border-input-border accent-accent"
           />
-          <span className="text-sm text-text-primary">Send email alerts</span>
+          <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
         {alertEmail && (
           <div className="mt-3">
             <Label htmlFor="add-alertEmailTo" className={labelClass}>
-              Alert email <span className="font-normal text-text-muted">(leave blank to use account email)</span>
+              {tForm("alertEmail")} <span className="font-normal text-text-muted">{tForm("useAccountEmailHint")}</span>
             </Label>
             <Input
               id="add-alertEmailTo"
@@ -425,7 +599,7 @@ export function AddMonitorForm({
             />
           </div>
         )}
-        {!isDns && showDegradationDeferHint && (
+        {!isDns && !isTcp && showDegradationDeferHint && (
           <div
             role="note"
             className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-950/90 dark:border-amber-800/40 dark:bg-amber-950/25 dark:text-amber-100/90"
@@ -433,7 +607,7 @@ export function AddMonitorForm({
             {tDegradationHint("addReminder")}
           </div>
         )}
-        {!isDns && (
+        {!isDns && !isTcp && (
           <div className="mt-3">
             <label className={`flex items-center gap-2.5 ${alertEmail ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
               <input
@@ -443,24 +617,24 @@ export function AddMonitorForm({
                 disabled={!alertEmail}
                 className="h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
               />
-              <span className="text-sm text-text-primary">Alert on slow response times</span>
+              <span className="text-sm text-text-primary">{tForm("slowResponseAlerts")}</span>
             </label>
             {degradationAlertEnabled && alertEmail && (
               <p className={hintClass}>
-                Learns this site&apos;s normal response time over 20+ checks, then alerts when a sustained 2× slowdown is detected. Fires once per episode.
+                {tForm("slowResponseAlertsHint")}
               </p>
             )}
             {!alertEmail && (
-              <p className={hintClass}>Requires email alerts to be enabled.</p>
+              <p className={hintClass}>{tForm("requiresEmailAlerts")}</p>
             )}
           </div>
         )}
       </div>
 
       {/* SSL monitoring — only for HTTP/keyword HTTPS */}
-      {!isDns && url.startsWith("https://") && (
+      {!isDns && !isTcp && url.startsWith("https://") && (
         <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">SSL monitoring</p>
+          <p className="mb-3 text-sm font-medium text-text-primary">{tForm("sslMonitoring")}</p>
           <label className="flex cursor-pointer items-center gap-2.5">
             <input
               type="checkbox"
@@ -468,19 +642,63 @@ export function AddMonitorForm({
               onChange={(e) => setSslMonitoring(e.target.checked)}
               className="h-4 w-4 rounded border-input-border accent-accent"
             />
-            <span className="text-sm text-text-primary">Monitor SSL certificate</span>
+            <span className="text-sm text-text-primary">{tForm("monitorSslCertificate")}</span>
           </label>
           {sslMonitoring && (
             <p className="mt-2 text-xs text-text-muted">
-              Checks cert validity and expiry on every run. Alerts fire when the cert becomes invalid or has ≤30 days left.
+              {tForm("sslMonitoringHint")}
             </p>
           )}
         </div>
       )}
 
+      <div className="border-t border-border pt-4">
+        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("maintenanceWindow")}</p>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div>
+            <Label htmlFor="add-maintenance-start" className={labelClass}>
+              {tForm("starts")}
+            </Label>
+            <Input
+              id="add-maintenance-start"
+              type="datetime-local"
+              value={maintenanceStartsAt}
+              onChange={(e) => setMaintenanceStartsAt(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+          <div>
+            <Label htmlFor="add-maintenance-end" className={labelClass}>
+              {tForm("ends")}
+            </Label>
+            <Input
+              id="add-maintenance-end"
+              type="datetime-local"
+              value={maintenanceEndsAt}
+              onChange={(e) => setMaintenanceEndsAt(e.target.value)}
+              className={inputClass}
+            />
+          </div>
+        </div>
+        <div className="mt-3">
+          <Label htmlFor="add-maintenance-note" className={labelClass}>
+            {tForm("note")}
+          </Label>
+          <Input
+            id="add-maintenance-note"
+            type="text"
+            value={maintenanceNote}
+            onChange={(e) => setMaintenanceNote(e.target.value)}
+            placeholder={tForm("maintenanceNotePlaceholder")}
+            className={inputClass}
+          />
+          <p className={hintClass}>{tForm("maintenanceSuppressesAlerts")}</p>
+        </div>
+      </div>
+
       {/* Status page */}
       <div className="border-t border-border pt-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">Status page</p>
+        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("statusPage")}</p>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
@@ -488,10 +706,10 @@ export function AddMonitorForm({
             onChange={(e) => setShowOnStatusPage(e.target.checked)}
             className="h-4 w-4 rounded border-input-border accent-accent"
           />
-          <span className="text-sm text-text-primary">Show on public status page</span>
+          <span className="text-sm text-text-primary">{tForm("showOnPublicStatusPage")}</span>
         </label>
         <p className="mt-2 text-xs text-text-muted">
-          When enabled, this monitor appears at{" "}
+          {tForm("statusPageHint")}{" "}
           <span className="font-mono">/status/[your-username]</span>
         </p>
       </div>
@@ -505,7 +723,7 @@ export function AddMonitorForm({
             disabled={submitting}
             className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
           >
-            Back
+            {tForm("back")}
           </Button>
         )}
         {onCancel && (
@@ -516,7 +734,7 @@ export function AddMonitorForm({
             disabled={submitting}
             className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
           >
-            Cancel
+            {tForm("cancel")}
           </Button>
         )}
         <Button
@@ -526,7 +744,7 @@ export function AddMonitorForm({
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
-          {submitting ? "Adding…" : "Add monitor"}
+          {submitting ? tForm("adding") : tMonitors("addMonitor")}
         </Button>
       </div>
     </form>

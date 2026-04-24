@@ -1,6 +1,5 @@
 import { createHash, randomBytes, randomUUID, timingSafeEqual } from "crypto";
 import { and, eq, isNull, ne } from "drizzle-orm";
-import { db } from "@/db";
 import { apiKey } from "@/db/schema";
 
 export const API_KEY_SCOPE_STATUS_READ = "status:read" as const;
@@ -126,6 +125,7 @@ export async function authenticateApiKey(
   const keyPrefix = parseTokenPrefix(token);
   if (!keyPrefix) return { ok: false, status: 401, errorCode: "API_KEY_INVALID" };
 
+  const { db } = await import("@/db");
   const [row] = await db
     .select()
     .from(apiKey)
@@ -172,6 +172,7 @@ export function enforceApiRateLimit(keyId: string):
 }
 
 export async function touchApiKeyUsage(keyId: string, ip: string | null) {
+  const { db } = await import("@/db");
   await db
     .update(apiKey)
     .set({
@@ -191,6 +192,7 @@ export async function isApiKeyNameTaken(
   if (excludeKeyId) {
     conditions.push(ne(apiKey.id, excludeKeyId));
   }
+  const { db } = await import("@/db");
   const [row] = await db
     .select({ id: apiKey.id })
     .from(apiKey)
@@ -201,6 +203,7 @@ export async function isApiKeyNameTaken(
 
 export async function revokeApiKeyById(userId: string, keyId: string): Promise<boolean> {
   const now = new Date();
+  const { db } = await import("@/db");
   const result = await db
     .update(apiKey)
     .set({ revokedAt: now })

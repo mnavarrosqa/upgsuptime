@@ -21,7 +21,7 @@ import { MonitorDetailAckFeedback } from "@/components/monitor-detail-ack-feedba
 import { MonitorFavicon } from "@/components/monitor-favicon";
 import { monitorMetaChipClass } from "@/lib/monitor-ui";
 function getFaviconUrl(url: string, monitorType?: string | null): string {
-  if (monitorType === "dns") return "";
+  if (monitorType === "dns" || monitorType === "tcp") return "";
   try {
     const host = new URL(url).hostname;
     return `/api/favicon?domain=${host}`;
@@ -30,9 +30,9 @@ function getFaviconUrl(url: string, monitorType?: string | null): string {
   }
 }
 
-/** Absolute href for opening the monitored target in a new tab (DNS stores hostname only). */
+/** Absolute href for opening the monitored target in a new tab (DNS/TCP store hostnames only). */
 function monitorOpenHref(url: string, monitorType: string): string {
-  if (monitorType === "dns") {
+  if (monitorType === "dns" || monitorType === "tcp") {
     const host = url.replace(/^https?:\/\//i, "").split("/")[0]?.trim() ?? url;
     return host ? `https://${host}` : url;
   }
@@ -157,19 +157,19 @@ export default async function MonitorDetailPage({
               href={monitorOpenHref(m.url, monitorType)}
               target="_blank"
               rel="noopener noreferrer"
-              className={`mt-1 block break-all text-sm text-text-muted underline-offset-2 transition-colors hover:text-text-primary hover:underline ${monitorType === "dns" ? "font-mono" : ""}`}
+              className={`mt-1 block break-all text-sm text-text-muted underline-offset-2 transition-colors hover:text-text-primary hover:underline ${monitorType === "dns" || monitorType === "tcp" ? "font-mono" : ""}`}
             >
               {m.url}
             </a>
             {/* Config meta — chips */}
             <div className="mt-1.5 flex flex-wrap gap-2">
-              {monitorType !== "dns" && (
+              {monitorType !== "dns" && monitorType !== "tcp" && (
                 <span className={monitorMetaChipClass}>
                   {monitorType === "keyword" ? "GET" : m.method}
                 </span>
               )}
               <span className={monitorMetaChipClass}>{t("configEvery", { n: m.intervalMinutes })}</span>
-              {monitorType !== "dns" && (
+              {monitorType !== "dns" && monitorType !== "tcp" && (
                 <>
                   <span className={monitorMetaChipClass}>{t("configTimeout", { n: m.timeoutSeconds })}</span>
                   <span className={monitorMetaChipClass}>{t("configExpect", { codes: m.expectedStatusCodes })}</span>
@@ -188,6 +188,14 @@ export default async function MonitorDetailPage({
                 <span className={monitorMetaChipClass}>
                   {m.dnsRecordType} → {m.dnsExpectedValue}
                 </span>
+              )}
+              {monitorType === "tcp" && (
+                <span className={monitorMetaChipClass}>
+                  TCP {m.tcpHost ?? m.url}:{m.tcpPort}
+                </span>
+              )}
+              {m.maintenanceStartsAt && m.maintenanceEndsAt && (
+                <span className={monitorMetaChipClass}>Maintenance scheduled</span>
               )}
             </div>
             <NextCheckCountdown
@@ -217,7 +225,7 @@ export default async function MonitorDetailPage({
         degradationAlertEnabled={m.degradationAlertEnabled}
         aboveCharts={
           <>
-            {m.type !== "dns" && !m.degradationAlertEnabled && (
+            {(m.type === "http" || m.type === "keyword") && !m.degradationAlertEnabled && (
               <DegradationAlertCallout
                 monitorId={m.id}
                 hasEmailAlerts={!!m.alertEmail}
