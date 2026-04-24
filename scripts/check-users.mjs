@@ -36,10 +36,10 @@ const db = new Database(dbPath);
 let rows;
 try {
   rows = db.prepare("SELECT id, email, username, role FROM user").all();
-} catch (e1) {
+} catch {
   try {
     rows = db.prepare("SELECT id, email, role FROM user").all();
-  } catch (e2) {
+  } catch {
     rows = db.prepare("SELECT id, email FROM user").all();
     rows = rows.map((r) => ({ ...r, username: null, role: "?" }));
   }

@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useState } from "react";
 
 const sizeClass = {
@@ -25,12 +26,13 @@ export function MonitorFavicon({
   }
   const dim = size === "md" ? 24 : 16;
   return (
-    <img
+    <Image
       src={src}
       alt=""
       className={`${sizeClass[size]} shrink-0 rounded`}
       width={dim}
       height={dim}
+      unoptimized
       loading="lazy"
       onError={() => setFailed(true)}
     />
