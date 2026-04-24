@@ -8,10 +8,58 @@ import {
   ninetyDaysAgoFrom,
 } from "@/lib/monitor-public-status";
 
+const RATE_LIMIT_WINDOW_MS = 60_000;
+const RATE_LIMIT_MAX = 120;
+const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+
+function getClientKey(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for");
+  if (forwarded) return forwarded.split(",")[0]?.trim() || "unknown";
+  return request.headers.get("x-real-ip") ?? "unknown";
+}
+
+function enforcePublicStatusRateLimit(request: Request):
+  | { ok: true }
+  | { ok: false; retryAfterSeconds: number } {
+  const now = Date.now();
+  const key = getClientKey(request);
+  const bucket = rateLimitBuckets.get(key);
+
+  if (!bucket || bucket.resetAt <= now) {
+    rateLimitBuckets.set(key, { count: 1, resetAt: now + RATE_LIMIT_WINDOW_MS });
+    return { ok: true };
+  }
+
+  if (bucket.count >= RATE_LIMIT_MAX) {
+    return {
+      ok: false,
+      retryAfterSeconds: Math.max(1, Math.ceil((bucket.resetAt - now) / 1000)),
+    };
+  }
+
+  bucket.count += 1;
+  rateLimitBuckets.set(key, bucket);
+  return { ok: true };
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ username: string }> }
 ) {
+  const rateLimit = enforcePublicStatusRateLimit(request);
+  if (!rateLimit.ok) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+          "Cache-Control": "no-store",
+        },
+      }
+    );
+  }
+
   const { username } = await params;
 
   const [u] = await db

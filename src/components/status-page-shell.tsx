@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, type CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -316,12 +317,13 @@ export function StatusPageShell({
                     <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
                       <div className="flex min-w-0 flex-1 gap-3">
                         {favicon ? (
-                          <img
+                          <Image
                             src={favicon}
                             alt=""
                             className="mt-0.5 h-9 w-9 shrink-0 rounded-lg border border-border/80 bg-bg-page object-contain p-0.5"
                             width={36}
                             height={36}
+                            unoptimized
                           />
                         ) : (
                           <span

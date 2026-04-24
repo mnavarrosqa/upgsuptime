@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Monitor } from "@/db/schema";
 import { Spinner } from "@/components/spinner";
@@ -35,6 +36,9 @@ export function BulkEditMonitorsForm({
   onCancel?: () => void;
 }) {
   const router = useRouter();
+  const tForm = useTranslations("monitorForm");
+  const tCommon = useTranslations("common");
+  const tBulk = useTranslations("bulkEdit");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -118,7 +122,7 @@ export function BulkEditMonitorsForm({
     if (intervalMinutes.trim() !== "") {
       const n = Number(intervalMinutes);
       if (!Number.isFinite(n) || n < 1) {
-        setError("Interval must be between 1 and 60.");
+        setError(tBulk("intervalInvalid"));
         return;
       }
       patchBase.intervalMinutes = Math.min(n, 60);
@@ -127,7 +131,7 @@ export function BulkEditMonitorsForm({
     if (timeoutSeconds.trim() !== "") {
       const n = Number(timeoutSeconds);
       if (!Number.isFinite(n) || n < 5) {
-        setError("Timeout must be between 5 and 120.");
+        setError(tBulk("timeoutInvalid"));
         return;
       }
       patchBase.timeoutSeconds = Math.min(n, 120);
@@ -162,7 +166,7 @@ export function BulkEditMonitorsForm({
     }
 
     if (Object.keys(patchBase).length === 0) {
-      setError("Change at least one setting, or cancel.");
+      setError(tBulk("noChanges"));
       return;
     }
 
@@ -181,7 +185,7 @@ export function BulkEditMonitorsForm({
           }).then(async (res) => {
             const data = await res.json().catch(() => ({}));
             if (!res.ok) {
-              throw new Error(data.error ?? `Failed for “${m.name}”`);
+              throw new Error(data.error ?? tBulk("failedFor", { name: m.name }));
             }
             return data;
           })
@@ -196,8 +200,8 @@ export function BulkEditMonitorsForm({
       if (failed.length === 0) {
         toast.success(
           monitors.length === 1
-            ? "Monitor updated"
-            : `${monitors.length} monitors updated`
+            ? tForm("updateSuccess")
+            : tBulk("updatedCount", { count: monitors.length })
         );
         router.refresh();
         onSuccess?.();
@@ -205,17 +209,17 @@ export function BulkEditMonitorsForm({
         const msg =
           failed[0].reason instanceof Error
             ? failed[0].reason.message
-            : "Update failed";
+            : tForm("updateFailed");
         setError(msg);
       } else {
         toast.warning(
-          `${results.length - failed.length} updated, ${failed.length} failed`
+          tBulk("partialFailure", { updated: results.length - failed.length, failed: failed.length })
         );
         router.refresh();
         onSuccess?.();
       }
     } catch {
-      setError("Something went wrong");
+      setError(tCommon("somethingWentWrong"));
     } finally {
       setSubmitting(false);
     }
@@ -234,7 +238,7 @@ export function BulkEditMonitorsForm({
 
       <div className="rounded-md border border-border bg-bg-page p-3">
         <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
-          Selected ({monitors.length})
+          {tBulk("selectedCount", { count: monitors.length })}
         </p>
         <ul className="mt-2 max-h-32 space-y-1 overflow-y-auto text-sm">
           {monitors.map((m) => (
@@ -245,15 +249,14 @@ export function BulkEditMonitorsForm({
           ))}
         </ul>
         <p className={hintClass}>
-          Name and URL stay per monitor. Only the settings below are applied to
-          all selected.
+          {tBulk("scopeHint")}
         </p>
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Label htmlFor="bulk-interval" className={labelClass}>
-            Interval (min)
+            {tForm("intervalMinutes")}
           </Label>
           <Input
             id="bulk-interval"
@@ -262,13 +265,13 @@ export function BulkEditMonitorsForm({
             max={60}
             value={intervalMinutes}
             onChange={(e) => setIntervalMinutes(e.target.value)}
-            placeholder={intervalMinutes === "" ? "Various" : undefined}
+            placeholder={intervalMinutes === "" ? tBulk("various") : undefined}
             className={inputClass}
           />
         </div>
         <div>
           <Label htmlFor="bulk-method" className={labelClass}>
-            Method
+            {tForm("method")}
           </Label>
           <select
             id="bulk-method"
@@ -278,14 +281,14 @@ export function BulkEditMonitorsForm({
             }
             className={selectClass}
           >
-            <option value="mixed">Various</option>
+            <option value="mixed">{tBulk("various")}</option>
             <option value="GET">GET</option>
             <option value="HEAD">HEAD</option>
           </select>
         </div>
         <div>
           <Label htmlFor="bulk-timeout" className={labelClass}>
-            Timeout (sec)
+            {tForm("timeoutSeconds")}
           </Label>
           <Input
             id="bulk-timeout"
@@ -294,13 +297,13 @@ export function BulkEditMonitorsForm({
             max={120}
             value={timeoutSeconds}
             onChange={(e) => setTimeoutSeconds(e.target.value)}
-            placeholder={timeoutSeconds === "" ? "Various" : undefined}
+            placeholder={timeoutSeconds === "" ? tBulk("various") : undefined}
             className={inputClass}
           />
         </div>
         <div>
           <Label htmlFor="bulk-expectedCodes" className={labelClass}>
-            Status codes
+            {tForm("statusCodes")}
           </Label>
           <Input
             id="bulk-expectedCodes"
@@ -308,7 +311,7 @@ export function BulkEditMonitorsForm({
             value={expectedStatusCodes}
             onChange={(e) => setExpectedStatusCodes(e.target.value)}
             placeholder={
-              expectedStatusCodes === "" ? "Various" : "200-299"
+              expectedStatusCodes === "" ? tBulk("various") : "200-299"
             }
             className={inputClass}
           />
@@ -317,7 +320,7 @@ export function BulkEditMonitorsForm({
 
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">
-          Notifications
+          {tForm("notifications")}
         </p>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
@@ -329,14 +332,14 @@ export function BulkEditMonitorsForm({
             }}
             className="h-4 w-4 rounded border-input-border accent-accent"
           />
-          <span className="text-sm text-text-primary">Send email alerts</span>
+          <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
         {alertEmail === true && (
           <div className="mt-3">
             <Label htmlFor="bulk-alertEmailTo" className={labelClass}>
-              Alert email{" "}
+              {tForm("alertEmail")}{" "}
               <span className="font-normal text-text-muted">
-                (leave blank to use account email)
+                {tForm("useAccountEmailHint")}
               </span>
             </Label>
             <Input
@@ -360,14 +363,14 @@ export function BulkEditMonitorsForm({
                 disabled={alertEmail !== true}
                 className="h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
               />
-              <span className="text-sm text-text-primary">Alert on slow response times</span>
+              <span className="text-sm text-text-primary">{tForm("slowResponseAlerts")}</span>
             </label>
             {alertEmail !== true && (
-              <p className={hintClass}>Requires email alerts to be enabled.</p>
+              <p className={hintClass}>{tForm("requiresEmailAlerts")}</p>
             )}
             {degradationAlertEnabled === true && alertEmail === true && (
               <p className={hintClass}>
-                Learns each site&apos;s normal response time over 20+ checks, then alerts when a sustained 2× slowdown is detected. Fires once per episode.
+                {tBulk("slowResponseAlertsHint")}
               </p>
             )}
           </div>
@@ -377,7 +380,7 @@ export function BulkEditMonitorsForm({
       {anyHttps && (
         <div className="border-t border-border pt-4">
           <p className="mb-3 text-sm font-medium text-text-primary">
-            SSL monitoring
+            {tForm("sslMonitoring")}
           </p>
           <label className="flex cursor-pointer items-center gap-2.5">
             <input
@@ -388,12 +391,12 @@ export function BulkEditMonitorsForm({
               className="h-4 w-4 rounded border-input-border accent-accent"
             />
             <span className="text-sm text-text-primary">
-              Monitor SSL certificate
+              {tForm("monitorSslCertificate")}
             </span>
           </label>
           {sslMonitoring === true && (
             <p className="mt-2 text-xs text-text-muted">
-              Applies to HTTPS monitors. HTTP-only monitors ignore this.
+              {tBulk("sslBulkHint")}
             </p>
           )}
         </div>
@@ -401,7 +404,7 @@ export function BulkEditMonitorsForm({
 
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">
-          Status page
+          {tForm("statusPage")}
         </p>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
@@ -412,7 +415,7 @@ export function BulkEditMonitorsForm({
             className="h-4 w-4 rounded border-input-border accent-accent"
           />
           <span className="text-sm text-text-primary">
-            Show on public status page
+            {tForm("showOnPublicStatusPage")}
           </span>
         </label>
       </div>
@@ -426,7 +429,7 @@ export function BulkEditMonitorsForm({
             disabled={submitting}
             className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
           >
-            Cancel
+            {tForm("cancel")}
           </Button>
         )}
         <Button
@@ -436,7 +439,7 @@ export function BulkEditMonitorsForm({
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
-          {submitting ? "Saving…" : "Apply to all"}
+          {submitting ? tForm("saving") : tBulk("applyToAll")}
         </Button>
       </div>
     </form>

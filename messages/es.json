@@ -42,6 +42,8 @@
   "monitorForm": {
     "addFailed": "No se pudo añadir el monitor",
     "addSuccess": "Monitor añadido",
+    "updateFailed": "No se pudo actualizar",
+    "updateSuccess": "Monitor actualizado",
     "name": "Nombre",
     "namePlaceholder": "Mi API",
     "url": "URL",
@@ -83,7 +85,23 @@
     "statusPageHint": "Cuando está activo, este monitor aparece en",
     "back": "Atrás",
     "cancel": "Cancelar",
-    "adding": "Añadiendo…"
+    "adding": "Añadiendo…",
+    "saving": "Guardando…",
+    "saveChanges": "Guardar cambios"
+  },
+  "bulkEdit": {
+    "intervalInvalid": "El intervalo debe estar entre 1 y 60.",
+    "timeoutInvalid": "El timeout debe estar entre 5 y 120.",
+    "noChanges": "Cambia al menos una opción o cancela.",
+    "failedFor": "Falló para \"{name}\"",
+    "updatedCount": "{count, plural, one {# monitor actualizado} other {# monitores actualizados}}",
+    "partialFailure": "{updated} actualizados, {failed} fallaron",
+    "selectedCount": "Seleccionados ({count})",
+    "scopeHint": "El nombre y la URL quedan por monitor. Solo las opciones de abajo se aplican a todos los seleccionados.",
+    "various": "Varios",
+    "slowResponseAlertsHint": "Aprende el tiempo normal de respuesta de cada sitio tras 20+ checks y avisa si detecta una lentitud sostenida de 2x. Dispara una vez por episodio.",
+    "sslBulkHint": "Aplica a monitores HTTPS. Los monitores solo HTTP ignoran esto.",
+    "applyToAll": "Aplicar a todos"
   },
   "common": {
     "loading": "Cargando…",

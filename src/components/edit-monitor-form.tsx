@@ -23,13 +23,6 @@ const selectClass = inputClass;
 const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 const hintClass = "mt-1.5 text-xs text-text-muted";
 
-const TYPE_LABELS: Record<string, string> = {
-  http: "HTTP – check status code",
-  keyword: "Keyword – check response body",
-  dns: "DNS – check record resolution",
-  tcp: "TCP – check port connectivity",
-};
-
 function toDatetimeLocal(value: Date | string | null | undefined): string {
   if (!value) return "";
   const date = new Date(value);
@@ -49,6 +42,9 @@ export function EditMonitorForm({
 }) {
   const router = useRouter();
   const tDegradationHint = useTranslations("degradationFormHint");
+  const tMonitorTypes = useTranslations("monitorTypes");
+  const tForm = useTranslations("monitorForm");
+  const tCommon = useTranslations("common");
 
   // Type is read-only after creation
   const monitorType = (monitor.type ?? "http") as "http" | "keyword" | "dns" | "tcp";
@@ -177,18 +173,18 @@ export function EditMonitorForm({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to update");
+        setError(data.error ?? tForm("updateFailed"));
         return;
       }
       if (!isDns && !isTcp && degradationAlertEnabled) {
         clearDegradationCalloutDismissed(monitor.id);
         setShowDegradationDeferHint(false);
       }
-      toast.success("Monitor updated");
+      toast.success(tForm("updateSuccess"));
       router.refresh();
       onSuccess?.();
     } catch {
-      setError("Something went wrong");
+      setError(tCommon("somethingWentWrong"));
     } finally {
       setSubmitting(false);
     }
@@ -207,24 +203,24 @@ export function EditMonitorForm({
 
       {/* Monitor type — read-only */}
       <div>
-        <p className={labelClass}>Monitor type</p>
+        <p className={labelClass}>{tMonitorTypes("typeLabel")}</p>
         <p className="rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-muted">
-          {TYPE_LABELS[monitorType] ?? monitorType}
+          {tMonitorTypes(monitorType)}
         </p>
-        <p className={hintClass}>Monitor type cannot be changed after creation.</p>
+        <p className={hintClass}>{tMonitorTypes("typeReadOnly")}</p>
       </div>
 
       {/* Name */}
       <div>
         <Label htmlFor="edit-name" className={labelClass}>
-          Name
+          {tForm("name")}
         </Label>
         <Input
           id="edit-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="My API"
+          placeholder={tForm("namePlaceholder")}
           required
           className={inputClass}
         />
@@ -233,21 +229,21 @@ export function EditMonitorForm({
       {/* URL / Hostname */}
       <div>
         <Label htmlFor="edit-url" className={labelClass}>
-          {isDns || isTcp ? "Hostname" : "URL"}
+          {isDns || isTcp ? tMonitorTypes("hostnameLabel") : tForm("url")}
         </Label>
         <Input
           id="edit-url"
           type={isDns || isTcp ? "text" : "url"}
           value={url}
           onChange={(e) => setUrl(e.target.value)}
-          placeholder={isDns || isTcp ? "example.com" : "https://example.com"}
+          placeholder={isDns || isTcp ? tMonitorTypes("hostnamePlaceholder") : "https://example.com"}
           required
           className={inputClass}
         />
         <p className={hintClass}>
           {isDns || isTcp
-            ? "Enter a hostname without https://"
-            : "Must be a valid HTTP or HTTPS URL."}
+            ? tMonitorTypes("hostnameHint")
+            : tForm("urlHint")}
         </p>
       </div>
 
@@ -255,7 +251,7 @@ export function EditMonitorForm({
       {isDns ? (
         <div>
           <Label htmlFor="edit-interval" className={labelClass}>
-            Interval (min)
+            {tForm("intervalMinutes")}
           </Label>
           <Input
             id="edit-interval"
@@ -271,7 +267,7 @@ export function EditMonitorForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div>
             <Label htmlFor="edit-interval" className={labelClass}>
-              Interval (min)
+              {tForm("intervalMinutes")}
             </Label>
             <Input
               id="edit-interval"
@@ -285,7 +281,7 @@ export function EditMonitorForm({
           </div>
           <div>
             <Label htmlFor="edit-timeout" className={labelClass}>
-              Timeout (sec)
+              {tForm("timeoutSeconds")}
             </Label>
             <Input
               id="edit-timeout"
@@ -299,7 +295,7 @@ export function EditMonitorForm({
           </div>
           <div>
             <Label htmlFor="edit-tcp-port" className={labelClass}>
-              Port
+              {tForm("port")}
             </Label>
             <Input
               id="edit-tcp-port"
@@ -316,7 +312,7 @@ export function EditMonitorForm({
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Label htmlFor="edit-interval" className={labelClass}>
-              Interval (min)
+              {tForm("intervalMinutes")}
             </Label>
             <Input
               id="edit-interval"
@@ -330,7 +326,7 @@ export function EditMonitorForm({
           </div>
           <div>
             <Label htmlFor="edit-method" className={labelClass}>
-              Method
+              {tForm("method")}
             </Label>
             <select
               id="edit-method"
@@ -346,12 +342,12 @@ export function EditMonitorForm({
               <option value="PATCH">PATCH</option>
             </select>
             {isKeyword && (
-              <p className={hintClass}>Keyword monitors always use GET.</p>
+              <p className={hintClass}>{tMonitorTypes("methodLockedToGet")}</p>
             )}
           </div>
           <div>
             <Label htmlFor="edit-timeout" className={labelClass}>
-              Timeout (sec)
+              {tForm("timeoutSeconds")}
             </Label>
             <Input
               id="edit-timeout"
@@ -365,7 +361,7 @@ export function EditMonitorForm({
           </div>
           <div>
             <Label htmlFor="edit-expectedCodes" className={labelClass}>
-              Status codes
+              {tForm("statusCodes")}
             </Label>
             <Input
               id="edit-expectedCodes"
@@ -382,12 +378,12 @@ export function EditMonitorForm({
       {monitorType === "http" && (
         <details className="rounded-md border border-border bg-bg-page px-3 py-2">
           <summary className="cursor-pointer text-sm font-medium text-text-primary">
-            Advanced request settings
+            {tForm("advancedRequestSettings")}
           </summary>
           <div className="mt-3 grid gap-3">
             <div>
               <Label htmlFor="edit-request-headers" className={labelClass}>
-                Headers JSON
+                {tForm("headersJson")}
               </Label>
               <textarea
                 id="edit-request-headers"
@@ -396,12 +392,12 @@ export function EditMonitorForm({
                 placeholder={'[{"name":"Authorization","value":"Bearer token"}]'}
                 className={`${inputClass} min-h-24 resize-y font-mono`}
               />
-              <p className={hintClass}>Sensitive headers are redacted from exports.</p>
+              <p className={hintClass}>{tForm("headersRedactedHint")}</p>
             </div>
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
                 <Label htmlFor="edit-body-type" className={labelClass}>
-                  Body type
+                  {tForm("bodyType")}
                 </Label>
                 <select
                   id="edit-body-type"
@@ -410,15 +406,15 @@ export function EditMonitorForm({
                   disabled={method === "GET" || method === "HEAD"}
                   className={selectClass}
                 >
-                  <option value="none">None</option>
-                  <option value="text">Text</option>
+                  <option value="none">{tForm("bodyTypeNone")}</option>
+                  <option value="text">{tForm("bodyTypeText")}</option>
                   <option value="json">JSON</option>
-                  <option value="form">Form encoded</option>
+                  <option value="form">{tForm("bodyTypeForm")}</option>
                 </select>
               </div>
               <div>
                 <Label htmlFor="edit-max-redirects" className={labelClass}>
-                  Max redirects
+                  {tForm("maxRedirects")}
                 </Label>
                 <Input
                   id="edit-max-redirects"
@@ -438,13 +434,13 @@ export function EditMonitorForm({
                   onChange={(e) => setFollowRedirects(e.target.checked)}
                   className="h-4 w-4 rounded border-input-border accent-accent"
                 />
-                <span className="text-sm text-text-primary">Follow redirects</span>
+                <span className="text-sm text-text-primary">{tForm("followRedirects")}</span>
               </label>
             </div>
             {requestBodyType !== "none" && method !== "GET" && method !== "HEAD" && (
               <div>
                 <Label htmlFor="edit-request-body" className={labelClass}>
-                  Request body
+                  {tForm("requestBody")}
                 </Label>
                 <textarea
                   id="edit-request-body"
@@ -461,21 +457,21 @@ export function EditMonitorForm({
       {/* Keyword section */}
       {isKeyword && (
         <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">Keyword check</p>
+          <p className="mb-3 text-sm font-medium text-text-primary">{tMonitorTypes("keywordSectionTitle")}</p>
           <div>
             <Label htmlFor="edit-keyword" className={labelClass}>
-              Keyword
+              {tMonitorTypes("keywordLabel")}
             </Label>
             <Input
               id="edit-keyword"
               type="text"
               value={keywordContains}
               onChange={(e) => setKeywordContains(e.target.value)}
-              placeholder="expected text"
+              placeholder={tForm("keywordPlaceholder")}
               required
               className={inputClass}
             />
-            <p className={hintClass}>Case-insensitive search in response body (up to 2 MB read).</p>
+            <p className={hintClass}>{tMonitorTypes("keywordHint")}</p>
           </div>
           <div className="mt-3 flex gap-4">
             <label className="flex cursor-pointer items-center gap-2">
@@ -486,7 +482,7 @@ export function EditMonitorForm({
                 onChange={() => setKeywordShouldExist(true)}
                 className="h-4 w-4 accent-accent"
               />
-              <span className="text-sm text-text-primary">Should contain</span>
+              <span className="text-sm text-text-primary">{tMonitorTypes("keywordShouldContain")}</span>
             </label>
             <label className="flex cursor-pointer items-center gap-2">
               <input
@@ -496,7 +492,7 @@ export function EditMonitorForm({
                 onChange={() => setKeywordShouldExist(false)}
                 className="h-4 w-4 accent-accent"
               />
-              <span className="text-sm text-text-primary">Should not contain</span>
+              <span className="text-sm text-text-primary">{tMonitorTypes("keywordShouldNotContain")}</span>
             </label>
           </div>
         </div>
@@ -505,11 +501,11 @@ export function EditMonitorForm({
       {/* DNS section */}
       {isDns && (
         <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">DNS check</p>
+          <p className="mb-3 text-sm font-medium text-text-primary">{tMonitorTypes("dnsSectionTitle")}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="edit-dns-record-type" className={labelClass}>
-                Record type
+                {tMonitorTypes("dnsRecordTypeLabel")}
               </Label>
               <select
                 id="edit-dns-record-type"
@@ -526,7 +522,7 @@ export function EditMonitorForm({
             </div>
             <div>
               <Label htmlFor="edit-dns-expected" className={labelClass}>
-                Expected value
+                {tMonitorTypes("dnsExpectedValueLabel")}
               </Label>
               <Input
                 id="edit-dns-expected"
@@ -547,8 +543,8 @@ export function EditMonitorForm({
               />
               <p className={hintClass}>
                 {dnsRecordType === "TXT"
-                  ? "Substring match (case-insensitive)"
-                  : "Exact match (case-insensitive)"}
+                  ? tMonitorTypes("dnsExpectedHintSubstring")
+                  : tMonitorTypes("dnsExpectedHintExact")}
               </p>
             </div>
           </div>
@@ -557,7 +553,7 @@ export function EditMonitorForm({
 
       {/* Notifications */}
       <div className="border-t border-border pt-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">Notifications</p>
+        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("notifications")}</p>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
@@ -565,12 +561,12 @@ export function EditMonitorForm({
             onChange={(e) => setAlertEmail(e.target.checked)}
             className="h-4 w-4 rounded border-input-border accent-accent"
           />
-          <span className="text-sm text-text-primary">Send email alerts</span>
+          <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
         {alertEmail && (
           <div className="mt-3">
             <Label htmlFor="edit-alertEmailTo" className={labelClass}>
-              Alert email <span className="font-normal text-text-muted">(leave blank to use account email)</span>
+              {tForm("alertEmail")} <span className="font-normal text-text-muted">{tForm("useAccountEmailHint")}</span>
             </Label>
             <Input
               id="edit-alertEmailTo"
@@ -600,15 +596,15 @@ export function EditMonitorForm({
                 disabled={!alertEmail}
                 className="h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
               />
-              <span className="text-sm text-text-primary">Alert on slow response times</span>
+              <span className="text-sm text-text-primary">{tForm("slowResponseAlerts")}</span>
             </label>
             {degradationAlertEnabled && alertEmail && (
               <p className={hintClass}>
-                Learns this site&apos;s normal response time over 20+ checks, then alerts when a sustained 2× slowdown is detected. Fires once per episode.
+                {tForm("slowResponseAlertsHint")}
               </p>
             )}
             {!alertEmail && (
-              <p className={hintClass}>Requires email alerts to be enabled.</p>
+              <p className={hintClass}>{tForm("requiresEmailAlerts")}</p>
             )}
           </div>
         )}
@@ -617,7 +613,7 @@ export function EditMonitorForm({
       {/* SSL monitoring — only for HTTP/keyword HTTPS */}
       {!isDns && !isTcp && url.startsWith("https://") && (
         <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">SSL monitoring</p>
+          <p className="mb-3 text-sm font-medium text-text-primary">{tForm("sslMonitoring")}</p>
           <label className="flex cursor-pointer items-center gap-2.5">
             <input
               type="checkbox"
@@ -625,22 +621,22 @@ export function EditMonitorForm({
               onChange={(e) => setSslMonitoring(e.target.checked)}
               className="h-4 w-4 rounded border-input-border accent-accent"
             />
-            <span className="text-sm text-text-primary">Monitor SSL certificate</span>
+            <span className="text-sm text-text-primary">{tForm("monitorSslCertificate")}</span>
           </label>
           {sslMonitoring && (
             <p className="mt-2 text-xs text-text-muted">
-              Checks cert validity and expiry on every run. Alerts fire when the cert becomes invalid or has ≤30 days left.
+              {tForm("sslMonitoringHint")}
             </p>
           )}
         </div>
       )}
 
       <div className="border-t border-border pt-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">Maintenance window</p>
+        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("maintenanceWindow")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="edit-maintenance-start" className={labelClass}>
-              Starts
+              {tForm("starts")}
             </Label>
             <Input
               id="edit-maintenance-start"
@@ -652,7 +648,7 @@ export function EditMonitorForm({
           </div>
           <div>
             <Label htmlFor="edit-maintenance-end" className={labelClass}>
-              Ends
+              {tForm("ends")}
             </Label>
             <Input
               id="edit-maintenance-end"
@@ -665,23 +661,23 @@ export function EditMonitorForm({
         </div>
         <div className="mt-3">
           <Label htmlFor="edit-maintenance-note" className={labelClass}>
-            Note
+            {tForm("note")}
           </Label>
           <Input
             id="edit-maintenance-note"
             type="text"
             value={maintenanceNote}
             onChange={(e) => setMaintenanceNote(e.target.value)}
-            placeholder="Planned deployment"
+            placeholder={tForm("maintenanceNotePlaceholder")}
             className={inputClass}
           />
-          <p className={hintClass}>Alerts are suppressed while the window is active.</p>
+          <p className={hintClass}>{tForm("maintenanceSuppressesAlerts")}</p>
         </div>
       </div>
 
       {/* Status page */}
       <div className="border-t border-border pt-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">Status page</p>
+        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("statusPage")}</p>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
@@ -689,10 +685,10 @@ export function EditMonitorForm({
             onChange={(e) => setShowOnStatusPage(e.target.checked)}
             className="h-4 w-4 rounded border-input-border accent-accent"
           />
-          <span className="text-sm text-text-primary">Show on public status page</span>
+          <span className="text-sm text-text-primary">{tForm("showOnPublicStatusPage")}</span>
         </label>
         <p className="mt-2 text-xs text-text-muted">
-          When enabled, this monitor appears at{" "}
+          {tForm("statusPageHint")}{" "}
           <span className="font-mono">/status/[your-username]</span>
         </p>
       </div>
@@ -706,7 +702,7 @@ export function EditMonitorForm({
             disabled={submitting}
             className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
           >
-            Cancel
+            {tForm("cancel")}
           </Button>
         )}
         <Button
@@ -716,7 +712,7 @@ export function EditMonitorForm({
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
-          {submitting ? "Saving…" : "Save changes"}
+          {submitting ? tForm("saving") : tForm("saveChanges")}
         </Button>
       </div>
     </form>
