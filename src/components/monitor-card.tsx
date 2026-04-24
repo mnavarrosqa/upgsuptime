@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -140,12 +141,13 @@ export function MonitorCard({
         <div className="pointer-events-none relative z-[2] flex flex-1 flex-col">
         <div className="flex items-start gap-2.5">
           {favicon ? (
-            <img
+            <Image
               src={favicon}
               alt=""
               className="mt-0.5 h-5 w-5 shrink-0 rounded"
               width={20}
               height={20}
+              unoptimized
             />
           ) : (
             <span
