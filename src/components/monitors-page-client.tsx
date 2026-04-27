@@ -797,6 +797,7 @@ export function MonitorsPageClient({
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title={t("addMonitorTitle")}
+        panelClassName="max-w-2xl"
       >
         <AddMonitorFlow
           onSuccess={() => {

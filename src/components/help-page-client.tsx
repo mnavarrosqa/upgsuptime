@@ -7,6 +7,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
+const SUPPORT_LINKS = [
+  { key: "addMonitor", href: "#addingMonitors" },
+  { key: "alerts", href: "#emailAlerts" },
+  { key: "publicStatus", href: "#publicStatusPage" },
+  { key: "apiKeys", href: "#apiKeys" },
+  { key: "exportImport", href: "#accountExportImport" },
+] as const;
+
 export type HelpCategoryPayload = {
   id: string;
   title: string;
@@ -73,6 +81,33 @@ export function HelpPageClient({ categories }: Props) {
         </h1>
         <p className="max-w-2xl text-sm text-text-muted">{t("pageSubtitle")}</p>
       </header>
+
+      <section className="rounded-xl border border-border bg-bg-card px-4 py-4 sm:px-5">
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div className="space-y-1">
+            <h2
+              className="text-base font-semibold text-text-primary"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {t("supportTitle")}
+            </h2>
+            <p className="max-w-3xl text-sm leading-relaxed text-text-muted">
+              {t("supportBody")}
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {SUPPORT_LINKS.map((link) => (
+              <a
+                key={link.key}
+                href={link.href}
+                className="rounded-full border border-border bg-bg-page px-3 py-1.5 text-sm font-medium text-text-primary transition-colors hover:border-input-focus hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus focus-visible:ring-offset-2 focus-visible:ring-offset-bg-card"
+              >
+                {t(`supportLinks.${link.key}`)}
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
 
       <div className="space-y-3">
         <Label htmlFor="help-search" className="sr-only">

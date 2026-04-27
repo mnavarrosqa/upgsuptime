@@ -31,6 +31,7 @@ export function DashboardAddMonitor() {
         open={addOpen}
         onClose={() => setAddOpen(false)}
         title={t("addMonitorTitle")}
+        panelClassName="max-w-2xl"
       >
         <AddMonitorFlow onSuccess={handleSuccess} onCancel={() => setAddOpen(false)} />
       </Overlay>

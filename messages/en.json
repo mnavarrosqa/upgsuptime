@@ -13,12 +13,30 @@
     "addReminder": "You chose to set up slow-response alerts later. Turn on \"Alert on slow response times\" below (under Notifications) once email alerts are enabled.",
     "editReminder": "You chose to set this up later. Turn on \"Alert on slow response times\" below once email alerts are enabled."
   },
+  "addMonitorFlow": {
+    "intro": "Start with one monitor when you want custom checks, or import a list when every site should share the same basic settings.",
+    "recommended": "Recommended",
+    "singleTitle": "Single monitor",
+    "singleDescription": "Set the check type, target, alerts, and status page visibility for one service.",
+    "singleMeta": "Best for APIs, apps, DNS, and TCP checks",
+    "bulkTitle": "Bulk import",
+    "bulkDescription": "Paste URLs or upload a file, review the list, then apply one shared configuration.",
+    "bulkMeta": "Best for many HTTP sites"
+  },
   "monitorTypes": {
     "typeLabel": "Monitor type",
     "http": "HTTP – check status code",
     "keyword": "Keyword – check response body",
     "dns": "DNS – check record resolution",
     "tcp": "TCP – check port connectivity",
+    "httpName": "HTTP",
+    "keywordName": "Keyword",
+    "dnsName": "DNS",
+    "tcpName": "TCP",
+    "httpDescription": "Confirm a URL returns the expected status code.",
+    "keywordDescription": "Look for required text in a page or response.",
+    "dnsDescription": "Validate a hostname resolves to the expected record.",
+    "tcpDescription": "Check that a host and port accept connections.",
     "typeBadgeKeyword": "Keyword",
     "typeBadgeDns": "DNS",
     "hostnameLabel": "Hostname",
@@ -87,7 +105,13 @@
     "cancel": "Cancel",
     "adding": "Adding…",
     "saving": "Saving…",
-    "saveChanges": "Save changes"
+    "saveChanges": "Save changes",
+    "basicsTitle": "Target",
+    "basicsHint": "Choose what to monitor and give it a recognizable name.",
+    "checkSettingsTitle": "Check behavior",
+    "checkSettingsHint": "Defaults are tuned for normal uptime checks. Adjust them only when this monitor needs stricter timing or response rules.",
+    "notificationsHint": "Decide who should hear about failures and slowdowns.",
+    "maintenanceWindowHint": "Optional. Use this when a planned change should suppress alerts for a short window."
   },
   "bulkEdit": {
     "intervalInvalid": "Interval must be between 1 and 60.",
@@ -268,7 +292,7 @@
     "activity": "Activity",
     "admin": "Admin",
     "account": "Account",
-    "help": "Help",
+    "help": "Help & Support",
     "signOut": "Sign out",
     "onboardingGuide": "Onboarding guide",
     "mainNav": "Main navigation",
@@ -281,7 +305,16 @@
     "accountMenu": "Account menu",
     "accountActions": "Account actions",
     "backToTop": "Back to top",
-    "skipToContent": "Skip to main content"
+    "skipToContent": "Skip to main content",
+    "floatingHelpRegion": "Help shortcut",
+    "floatingHelpLabel": "Open Help & Support",
+    "floatingHelpBubble": "You can check Help & Support at any moment.",
+    "floatingHelpBubbleDashboard": "Need context on status, trends, or public pages? Help & Support is always available.",
+    "floatingHelpBubbleMonitors": "Working on monitors? Help & Support explains checks, alerts, imports, and bulk actions.",
+    "floatingHelpBubbleActivity": "Reviewing incidents? Help & Support explains activity, acknowledgements, and alert behavior.",
+    "floatingHelpBubbleAccount": "Account settings, status pages, exports, and API keys are covered in Help & Support.",
+    "floatingHelpBubbleAdmin": "Admin tools have their own Help & Support articles, visible only to admins.",
+    "floatingHelpDismiss": "Dismiss help tip"
   },
   "theme": {
     "switchToLight": "Switch to light theme",
@@ -477,9 +510,9 @@
     "resumeMonitor": "Resume {name}"
   },
   "help": {
-    "pageTitle": "Help",
-    "pageSubtitle": "Documentation for UPG Monitor features. Use the index to jump to a topic or search across all articles.",
-    "searchPlaceholder": "Search help…",
+    "pageTitle": "Help & Support",
+    "pageSubtitle": "Documentation for UPG Monitor features. Search across the guide, jump by topic, or start with the common support links below.",
+    "searchPlaceholder": "Search help and support...",
     "searchLabel": "Search documentation",
     "searchEmpty": "No articles match your search. Try different words or clear the search.",
     "clearSearch": "Clear search",
@@ -487,16 +520,27 @@
     "indexToggleShow": "Show index",
     "indexToggleHide": "Hide index",
     "backToTop": "Back to top",
-    "mainAria": "Help documentation",
+    "mainAria": "Help and support documentation",
+    "supportTitle": "Need help fast?",
+    "supportBody": "Start with the topics operators use most: add a monitor, tune alerts, publish status, connect an external dashboard, or move data between installs.",
+    "supportLinks": {
+      "addMonitor": "Add a monitor",
+      "alerts": "Set up alerts",
+      "publicStatus": "Publish status",
+      "apiKeys": "Use the API",
+      "exportImport": "Export or import data"
+    },
     "categories": {
       "gettingStarted": "Getting started",
       "dashboard": "Dashboard",
       "monitors": "Monitors",
       "monitorDetail": "Monitor detail",
+      "alerts": "Alerts and incidents",
       "activity": "Activity",
       "account": "Account",
       "dataPortability": "Export and import",
       "publicStatus": "Public status page",
+      "developerApi": "Developer API",
       "appExperience": "App experience",
       "admin": "Administration"
     },
@@ -505,9 +549,9 @@
         "title": "Welcome to UPG Monitor",
         "summary": "What this app does and how monitors work.",
         "body": [
-          "UPG Monitor checks your URLs on a schedule and records whether each check succeeded, how long it took, and SSL certificate status when enabled.",
-          "You own a private list of monitors. You can share a read-only public status page with visitors using your username.",
-          "Use the Dashboard for a quick overview, Monitors to manage configuration, and Activity to see recent up and down events."
+          "UPG Monitor checks URLs, hosts, ports, DNS records, keywords, and certificates on a schedule. Each run records whether the check succeeded, how long it took, and any status details needed for later review.",
+          "Your monitors are private by default. You can publish selected monitors on a read-only status page, share data through the status API, and keep operational history inside your account.",
+          "Use Dashboard for the current picture, Monitors for configuration, Activity for cross-monitor events, and Help & Support when you need a reference."
         ]
       },
       "signInAndAccount": {
@@ -515,66 +559,103 @@
         "summary": "Login, setup, and who can use the app.",
         "body": [
           "Sign in with your email or username and password. If the server was just installed, an administrator creates the first account on the setup page; after that, new users may register if registration is enabled.",
-          "Your session keeps you signed in until you sign out or the session expires. You can change your password anytime from Account without losing your session."
+          "Your session keeps you signed in until you sign out or the session expires. You can update profile details and change your password from Account."
+        ]
+      },
+      "firstRunSetup": {
+        "title": "First-run setup",
+        "summary": "How a new instance becomes ready for users.",
+        "body": [
+          "A new installation starts with setup mode. The first administrator creates the initial account, then the app switches into normal sign-in and registration behavior.",
+          "If setup has already been completed, the setup page is disabled. Registration availability after setup depends on the server configuration."
+        ]
+      },
+      "onboardingGuide": {
+        "title": "Onboarding guide",
+        "summary": "A short product tour you can reopen.",
+        "body": [
+          "The onboarding guide from the account menu walks you through the product in a short overlay flow. It is useful when you are new to the app or showing someone the main workflow.",
+          "Help & Support is the deeper reference. Use it when you need exact behavior for checks, alerts, status pages, exports, or admin tools."
         ]
       },
       "dashboardOverview": {
         "title": "Dashboard overview",
-        "summary": "Summary cards and monitor list at a glance.",
+        "summary": "Summary cards and monitor status at a glance.",
         "body": [
-          "The Dashboard shows how many monitors are up, down, or paused, and lists every monitor with its current status.",
-          "Paused monitors are not checked until you resume them from the Monitors page.",
-          "When you have no monitors yet, the Dashboard prompts you to add your first one."
+          "The Dashboard shows how many monitors are up, down, or paused, and lists each monitor with its current state.",
+          "Paused monitors are not checked until you resume them from the Monitors page. New accounts see an empty state that points to adding the first monitor.",
+          "Dashboard data comes from stored monitor and check results, so it is the best first place to confirm what is happening right now."
         ]
       },
       "dashboardSearchAndStatusLink": {
         "title": "Dashboard search and status page link",
         "summary": "Find monitors quickly and open your public page.",
         "body": [
-          "Use the search field to filter monitors by name or URL. Clear the search to show the full list again.",
-          "The status page link opens your public page at /status/your-username so you can verify what visitors see."
+          "Use the search field to filter monitors by name or URL. Clear the search to return to the full list.",
+          "If your account has a username, the status page link opens /status/your-username so you can review what visitors see."
         ]
       },
       "dashboardTrends": {
         "title": "Trend charts",
         "summary": "Recent check history on the Dashboard.",
         "body": [
-          "Each monitor card can show a small trend of recent checks so you can spot instability without opening the detail page.",
-          "Charts reflect stored check results; if a monitor is new, there may be few points until more checks run."
+          "Trend charts show recent response patterns without opening the full monitor detail page. They help you spot flapping, slowdowns, or a sudden run of failed checks.",
+          "New monitors may have sparse charts until enough scheduled or manual checks have been recorded."
         ]
       },
       "addingMonitors": {
         "title": "Adding a monitor",
-        "summary": "Create a new URL check from the Dashboard or Monitors page.",
+        "summary": "Create a new check from Dashboard or Monitors.",
         "body": [
-          "Choose Add monitor and enter a display name and the full URL (including https://). The app will request that URL on your interval.",
-          "You can add many monitors; each is checked independently."
+          "Choose Add monitor, enter a clear name, and provide the target details for the monitor type. HTTP and keyword monitors use a full HTTP or HTTPS URL; DNS and TCP monitors use host-oriented fields.",
+          "Each monitor runs independently on its configured interval. You can later edit the schedule, timeout, notifications, status page visibility, and advanced request behavior."
+        ],
+        "bullets": [
+          "Use descriptive names so alerts and activity entries are easy to understand.",
+          "Start with a conservative interval and timeout, then tighten them after you understand the service behavior.",
+          "Enable status page visibility only for monitors you want visitors or customers to see."
+        ]
+      },
+      "monitorTypes": {
+        "title": "Monitor types",
+        "summary": "HTTP, keyword, DNS, and TCP checks.",
+        "body": [
+          "HTTP monitors check whether a web endpoint returns an expected status code before the timeout. Keyword monitors fetch the response body and verify that expected text is present or absent.",
+          "DNS monitors resolve a hostname and can compare record values. TCP monitors verify that a host and port accept a connection.",
+          "Choose the type that matches the failure you care about. For example, use keyword checks when a page can return 200 while still showing an error message."
         ]
       },
       "monitorSettings": {
         "title": "Monitor settings explained",
         "summary": "Interval, timeout, method, status codes, alerts, SSL, and status page visibility.",
         "body": [
-          "Interval is how often checks run. Timeout is the maximum wait for a response before a check is treated as failed.",
-          "HTTP method can be GET or HEAD. Expected status codes describe which responses count as success, for example 200-299.",
-          "Email alerts notify you when a monitor goes down or recovers; you can override the destination address or use your account default.",
-          "SSL monitoring reports certificate issues when enabled. Show on status page controls whether this monitor appears on your public /status/username page (you can also manage visibility for all monitors from Account → Status page)."
+          "Interval is how often checks run. Timeout is the maximum wait before the check is treated as failed. Expected status codes define which HTTP responses count as success.",
+          "HTTP method can be GET or HEAD where supported. Keyword monitors always use GET because they need the response body.",
+          "Email alerts notify you when a monitor goes down or recovers. SSL monitoring checks certificate validity and expiry. Show on status page controls whether the monitor appears publicly."
+        ]
+      },
+      "advancedRequestSettings": {
+        "title": "Advanced request settings",
+        "summary": "Headers, body, redirects, and request customization.",
+        "body": [
+          "Advanced HTTP settings let you add request headers, choose a body type, send a request body, and control redirect behavior. Use these when a health endpoint needs authentication headers, form data, or a non-default redirect policy.",
+          "Sensitive headers are redacted from monitor exports. Keep secrets scoped to the monitored endpoint and rotate them if an exported file is shared too widely."
         ]
       },
       "monitorsListAndBulk": {
         "title": "Monitors list, sorting, and bulk actions",
         "summary": "Table controls, selection, pause, resume, edit, and delete.",
         "body": [
-          "The Monitors table supports sorting by columns such as name, last check, and interval. Search narrows the list by name or URL.",
-          "Select one or more monitors to pause, resume, edit shared fields in bulk, or delete. Paused monitors skip scheduled checks.",
-          "Deleting a monitor removes its configuration and history from your account; this cannot be undone."
+          "The Monitors table supports sorting by fields such as name, last check, and interval. Search narrows the list by name or URL.",
+          "Select one or more monitors to pause, resume, edit shared fields in bulk, or delete. Bulk edit applies only the fields you choose and leaves per-monitor details like name and URL alone.",
+          "Deleting a monitor removes its configuration and history from your account. Treat delete as permanent."
         ]
       },
       "importExportMonitors": {
         "title": "Import and export monitors",
         "summary": "JSON backup and restore for monitor definitions.",
         "body": [
-          "Export downloads a JSON file of your monitors for backup or copying to another environment.",
+          "Export downloads a JSON file of monitor definitions for backup or copying to another environment.",
           "Import accepts a JSON array of monitor objects. Review the preview and confirm; invalid entries are reported without stopping the whole import when possible."
         ]
       },
@@ -582,34 +663,82 @@
         "title": "Monitor detail page",
         "summary": "History, charts, check now, edit, and delete.",
         "body": [
-          "Open a monitor from the Dashboard or Monitors table to see detailed history, response times, and SSL information when enabled.",
-          "Check now runs an immediate check outside the normal schedule. Edit and Delete apply only to this monitor.",
-          "Incident and result tables help you see exactly when problems started and ended."
+          "Open a monitor from Dashboard or the Monitors table to inspect detailed history, response times, SSL information, incident context, and configuration actions.",
+          "Check now runs an immediate check outside the normal schedule. Edit and Delete apply only to the current monitor.",
+          "Use the detail page when a summary status is not enough and you need exact timing, response, or certificate evidence."
+        ]
+      },
+      "checkResultsAndIncidents": {
+        "title": "Check results and incidents",
+        "summary": "How history explains status changes.",
+        "body": [
+          "Check results show individual runs, including status, response time, and error details when available. Incidents group meaningful down and recovery periods so you can understand when a problem started and ended.",
+          "The app confirms failures before declaring a monitor down, which reduces noise from brief network blips. Recovery is recorded when successful checks resume."
+        ]
+      },
+      "emailAlerts": {
+        "title": "Email alerts",
+        "summary": "Down and recovery notifications.",
+        "body": [
+          "Email alerts send a message when a monitor changes state, such as going down or recovering. They are designed around transitions so you do not receive repeated messages for the same ongoing outage.",
+          "A monitor can use the account email or a monitor-specific alert address. Email delivery still depends on the instance SMTP configuration."
+        ]
+      },
+      "sslAlerts": {
+        "title": "SSL certificate alerts",
+        "summary": "Validity and expiry checks for HTTPS monitors.",
+        "body": [
+          "When SSL monitoring is enabled, HTTPS monitors check certificate validity and expiry during regular runs.",
+          "Alerts fire when the certificate becomes invalid or has 30 days or less remaining, giving you time to renew before visitors are affected."
+        ]
+      },
+      "degradationAlerts": {
+        "title": "Slow-response alerts",
+        "summary": "Early warnings before a service goes fully down.",
+        "body": [
+          "Slow-response alerts learn a monitor's normal response time after enough successful checks. When recent checks stay significantly slower than that baseline, the app can send one warning email for the episode.",
+          "These alerts require email alerts. They are useful for APIs and pages where latency problems matter even before requests fail."
+        ]
+      },
+      "maintenanceWindows": {
+        "title": "Maintenance windows",
+        "summary": "Suppress alerts during planned work.",
+        "body": [
+          "A maintenance window marks planned downtime or deployments for a monitor. While the window is active, alerts are suppressed so expected failures do not create noise.",
+          "Use the note field to record why the window exists, such as a deployment or provider maintenance event."
+        ]
+      },
+      "downtimeAcknowledgement": {
+        "title": "Downtime acknowledgement",
+        "summary": "Mark an incident as seen from the app or email.",
+        "body": [
+          "Downtime acknowledgement controls let you mark a monitor's current downtime as seen. Email acknowledgement links can also be used when the instance is configured to include them.",
+          "Acknowledgement helps operators coordinate response. It does not make a failed monitor healthy; the monitor must recover through successful checks."
         ]
       },
       "activityFeed": {
         "title": "Activity feed",
         "summary": "Recent up and down events across monitors.",
         "body": [
-          "Activity lists recent status changes (went down, recovered) within the last several days, with pagination.",
-          "Clear all removes stored activity you can see in this view. A dot on the Activity nav item can indicate unread incident-related updates.",
-          "Use Activity when you need a chronological story across all monitors instead of per-monitor detail."
+          "Activity lists recent status changes across monitors, with pagination for browsing older entries.",
+          "The Activity navigation indicator can show unread incident-related updates. Clear or dismiss controls affect what you see in the feed, not the underlying monitor configuration.",
+          "Use Activity when you need a chronological story across all monitors instead of detail for one monitor."
         ]
       },
       "accountProfile": {
-        "title": "Account profile and security",
-        "summary": "Username, language, and password.",
+        "title": "Profile and language",
+        "summary": "Username, email, role, and interface language.",
         "body": [
-          "On Account you can change your display username and interface language. Email is not editable after registration.",
-          "Change password requires your current password. After a successful change you remain signed in."
+          "Account shows your profile details, role, and language preference. You can change your username and interface language; email is not editable after registration.",
+          "Your username is also used for the public status page URL, so choose one that is safe to share if you plan to publish status."
         ]
       },
-      "onboardingGuide": {
-        "title": "Onboarding guide",
-        "summary": "Step-by-step introduction vs this Help section.",
+      "accountSecurity": {
+        "title": "Password and security",
+        "summary": "Changing your password safely.",
         "body": [
-          "The onboarding guide from the account menu walks you through the product in a short overlay flow and can be reopened anytime.",
-          "This Help section is a reference you can search and browse when you need deeper detail on a specific feature."
+          "Change password requires your current password and a new password that meets the app requirements. After a successful change, you remain signed in.",
+          "If you suspect a password or API key was exposed, update the password and rotate or revoke affected API keys from the API tab."
         ]
       },
       "accountExportImport": {
@@ -617,24 +746,66 @@
         "summary": "Full account backup including monitors and optional history.",
         "body": [
           "From Account you can export a JSON file with your profile, monitors, and optionally check history for archival or migration.",
-          "Import can merge data or restore in replace mode depending on the options you choose; read the on-screen descriptions carefully before confirming.",
-          "Large histories increase file size; you can export without check results if you only need configuration."
+          "Import can merge data or restore in replace mode depending on the options you choose. Read the on-screen descriptions carefully before confirming.",
+          "Large histories increase file size. Export without check results when you only need configuration."
+        ]
+      },
+      "monitorExportImport": {
+        "title": "Monitor-only export and import",
+        "summary": "Move monitor definitions without the rest of the account.",
+        "body": [
+          "Monitor export/import is useful when you want to copy checks between accounts or environments without moving the full account profile and history.",
+          "Imported monitors still need valid settings for the current instance, including reachable targets, supported monitor types, and alert addresses that make sense for the destination."
         ]
       },
       "publicStatusPage": {
         "title": "Public status page",
-        "summary": "Sharing uptime with others.",
+        "summary": "Sharing uptime with visitors without a login.",
         "body": [
           "Your public page lives at /status/your-username. Only monitors with Show on status page enabled appear there.",
-          "Visitors do not need to sign in. The page shows high-level status and history appropriate for external communication.",
-          "Under Account → Status page you can set an optional title and tagline, the footer, and which monitors are visible."
+          "Visitors do not need to sign in. The page shows high-level status and history suitable for customers, teammates, or stakeholders.",
+          "Keep private internal checks hidden by leaving their public visibility off."
+        ]
+      },
+      "statusPageCustomization": {
+        "title": "Customizing the status page",
+        "summary": "Title, tagline, footer, and monitor visibility.",
+        "body": [
+          "Under Account -> Status page, you can set the public page title, tagline, footer preference, and which monitors are visible.",
+          "You need a username before the public URL is available. After saving, open the public page to confirm the copy and monitor list look right."
+        ]
+      },
+      "statusWidgetApi": {
+        "title": "Status widget API",
+        "summary": "Read monitor status from external dashboards.",
+        "body": [
+          "The widget/status API returns monitor status data for external dashboards and embeds. Use it when another site needs a machine-readable status summary.",
+          "For authenticated widget access, create an API key with the status:read scope and configure allowed origins for browser-based calls."
+        ]
+      },
+      "apiKeys": {
+        "title": "API keys",
+        "summary": "Create, rotate, revoke, and use status API tokens.",
+        "body": [
+          "The Account API tab lets you create API keys for external dashboards and widgets. Keys are shown only once when created or rotated, so copy the secret immediately.",
+          "Send the key as a Bearer token. Optional query parameters can limit results to one monitor or cap the number of monitors returned.",
+          "Rotate a key when you need a new secret. Revoke keys that are unused, exposed, or no longer needed."
+        ]
+      },
+      "apiKeySecurity": {
+        "title": "API key security and CORS",
+        "summary": "Scopes, origins, expiry, and safe sharing.",
+        "body": [
+          "API keys use scopes. Status integrations should use status:read so the token can read status data without broader account access.",
+          "For browser widgets, add each allowed site origin to the key. Without an allowed origin, browsers block the request through CORS.",
+          "Use expiration dates for temporary integrations and avoid committing tokens to source control or public documentation."
         ]
       },
       "themeAndLanguage": {
         "title": "Theme and language",
         "summary": "Light, dark, and locale.",
         "body": [
-          "Use the theme control in the header to switch light and dark mode; your choice is remembered on this device.",
+          "Use the theme control in the header to switch light and dark mode. Your choice is remembered on this device.",
           "Interface language is set on the Account page and applies across the signed-in experience."
         ]
       },
@@ -650,7 +821,7 @@
         "title": "Admin overview",
         "summary": "Who admin is for and what the admin area contains.",
         "body": [
-          "Users with the admin role see an Admin link in the navigation. The admin area is for operating the whole instance, not just your personal monitors.",
+          "Users with the admin role see an Admin link in the navigation. The admin area is for operating the whole instance, not just personal monitors.",
           "The overview shows aggregate statistics such as user count, monitor count, and recent check volume."
         ]
       },
@@ -658,16 +829,16 @@
         "title": "Managing users (admin)",
         "summary": "User list and account actions.",
         "body": [
-          "Admins can list users and perform administrative actions appropriate to your deployment, such as adjusting roles or access depending on server configuration.",
-          "Treat admin capabilities carefully; they affect other people's accounts."
+          "Admins can list users and perform administrative actions available for the deployment, such as reviewing access or role-related settings.",
+          "Treat admin capabilities carefully because they affect other people's accounts."
         ]
       },
       "adminMonitorsAndSettings": {
         "title": "Admin monitors and settings (admin)",
         "summary": "Instance-wide monitors and configuration.",
         "body": [
-          "Admins may have views or tools to inspect monitors and application settings across the installation.",
-          "Specific options depend on how your server is configured; use this area when you need instance-level changes rather than edits from a normal user account."
+          "Admins may inspect monitors and application settings across the installation.",
+          "Use the admin area for instance-level work. Normal monitor ownership and day-to-day edits still belong in Dashboard, Monitors, and Account."
         ]
       }
     }

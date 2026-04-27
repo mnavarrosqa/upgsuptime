@@ -16,6 +16,8 @@ export const HELP_CATEGORIES: HelpCategoryMeta[] = [
     articles: [
       { id: "welcome" },
       { id: "signInAndAccount" },
+      { id: "firstRunSetup" },
+      { id: "onboardingGuide" },
     ],
   },
   {
@@ -30,14 +32,29 @@ export const HELP_CATEGORIES: HelpCategoryMeta[] = [
     id: "monitors",
     articles: [
       { id: "addingMonitors" },
+      { id: "monitorTypes" },
       { id: "monitorSettings" },
+      { id: "advancedRequestSettings" },
       { id: "monitorsListAndBulk" },
       { id: "importExportMonitors" },
     ],
   },
   {
     id: "monitorDetail",
-    articles: [{ id: "monitorDetailPage" }],
+    articles: [
+      { id: "monitorDetailPage" },
+      { id: "checkResultsAndIncidents" },
+    ],
+  },
+  {
+    id: "alerts",
+    articles: [
+      { id: "emailAlerts" },
+      { id: "sslAlerts" },
+      { id: "degradationAlerts" },
+      { id: "maintenanceWindows" },
+      { id: "downtimeAcknowledgement" },
+    ],
   },
   {
     id: "activity",
@@ -47,16 +64,30 @@ export const HELP_CATEGORIES: HelpCategoryMeta[] = [
     id: "account",
     articles: [
       { id: "accountProfile" },
-      { id: "onboardingGuide" },
+      { id: "accountSecurity" },
     ],
   },
   {
     id: "dataPortability",
-    articles: [{ id: "accountExportImport" }],
+    articles: [
+      { id: "accountExportImport" },
+      { id: "monitorExportImport" },
+    ],
   },
   {
     id: "publicStatus",
-    articles: [{ id: "publicStatusPage" }],
+    articles: [
+      { id: "publicStatusPage" },
+      { id: "statusPageCustomization" },
+      { id: "statusWidgetApi" },
+    ],
+  },
+  {
+    id: "developerApi",
+    articles: [
+      { id: "apiKeys" },
+      { id: "apiKeySecurity" },
+    ],
   },
   {
     id: "appExperience",

@@ -14,6 +14,7 @@ import { ActivityProvider } from "@/components/activity-context";
 import { PullToRefresh } from "@/components/pull-to-refresh";
 import { BackToTopButton } from "@/components/back-to-top";
 import { PwaInstallBanner } from "@/components/pwa-install-banner";
+import { FloatingHelpLink } from "@/components/floating-help-link";
 
 export default async function AppLayout({
   children,
@@ -76,6 +77,7 @@ export default async function AppLayout({
       <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 sm:px-6">
         {children}
       </main>
+      <FloatingHelpLink />
       <BackToTopButton />
       <PwaInstallBanner />
       <IncidentPoller />

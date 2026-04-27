@@ -2,7 +2,7 @@
   "degradationCallout": {
     "title": "Alertas tempranas",
     "description": "UPG Monitor aprende cuánto tarda de normal este sitio y te avisa si se pone lento de verdad, antes de que se caiga.",
-    "details": "Con 20 checks bien, guardamos una base (P75 de checks viejos). Si el promedio de las últimas 7 va al menos ~2,9× por encima de esa base (y ~450 ms o más) durante 5 checks seguidos, te mandamos un correo. Otro solo si los tiempos vuelven claramente a la normalidad: si hay recuperaciones cortitas en medio, ya no spameamos alertas.",
+    "details": "Con 20 comprobaciones correctas, guardamos una base (P75 de comprobaciones antiguas). Si el promedio de las últimas 7 va al menos ~2,9× por encima de esa base (y ~450 ms o más) durante 5 comprobaciones seguidas, te mandamos un correo. Otro solo si los tiempos vuelven claramente a la normalidad: si hay recuperaciones cortitas en medio, ya no spameamos alertas.",
     "enableButton": "Activar alertas de lentitud",
     "enabling": "Activando…",
     "laterButton": "Lo activo después",
@@ -13,12 +13,30 @@
     "addReminder": "Dejaste las alertas por lentitud para después. Cuando tengas correo activado, enciende \"Alertar si va lento\" abajo (en Notificaciones).",
     "editReminder": "Lo dejaste para después. Cuando tengas correo activado, enciende \"Alertar si va lento\" abajo."
   },
+  "addMonitorFlow": {
+    "intro": "Empieza con un monitor si necesitas una configuración a medida, o importa una lista si todos los sitios comparten las mismas opciones básicas.",
+    "recommended": "Recomendado",
+    "singleTitle": "Un monitor",
+    "singleDescription": "Configura el tipo de check, destino, alertas y visibilidad en la página de estado para un servicio.",
+    "singleMeta": "Ideal para APIs, apps, DNS y TCP",
+    "bulkTitle": "Importación masiva",
+    "bulkDescription": "Pega URLs o sube un archivo, revisa la lista y aplica una configuración compartida.",
+    "bulkMeta": "Ideal para muchos sitios HTTP"
+  },
   "monitorTypes": {
     "typeLabel": "Tipo de monitor",
     "http": "HTTP – mirar el código de estado",
     "keyword": "Palabra clave – mirar el cuerpo de la respuesta",
     "dns": "DNS – mirar la resolución del registro",
     "tcp": "TCP – comprobar conexión al puerto",
+    "httpName": "HTTP",
+    "keywordName": "Palabra clave",
+    "dnsName": "DNS",
+    "tcpName": "TCP",
+    "httpDescription": "Confirma que una URL devuelve el código esperado.",
+    "keywordDescription": "Busca un texto obligatorio en una página o respuesta.",
+    "dnsDescription": "Valida que un host resuelve al registro esperado.",
+    "tcpDescription": "Comprueba que un host y puerto aceptan conexiones.",
     "typeBadgeKeyword": "Palabra clave",
     "typeBadgeDns": "DNS",
     "hostnameLabel": "Host",
@@ -49,27 +67,27 @@
     "url": "URL",
     "urlHint": "Tiene que ser una URL HTTP o HTTPS válida.",
     "intervalMinutes": "Intervalo (min)",
-    "timeoutSeconds": "Timeout (seg)",
+    "timeoutSeconds": "Límite (seg)",
     "port": "Puerto",
     "method": "Método",
     "statusCodes": "Códigos de estado",
-    "advancedRequestSettings": "Opciones avanzadas de request",
-    "headersJson": "Headers JSON",
-    "headersRedactedHint": "Los headers sensibles se ocultan en los exports.",
-    "bodyType": "Tipo de body",
+    "advancedRequestSettings": "Opciones avanzadas de petición",
+    "headersJson": "Cabeceras JSON",
+    "headersRedactedHint": "Las cabeceras sensibles se ocultan en las exportaciones.",
+    "bodyType": "Tipo de cuerpo",
     "bodyTypeNone": "Ninguno",
     "bodyTypeText": "Texto",
-    "bodyTypeForm": "Form encoded",
-    "maxRedirects": "Máx. redirects",
-    "followRedirects": "Seguir redirects",
-    "requestBody": "Body del request",
+    "bodyTypeForm": "Formulario codificado",
+    "maxRedirects": "Máx. redirecciones",
+    "followRedirects": "Seguir redirecciones",
+    "requestBody": "Cuerpo de la petición",
     "keywordPlaceholder": "texto esperado",
     "notifications": "Notificaciones",
     "sendEmailAlerts": "Enviar alertas por correo",
     "alertEmail": "Correo de alerta",
     "useAccountEmailHint": "(vacío para usar el correo de la cuenta)",
     "slowResponseAlerts": "Alertar si va lento",
-    "slowResponseAlertsHint": "Aprende el tiempo normal de respuesta tras 20+ checks y avisa si detecta una lentitud sostenida de 2x. Dispara una vez por episodio.",
+    "slowResponseAlertsHint": "Aprende el tiempo normal de respuesta tras 20+ comprobaciones y avisa si detecta una lentitud sostenida de 2x. Dispara una vez por episodio.",
     "requiresEmailAlerts": "Necesita alertas por correo activadas.",
     "sslMonitoring": "Monitoreo SSL",
     "monitorSslCertificate": "Monitorear certificado SSL",
@@ -87,11 +105,17 @@
     "cancel": "Cancelar",
     "adding": "Añadiendo…",
     "saving": "Guardando…",
-    "saveChanges": "Guardar cambios"
+    "saveChanges": "Guardar cambios",
+    "basicsTitle": "Destino",
+    "basicsHint": "Elige qué monitorizar y dale un nombre reconocible.",
+    "checkSettingsTitle": "Comportamiento del check",
+    "checkSettingsHint": "Los valores por defecto sirven para checks normales. Cámbialos solo si este monitor necesita tiempos o respuestas más estrictos.",
+    "notificationsHint": "Decide quién se entera de caídas y lentitud.",
+    "maintenanceWindowHint": "Opcional. Úsalo cuando un cambio planificado deba silenciar alertas por un rato."
   },
   "bulkEdit": {
     "intervalInvalid": "El intervalo debe estar entre 1 y 60.",
-    "timeoutInvalid": "El timeout debe estar entre 5 y 120.",
+    "timeoutInvalid": "El límite de tiempo debe estar entre 5 y 120.",
     "noChanges": "Cambia al menos una opción o cancela.",
     "failedFor": "Falló para \"{name}\"",
     "updatedCount": "{count, plural, one {# monitor actualizado} other {# monitores actualizados}}",
@@ -99,7 +123,7 @@
     "selectedCount": "Seleccionados ({count})",
     "scopeHint": "El nombre y la URL quedan por monitor. Solo las opciones de abajo se aplican a todos los seleccionados.",
     "various": "Varios",
-    "slowResponseAlertsHint": "Aprende el tiempo normal de respuesta de cada sitio tras 20+ checks y avisa si detecta una lentitud sostenida de 2x. Dispara una vez por episodio.",
+    "slowResponseAlertsHint": "Aprende el tiempo normal de respuesta de cada sitio tras 20+ comprobaciones y avisa si detecta una lentitud sostenida de 2x. Dispara una vez por episodio.",
     "sslBulkHint": "Aplica a monitores HTTPS. Los monitores solo HTTP ignoran esto.",
     "applyToAll": "Aplicar a todos"
   },
@@ -172,34 +196,34 @@
     "usernameUpdated": "Perfil guardado",
     "role": "Rol",
     "apiTitle": "API",
-    "apiSubtitle": "Crea y maneja API keys para dashboards y widgets de fuera.",
-    "apiEndpointLabel": "Endpoint para widget",
-    "apiPublicHint": "El endpoint publico sigue disponible en /api/status/{username}.",
+    "apiSubtitle": "Crea y maneja claves de API para paneles y widgets externos.",
+    "apiEndpointLabel": "Punto de conexión para widget",
+    "apiPublicHint": "El punto de conexión público sigue disponible en /api/status/{username}.",
     "apiCopy": "Copiar",
-    "apiCopiedEndpoint": "Endpoint copiado",
+    "apiCopiedEndpoint": "Punto de conexión copiado",
     "apiCopiedToken": "Token copiado",
     "apiTokenShownOnce": "Este token solo sale una vez. Cópialo ya.",
-    "apiNameLabel": "Nombre de la key",
-    "apiNamePlaceholder": "Dashboard de produccion",
-    "apiExpiresLabel": "Expira en (opcional)",
-    "apiOriginsLabel": "Origenes permitidos (uno por linea)",
+    "apiNameLabel": "Nombre de la clave",
+    "apiNamePlaceholder": "Panel de producción",
+    "apiExpiresLabel": "Expira el (opcional)",
+    "apiOriginsLabel": "Orígenes permitidos (uno por línea)",
     "apiOriginsPlaceholder": "https://dashboard.ejemplo.com",
-    "apiCreateButton": "Crear API key",
-    "apiCreateSuccess": "API key creada",
-    "apiRotateSuccess": "API key rotada",
-    "apiRevokeSuccess": "API key revocada",
-    "apiKeysListTitle": "Keys activas",
-    "apiEmptyState": "Todavía no hay API keys.",
+    "apiCreateButton": "Crear clave de API",
+    "apiCreateSuccess": "Clave de API creada",
+    "apiRotateSuccess": "Clave de API rotada",
+    "apiRevokeSuccess": "Clave de API revocada",
+    "apiKeysListTitle": "Claves activas",
+    "apiEmptyState": "Todavía no hay claves de API.",
     "apiRotate": "Rotar",
     "apiRevoke": "Revocar",
-    "apiScopeLabel": "Scope",
+    "apiScopeLabel": "Alcance",
     "apiLastUsedLabel": "Último uso",
     "apiExamplesTitle": "Ejemplos",
-    "apiExamplesIntro": "Manda la API key como Bearer. Cambia YOUR_API_TOKEN por el secreto que te dan al crear o rotar.",
+    "apiExamplesIntro": "Manda la clave de API como Bearer. Cambia YOUR_API_TOKEN por el secreto que te dan al crear o rotar.",
     "apiExampleCurlLabel": "Terminal (curl)",
     "apiExampleFetchLabel": "JavaScript (fetch)",
     "apiExampleCopiedSnippet": "Ejemplo copiado",
-    "apiExampleCorsHint": "Si usas el navegador: pon el origen de tu web (ej. https://app.ejemplo.com) en Orígenes permitidos en la key, si no el browser corta la petición (CORS).",
+    "apiExampleCorsHint": "Si usas el navegador: pon el origen de tu web (ej. https://app.ejemplo.com) en Orígenes permitidos de la clave; si no, el navegador bloquea la petición (CORS).",
     "apiExampleQueryHint": "Opcional: ?monitorId='<id>' para un solo monitor; ?limit=100 para cuántos vuelven (por defecto 100, tope 500).",
     "apiResponseFieldsHint": "Cada monitor en data.monitors trae type, intervalMinutes, paused, method, cosas de SSL, consecutiveFailures, uptimePct y checkCount90d (90 días), más timestamps de estado.",
     "statusPageTitle": "Página de estado pública",
@@ -236,24 +260,24 @@
     "PASSWORDS_DO_NOT_MATCH": "Las contraseñas no coinciden",
     "CURRENT_PASSWORD_INCORRECT": "La contraseña actual no cuadra",
     "NEW_PASSWORD_SAME_AS_CURRENT": "La nueva tiene que ser distinta de la actual",
-    "SETUP_DISABLED": "El setup inicial está apagado",
-    "SETUP_COMPLETED": "El setup ya se hizo",
-    "SETUP_REQUIRED": "Primero crea el admin desde la página de setup.",
+    "SETUP_DISABLED": "La configuración inicial está apagada",
+    "SETUP_COMPLETED": "La configuración inicial ya se completó",
+    "SETUP_REQUIRED": "Primero crea el administrador desde la página de configuración inicial.",
     "REGISTRATION_DISABLED": "Ahora mismo el registro está cerrado.",
-    "RATE_LIMITED_SETUP": "Demasiados intentos de setup. Prueba más tarde.",
+    "RATE_LIMITED_SETUP": "Demasiados intentos de configuración inicial. Prueba más tarde.",
     "RATE_LIMITED_REGISTER": "Demasiados intentos de registro. Prueba más tarde.",
-    "API_KEY_MISSING": "Falta la API key.",
-    "API_KEY_INVALID": "Esa API key no vale.",
-    "API_KEY_EXPIRED": "Esa API key ya caducó.",
-    "API_KEY_SCOPE_INVALID": "Esa API key no puede usar este endpoint.",
+    "API_KEY_MISSING": "Falta la clave de API.",
+    "API_KEY_INVALID": "Esa clave de API no vale.",
+    "API_KEY_EXPIRED": "Esa clave de API ya caducó.",
+    "API_KEY_SCOPE_INVALID": "Esa clave de API no puede usar este punto de conexión.",
     "API_RATE_LIMITED": "Te pasaste del límite de la API. Espera un momento y reintenta.",
-    "API_ORIGIN_NOT_ALLOWED": "Ese origen no va con esta API key.",
-    "API_KEY_NAME_REQUIRED": "Falta el nombre de la API key.",
-    "API_KEY_NAME_TOO_LONG": "El nombre de la API key: máximo 60 caracteres.",
-    "API_KEY_NAME_TAKEN": "Ya tienes una key con ese nombre.",
+    "API_ORIGIN_NOT_ALLOWED": "Ese origen no va con esta clave de API.",
+    "API_KEY_NAME_REQUIRED": "Falta el nombre de la clave de API.",
+    "API_KEY_NAME_TOO_LONG": "El nombre de la clave de API: máximo 60 caracteres.",
+    "API_KEY_NAME_TAKEN": "Ya tienes una clave con ese nombre.",
     "API_KEY_EXPIRES_INVALID": "La fecha de caducidad no vale.",
     "API_KEY_EXPIRES_PAST": "La caducidad tiene que ser futura.",
-    "API_KEY_NOT_FOUND": "No encontramos esa API key.",
+    "API_KEY_NOT_FOUND": "No encontramos esa clave de API.",
     "API_KEY_NO_CHANGES": "No mandaste cambios.",
     "INVALID_JSON": "El cuerpo de la petición debe ser JSON válido.",
     "INVALID_BODY": "Petición no válida.",
@@ -268,20 +292,29 @@
     "activity": "Actividad",
     "admin": "Admin",
     "account": "Cuenta",
-    "help": "Ayuda",
+    "help": "Ayuda y soporte",
     "signOut": "Salir",
     "onboardingGuide": "Tour rápido",
-    "mainNav": "Navegacion principal",
+    "mainNav": "Navegación principal",
     "closeMenu": "Cerrar menú",
     "openMenu": "Abrir menú",
     "navMenu": "Menú",
     "lightMode": "Modo claro",
     "darkMode": "Modo oscuro",
     "unreadIncidents": "Cosas nuevas en incidentes",
-    "accountMenu": "Menu de cuenta",
+    "accountMenu": "Menú de cuenta",
     "accountActions": "Acciones de cuenta",
     "backToTop": "Volver arriba",
-    "skipToContent": "Ir al contenido principal"
+    "skipToContent": "Ir al contenido principal",
+    "floatingHelpRegion": "Acceso rápido a ayuda",
+    "floatingHelpLabel": "Abrir Ayuda y soporte",
+    "floatingHelpBubble": "Puedes revisar Ayuda y soporte en cualquier momento.",
+    "floatingHelpBubbleDashboard": "¿Necesitas contexto sobre estado, tendencias o páginas públicas? Ayuda y soporte siempre está disponible.",
+    "floatingHelpBubbleMonitors": "¿Trabajando con monitores? Ayuda y soporte explica comprobaciones, alertas, importaciones y acciones en bloque.",
+    "floatingHelpBubbleActivity": "¿Revisando incidentes? Ayuda y soporte explica actividad, reconocimientos y alertas.",
+    "floatingHelpBubbleAccount": "Cuenta, páginas de estado, exportaciones y claves de API están cubiertas en Ayuda y soporte.",
+    "floatingHelpBubbleAdmin": "Las herramientas de administración tienen artículos propios en Ayuda y soporte, visibles solo para administradores.",
+    "floatingHelpDismiss": "Ocultar consejo de ayuda"
   },
   "theme": {
     "switchToLight": "Cambiar a tema claro",
@@ -291,7 +324,7 @@
     "customizeLink": "Personaliza tu página de estado pública",
     "customizeAria": "Abrir la cuenta para personalizar tu página de estado pública",
     "guestCtaHeading": "¿Quieres una página así?",
-    "guestCtaBody": "Monitoriza uptime, comparte una página pública de estado y recibe alertas si algo falla.",
+    "guestCtaBody": "Monitoriza disponibilidad, comparte una página pública de estado y recibe alertas si algo falla.",
     "guestCtaButton": "Ver UPG Monitor",
     "guestCtaButtonAria": "Ir a la página principal de UPG Monitor",
     "eyebrow": "Estado público",
@@ -300,18 +333,18 @@
     "updated": "Actualizado",
     "allOperational": "Todo operativo",
     "servicesUnavailable": "{count, plural, one {# servicio no disponible} other {# servicios no disponibles}}",
-    "allOperationalBody": "Todos los endpoints publicados respondieron bien en el último check.",
-    "servicesUnavailableBody": "Uno o más checks fallaron en la última ejecución. Detalles abajo.",
-    "uptime": "Uptime",
+    "allOperationalBody": "Todos los puntos de conexión publicados respondieron bien en la última comprobación.",
+    "servicesUnavailableBody": "Una o más comprobaciones fallaron en la última ejecución. Detalles abajo.",
+    "uptime": "Disponibilidad",
     "response": "Respuesta",
-    "checks": "Checks",
+    "checks": "Comprobaciones",
     "ninetyDayAverage": "prom. 90d",
     "average": "prom.",
     "ninetyDays": "90 días",
     "emptyTitle": "Todavía no hay nada para mostrar",
     "emptyBody": "Cuando actives monitores para la página pública, aparecerán aquí con estado e historial.",
     "servicesHeading": "Servicios",
-    "servicesRefreshHint": "Los horarios del último check se actualizan más o menos cada minuto.",
+    "servicesRefreshHint": "Los horarios de la última comprobación se actualizan más o menos cada minuto.",
     "statusMaintenance": "Mantenimiento",
     "statusOperational": "Operativo",
     "statusUnavailable": "No disponible",
@@ -319,20 +352,20 @@
     "checked": "Comprobado",
     "history90d": "Historial de 90 días",
     "historySegmentHint": "(cada segmento ≈ 3 días)",
-    "historyAria": "Historial de uptime de 90 días por segmento",
+    "historyAria": "Historial de disponibilidad de 90 días por segmento",
     "noData": "Sin datos",
-    "successfulChecksTitle": "{percent}% de checks correctos",
+    "successfulChecksTitle": "{percent}% de comprobaciones correctas",
     "older": "Más antiguo",
     "recent": "Reciente",
-    "uptimePercent": "{percent}% uptime",
+    "uptimePercent": "{percent}% disponibilidad",
     "avgResponse": "respuesta prom.",
-    "checksSampled": "{count} checks muestreados",
+    "checksSampled": "{count} comprobaciones muestreadas",
     "activeIncidents": "Incidentes activos",
-    "activeIncidentsBody": "Estos servicios fallaron el último check.",
+    "activeIncidentsBody": "Estos servicios fallaron la última comprobación.",
     "unhealthyFor": "Con problemas desde hace {duration}",
     "unhealthy": "Con problemas",
     "poweredBy": "Con tecnología de",
-    "autoRefresh": "Auto-refresh cada 60s aprox."
+    "autoRefresh": "Actualización automática cada 60s aprox."
   },
   "time": {
     "never": "Nunca",
@@ -343,7 +376,7 @@
   },
   "sort": {
     "name": "Nombre",
-    "lastCheckAt": "Último check",
+    "lastCheckAt": "Última comprobación",
     "createdAt": "Creado",
     "responseTime": "Tiempo de respuesta",
     "intervalMinutes": "Intervalo"
@@ -359,14 +392,14 @@
     "statLabelTotal": "Total",
     "statLabelUp": "En línea",
     "statLabelDown": "Caídos",
-    "statLabelLocation": "Checks desde",
-    "statLocationTooltip": "Desde dónde se ejecutan los checks (etiqueta de servidor/región).",
+    "statLabelLocation": "Comprobaciones desde",
+    "statLocationTooltip": "Desde dónde se ejecutan las comprobaciones (etiqueta de servidor/región).",
     "statValueLocationUnknown": "Este servidor",
     "statusPageLink": "Página de estado pública",
     "addFirstMonitor": "Añade tu primer monitor para arrancar.",
     "searchPlaceholder": "Busca por nombre o URL…",
     "emptyTitle": "Todavía no hay monitores",
-    "emptyBody": "Añade un monitor y aquí verás uptime y latencia.",
+    "emptyBody": "Añade un monitor y aquí verás disponibilidad y latencia.",
     "noSearchTitle": "Nada por aquí",
     "noMonitorsYet": "Sin monitores todavía. Añade uno arriba.",
     "noSearchMatch": "Ningún monitor encaja con eso.",
@@ -443,7 +476,7 @@
     "colUrl": "URL",
     "colStatus": "Estado",
     "colSsl": "SSL",
-    "colLastChecked": "Último check",
+    "colLastChecked": "Última comprobación",
     "colInterval": "Intervalo",
     "colActions": "Acciones",
     "noMonitorsYetShort": "Sin monitores. Añade uno arriba.",
@@ -470,52 +503,71 @@
     "statusDown": "Caído",
     "checkNow": "Comprobar ahora",
     "checkNowFor": "Comprobar {name} ahora",
-    "checkNowQueued": "Check iniciado",
-    "checkNowFailed": "No se pudo iniciar el check",
+    "checkNowQueued": "Comprobación iniciada",
+    "checkNowFailed": "No se pudo iniciar la comprobación",
     "viewDetailsFor": "Ver detalles de {name}",
     "pauseMonitor": "Pausar {name}",
     "resumeMonitor": "Reanudar {name}"
   },
   "help": {
-    "pageTitle": "Ayuda",
-    "pageSubtitle": "Cómo va UPG Monitor. Salta con el índice o busca en todos los textos.",
-    "searchPlaceholder": "Buscar en ayuda…",
-    "searchLabel": "Buscar en la doc",
+    "pageTitle": "Ayuda y soporte",
+    "pageSubtitle": "Documentación de las funciones de UPG Monitor. Busca en la guía, salta por tema o empieza por los enlaces comunes de soporte.",
+    "searchPlaceholder": "Buscar en ayuda y soporte...",
+    "searchLabel": "Buscar documentación",
     "searchEmpty": "Nada encaja con eso. Prueba otras palabras o quita el filtro.",
     "clearSearch": "Quitar búsqueda",
     "indexHeading": "En esta página",
-    "indexToggleShow": "Mostrar indice",
-    "indexToggleHide": "Ocultar indice",
+    "indexToggleShow": "Mostrar índice",
+    "indexToggleHide": "Ocultar índice",
     "backToTop": "Volver arriba",
-    "mainAria": "Documentacion de ayuda",
+    "mainAria": "Documentación de ayuda y soporte",
+    "supportTitle": "¿Necesitas ayuda rápida?",
+    "supportBody": "Empieza por lo que más usan los operadores: añadir un monitor, ajustar alertas, publicar estado, conectar un panel externo o mover datos entre instalaciones.",
+    "supportLinks": {
+      "addMonitor": "Añadir monitor",
+      "alerts": "Configurar alertas",
+      "publicStatus": "Publicar estado",
+      "apiKeys": "Usar la API",
+      "exportImport": "Exportar o importar datos"
+    },
     "categories": {
       "gettingStarted": "Primeros pasos",
       "dashboard": "Panel",
       "monitors": "Monitores",
       "monitorDetail": "Detalle del monitor",
+      "alerts": "Alertas e incidentes",
       "activity": "Actividad",
       "account": "Cuenta",
       "dataPortability": "Exportar / importar",
-      "publicStatus": "Pagina de estado publica",
+      "publicStatus": "Página de estado pública",
+      "developerApi": "API para desarrolladores",
       "appExperience": "Experiencia de la app",
-      "admin": "Administracion"
+      "admin": "Administración"
     },
     "articles": {
       "welcome": {
         "title": "Bienvenida a UPG Monitor",
         "summary": "Qué hace la app y cómo son los monitores.",
         "body": [
-          "UPG Monitor pega a tus URLs cada X tiempo y guarda si el check fue bien, cuánto tardó y el SSL si lo tienes activado.",
-          "Tus monitores son privados. Con tu usuario puedes compartir una página de estado pública solo lectura.",
-          "El Panel es el vistazo rápido; Monitores para tocar cosas; Actividad para ver caídas y recuperaciones."
+          "UPG Monitor revisa tus URLs cada cierto tiempo y guarda si la comprobación salió bien, cuánto tardó y el estado SSL si lo tienes activado.",
+          "Tus monitores son privados. Con tu usuario puedes compartir una página de estado pública de solo lectura.",
+          "El Panel es el vistazo rápido; Monitores sirve para configurar; Actividad muestra caídas y recuperaciones."
         ]
       },
       "signInAndAccount": {
         "title": "Entrar y registrarte",
-        "summary": "Acceso, primer setup y quién puede entrar.",
+        "summary": "Acceso, configuración inicial y quién puede entrar.",
         "body": [
-          "Entras con correo o usuario y contraseña. Si el servidor está recién instalado, un admin abre la primera cuenta en setup; luego la gente se registra si está abierto.",
+          "Entras con correo o usuario y contraseña. Si el servidor está recién instalado, un administrador abre la primera cuenta en la configuración inicial; luego la gente se registra si está abierto.",
           "Sigues dentro hasta que salgas o caduque la sesión. Cambias la clave en Cuenta cuando quieras sin salir."
+        ]
+      },
+      "firstRunSetup": {
+        "title": "Configuración inicial",
+        "summary": "Cómo una instancia nueva queda lista para usuarios.",
+        "body": [
+          "Una instalación nueva arranca en modo de configuración inicial. El primer administrador crea la cuenta inicial y luego la app pasa al comportamiento normal de inicio de sesión y registro.",
+          "Si la configuración inicial ya se completó, la página de configuración queda desactivada. Que el registro quede abierto después depende de la configuración del servidor."
         ]
       },
       "dashboardOverview": {
@@ -539,52 +591,122 @@
         "title": "Tendencias en el panel",
         "summary": "Historial reciente sin abrir el detalle.",
         "body": [
-          "Cada tarjeta puede enseñar una mini tendencia de checks para ver si algo va inestable.",
-          "Si el monitor es nuevo, al principio hay pocos puntos hasta que corran más checks."
+          "Cada tarjeta puede enseñar una mini tendencia de comprobaciones para ver si algo va inestable.",
+          "Si el monitor es nuevo, al principio hay pocos puntos hasta que corran más comprobaciones."
         ]
       },
       "addingMonitors": {
         "title": "Añadir un monitor",
-        "summary": "Nuevo check desde Panel o Monitores.",
+        "summary": "Nueva comprobación desde Panel o Monitores.",
         "body": [
           "Pulsa Añadir monitor, pon nombre y la URL entera (con https://). La app la pide según el intervalo.",
           "Puedes meter todos los que quieras; cada uno va por su lado."
+        ],
+        "bullets": [
+          "Usa nombres descriptivos para entender rápido las alertas y la actividad.",
+          "Empieza con un intervalo y un límite de tiempo conservadores; ajústalos cuando entiendas el comportamiento del servicio.",
+          "Activa la visibilidad pública solo en monitores que quieras mostrar a visitantes o clientes."
+        ]
+      },
+      "monitorTypes": {
+        "title": "Tipos de monitor",
+        "summary": "Comprobaciones HTTP, palabra clave, DNS y TCP.",
+        "body": [
+          "Los monitores HTTP revisan que un punto de conexión web devuelva un código esperado antes del límite de tiempo. Los de palabra clave descargan el cuerpo de la respuesta y verifican si un texto aparece o no aparece.",
+          "Los monitores DNS resuelven un nombre de host y pueden comparar valores de registros. Los TCP comprueban que un host y puerto acepten conexión.",
+          "Elige el tipo según el fallo que te importa. Por ejemplo, usa palabra clave si una página puede devolver 200 pero mostrar un error."
         ]
       },
       "monitorSettings": {
         "title": "Ajustes del monitor",
-        "summary": "Intervalo, timeout, método, códigos, alertas, SSL y si sale en la página pública.",
+        "summary": "Intervalo, límite de tiempo, método, códigos, alertas, SSL y si sale en la página pública.",
         "body": [
-          "Intervalo = cada cuánto hay check. Timeout = cuánto esperamos antes de marcar fallo.",
+          "Intervalo = cada cuánto hay comprobación. Límite de tiempo = cuánto esperamos antes de marcar fallo.",
           "Método GET o HEAD. Los códigos esperados dicen qué cuenta como OK (ej. 200-299).",
           "Correo te avisa al caer o recuperar; puedes cambiar el destino o usar el de la cuenta.",
           "SSL avisa del certificado si lo activas. “Mostrar en estado” decide si sale en /status/usuario (también puedes gestionar todos desde Cuenta → Estado)."
+        ]
+      },
+      "advancedRequestSettings": {
+        "title": "Opciones avanzadas de petición",
+        "summary": "Cabeceras, cuerpo, redirecciones y personalización.",
+        "body": [
+          "Las opciones avanzadas HTTP permiten agregar cabeceras, elegir tipo de cuerpo, enviar un cuerpo y controlar redirecciones. Úsalas cuando un punto de conexión de salud necesita autenticación, datos de formulario o una política de redirecciones distinta.",
+          "Las cabeceras sensibles se ocultan en las exportaciones de monitores. Mantén los secretos limitados al punto de conexión y rótalos si compartes demasiado un archivo exportado."
         ]
       },
       "monitorsListAndBulk": {
         "title": "Lista, orden y varios a la vez",
         "summary": "Tabla, elegir, pausar, seguir, editar, borrar.",
         "body": [
-          "Ordenas por nombre, último check, intervalo, etc. La búsqueda filtra por nombre o URL.",
-          "Marca uno o varios para pausar, reanudar, editar en bloque o borrar. En pausa no corren checks.",
+          "Ordenas por nombre, última comprobación, intervalo, etc. La búsqueda filtra por nombre o URL.",
+          "Marca uno o varios para pausar, reanudar, editar en bloque o borrar. En pausa no corren comprobaciones.",
           "Borrar se lleva la config y el historial de tu cuenta; no hay deshacer."
         ]
       },
       "importExportMonitors": {
         "title": "Importar y exportar monitores",
-        "summary": "JSON para backup o mudarte de sitio.",
+        "summary": "JSON para copia de seguridad o mudarte de sitio.",
         "body": [
           "Exportar baja un JSON con tus monitores.",
-          "Importar acepta un array JSON. Mira el preview y confirma; lo que falle se reporta sin tumbar todo si se puede."
+          "Importar acepta un array JSON. Mira la vista previa y confirma; lo que falle se reporta sin tumbar todo si se puede."
         ]
       },
       "monitorDetailPage": {
         "title": "Detalle del monitor",
-        "summary": "Historial, gráficos, check ya, editar, borrar.",
+        "summary": "Historial, gráficos, comprobar ahora, editar, borrar.",
         "body": [
           "Desde Panel o la tabla abres el detalle: historial, tiempos, SSL si aplica.",
-          "Check ya fuerza un check fuera de turno. Editar/Borrar es solo de ese monitor.",
+          "Comprobar ahora fuerza una comprobación fuera de turno. Editar/Borrar es solo de ese monitor.",
           "Incidentes y resultados cuentan cuándo empezó y acabó el lío."
+        ]
+      },
+      "checkResultsAndIncidents": {
+        "title": "Resultados e incidentes",
+        "summary": "Cómo el historial explica cambios de estado.",
+        "body": [
+          "Los resultados muestran ejecuciones individuales, con estado, tiempo de respuesta y detalles de error cuando existen. Los incidentes agrupan periodos de caída y recuperación para entender cuándo empezó y terminó un problema.",
+          "La app confirma fallos antes de declarar un monitor caído, reduciendo ruido por cortes muy breves. La recuperación se registra cuando vuelven las comprobaciones exitosas."
+        ]
+      },
+      "emailAlerts": {
+        "title": "Alertas por correo",
+        "summary": "Notificaciones de caída y recuperación.",
+        "body": [
+          "Las alertas por correo mandan un mensaje cuando un monitor cambia de estado, por ejemplo cuando cae o recupera. Están pensadas como transiciones para no repetir mensajes por la misma caída.",
+          "Un monitor puede usar el correo de la cuenta o una dirección específica. La entrega también depende de la configuración SMTP de la instancia."
+        ]
+      },
+      "sslAlerts": {
+        "title": "Alertas de certificado SSL",
+        "summary": "Validez y vencimiento para monitores HTTPS.",
+        "body": [
+          "Cuando SSL está activado, los monitores HTTPS revisan validez y vencimiento del certificado en las ejecuciones normales.",
+          "Las alertas salen si el certificado deja de ser válido o quedan 30 días o menos, para que puedas renovarlo antes de afectar visitantes."
+        ]
+      },
+      "degradationAlerts": {
+        "title": "Alertas de lentitud",
+        "summary": "Avisos tempranos antes de que el servicio caiga del todo.",
+        "body": [
+          "Las alertas de lentitud aprenden el tiempo normal de un monitor después de suficientes comprobaciones exitosas. Si las comprobaciones recientes se mantienen mucho más lentas que esa base, la app puede mandar un aviso por ese episodio.",
+          "Estas alertas requieren correo. Sirven para APIs y páginas donde la latencia importa incluso antes de fallar."
+        ]
+      },
+      "maintenanceWindows": {
+        "title": "Ventanas de mantenimiento",
+        "summary": "Silenciar alertas durante trabajo planificado.",
+        "body": [
+          "Una ventana de mantenimiento marca caídas o despliegues planificados para un monitor. Mientras está activa, las alertas se silencian para que los fallos esperados no hagan ruido.",
+          "Usa la nota para registrar por qué existe la ventana, por ejemplo un despliegue o mantenimiento del proveedor."
+        ]
+      },
+      "downtimeAcknowledgement": {
+        "title": "Reconocer caída",
+        "summary": "Marcar un incidente como visto desde la app o el correo.",
+        "body": [
+          "Los controles de reconocimiento permiten marcar la caída actual de un monitor como vista. Los enlaces de reconocimiento por correo también pueden usarse cuando la instancia los incluye.",
+          "Reconocer ayuda a coordinar respuesta. No convierte un monitor fallido en sano; el monitor debe recuperarse con comprobaciones exitosas."
         ]
       },
       "activityFeed": {
@@ -604,21 +726,37 @@
           "Para nueva clave pides la actual. Si va bien, sigues dentro."
         ]
       },
+      "accountSecurity": {
+        "title": "Contraseña y seguridad",
+        "summary": "Cambiar tu contraseña de forma segura.",
+        "body": [
+          "Cambiar contraseña pide la contraseña actual y una nueva que cumpla los requisitos de la app. Si sale bien, sigues dentro.",
+          "Si sospechas que una contraseña o clave de API se expuso, cambia la contraseña y rota o revoca las claves afectadas desde la pestaña API."
+        ]
+      },
       "onboardingGuide": {
         "title": "Tour rápido",
         "summary": "Tour guiado vs esta ayuda.",
         "body": [
-          "Desde el menú de cuenta el tour te enseña la app en un overlay corto; lo puedes reabrir cuando quieras.",
+          "Desde el menú de cuenta el tour te enseña la app en una capa guiada corta; lo puedes reabrir cuando quieras.",
           "Esta ayuda es para buscar y leer cuando te atasques con algo."
         ]
       },
       "accountExportImport": {
         "title": "Exportar / importar cuenta",
-        "summary": "Backup gordo con monitores e historial opcional.",
+        "summary": "Copia de seguridad completa con monitores e historial opcional.",
         "body": [
-          "Desde Cuenta sacas JSON con perfil, monitores y si quieres historial de checks.",
-          "La import puede fusionar o pisar según lo que elijas; lee la pantalla antes de darle.",
-          "Historiales grandes hinchan el archivo; puedes exportar sin resultados si solo quieres config."
+          "Desde Cuenta sacas JSON con perfil, monitores y, si quieres, historial de comprobaciones.",
+          "La importación puede fusionar o reemplazar datos según lo que elijas; lee la pantalla antes de confirmar.",
+          "Los historiales grandes aumentan el tamaño del archivo; puedes exportar sin resultados si solo quieres configuración."
+        ]
+      },
+      "monitorExportImport": {
+        "title": "Exportar / importar solo monitores",
+        "summary": "Mover definiciones sin el resto de la cuenta.",
+        "body": [
+          "Exportar/importar monitores sirve para copiar comprobaciones entre cuentas o entornos sin mover todo el perfil y el historial.",
+          "Los monitores importados deben tener ajustes válidos para la instancia actual: destinos alcanzables, tipos soportados y correos de alerta que tengan sentido en destino."
         ]
       },
       "publicStatusPage": {
@@ -630,9 +768,43 @@
           "En Cuenta → Estado puedes poner título y subtítulo, el pie y qué monitores se ven."
         ]
       },
+      "statusPageCustomization": {
+        "title": "Personalizar la página de estado",
+        "summary": "Título, subtítulo, pie de página y visibilidad de monitores.",
+        "body": [
+          "En Cuenta -> Estado puedes definir título público, subtítulo, preferencia de pie de página y qué monitores se ven.",
+          "Necesitas un usuario antes de tener URL pública. Después de guardar, abre la página pública para confirmar que texto y lista de monitores quedan bien."
+        ]
+      },
+      "statusWidgetApi": {
+        "title": "API de widget de estado",
+        "summary": "Leer estado de monitores desde paneles externos.",
+        "body": [
+          "La API de widget/estado devuelve datos de estado para paneles externos e integraciones incrustadas. Úsala cuando otro sitio necesite un resumen legible por máquina.",
+          "Para acceso autenticado de widgets, crea una clave de API con el alcance status:read y configura orígenes permitidos para llamadas desde navegador."
+        ]
+      },
+      "apiKeys": {
+        "title": "Claves de API",
+        "summary": "Crear, rotar, revocar y usar tokens de la API de estado.",
+        "body": [
+          "La pestaña API de Cuenta permite crear claves de API para paneles externos y widgets. Las claves solo se muestran una vez al crear o rotar, así que copia el secreto al momento.",
+          "Manda la clave como token Bearer. Los parámetros opcionales pueden limitar la respuesta a un monitor o limitar cuántos monitores vuelven.",
+          "Rota una clave cuando necesites un secreto nuevo. Revoca las que no se usan, se expusieron o ya no hacen falta."
+        ]
+      },
+      "apiKeySecurity": {
+        "title": "Seguridad de claves de API y CORS",
+        "summary": "Alcances, orígenes, expiración y uso compartido cuidadoso.",
+        "body": [
+          "Las claves de API usan alcances. Las integraciones de estado deberían usar status:read para leer datos de estado sin más acceso a la cuenta.",
+          "Para widgets en navegador, agrega cada origen permitido a la clave. Sin origen permitido, el navegador bloquea la petición por CORS.",
+          "Usa fechas de expiración para integraciones temporales y evita subir tokens a repositorios o documentación pública."
+        ]
+      },
       "themeAndLanguage": {
         "title": "Tema e idioma",
-        "summary": "Claro, oscuro y locale.",
+        "summary": "Claro, oscuro e idioma.",
         "body": [
           "El tema va en la cabecera; el navegador se acuerda en este cacharro.",
           "El idioma lo pones en Cuenta y aplica a toda la app con sesión."
@@ -640,34 +812,34 @@
       },
       "pwaOffline": {
         "title": "Instalar, offline y refrescar",
-        "summary": "PWA.",
+        "summary": "Aplicación web progresiva.",
         "body": [
-          "Puedes instalar UPG Monitor como PWA si el browser deja.",
-          "Sin red puede salir una página offline hasta que vuelva. En móvil, pull-to-refresh recarga cuando vuelvas."
+          "Puedes instalar UPG Monitor como PWA si el navegador lo permite.",
+          "Sin red puede salir una página sin conexión hasta que vuelva. En móvil, tirar para refrescar recarga cuando vuelvas."
         ]
       },
       "adminOverview": {
-        "title": "Admin: vista general",
-        "summary": "Quién es admin y qué hay en Admin.",
+        "title": "Administración: vista general",
+        "summary": "Quién administra y qué hay en Administración.",
         "body": [
-          "Los admin ven el link Admin. Ahí se mira la instancia entera, no solo tus monitores.",
-          "El resumen trae stats: usuarios, monitores, volumen de checks."
+          "Los administradores ven el enlace Administración. Ahí se mira la instancia entera, no solo tus monitores.",
+          "El resumen trae estadísticas: usuarios, monitores y volumen de comprobaciones."
         ]
       },
       "adminUsers": {
         "title": "Usuarios (admin)",
-        "summary": "Lista y acciones de admin.",
+        "summary": "Lista y acciones de administración.",
         "body": [
-          "Los admin listan usuarios y hacen cosas según el server: roles, acceso, etc.",
+          "Los administradores listan usuarios y hacen acciones según el servidor: roles, acceso, etc.",
           "Con cuidado: tocas cuentas de otros."
         ]
       },
       "adminMonitorsAndSettings": {
-        "title": "Monitores y settings (admin)",
+        "title": "Monitores y ajustes (admin)",
         "summary": "Cosas a nivel instancia.",
         "body": [
-          "Los admin pueden tener vistas para revisar monitores y config global.",
-          "Depende de cómo esté montado el server; úsalo para cambios globales, no para lo de un usuario normal."
+          "Los administradores pueden tener vistas para revisar monitores y configuración global.",
+          "Depende de cómo esté montado el servidor; úsalo para cambios globales, no para lo de un usuario normal."
         ]
       }
     }
@@ -721,7 +893,7 @@
     "mockColMonitor": "Monitor",
     "mockColEvent": "Evento",
     "mockColWhen": "Cuándo",
-    "mockUptimeLabel": "Uptime",
+    "mockUptimeLabel": "Disponibilidad",
     "mockAvgLabel": "Resp. media",
     "mockIncidentsLabel": "Incidentes",
     "mockSslLabel": "SSL",
@@ -736,9 +908,9 @@
     "statusUp": "En línea",
     "statusDown": "Caído",
     "statusNoData": "Sin datos",
-    "nextCheckPaused": "Siguiente check: en pausa — nada programado",
-    "nextCheckPending": "Siguiente check: el primero cuando toque",
-    "nextCheckIn": "Siguiente check en {time}",
+    "nextCheckPaused": "Siguiente comprobación: en pausa — nada programado",
+    "nextCheckPending": "Siguiente comprobación: la primera cuando toque",
+    "nextCheckIn": "Siguiente comprobación en {time}",
     "checking": "Revisando…",
     "downtimeAckBadge": "Caída esperada",
     "downtimeAcknowledge": "Era planeado",
@@ -766,15 +938,15 @@
     "toastMonitorResumed": "Monitor reanudado",
     "toastMonitorUpdateFailed": "No pudimos guardar el monitor",
     "statUptime": "Disponibilidad",
-    "statChecks": "{n} checks",
+    "statChecks": "{n} comprobaciones",
     "statAvgResponse": "Resp. media",
-    "statLast50": "últimos 50 checks",
+    "statLast50": "últimas 50 comprobaciones",
     "statLatestResponse": "Última respuesta",
-    "statMostRecent": "check más reciente",
-    "statMostRecentInRange": "check más reciente en el rango",
+    "statMostRecent": "comprobación más reciente",
+    "statMostRecentInRange": "comprobación más reciente en el rango",
     "statIncidents": "Incidentes",
     "statNone": "Ninguno",
-    "statInLast50": "en los últimos 50 checks",
+    "statInLast50": "en las últimas 50 comprobaciones",
     "statInSelectedRange": "en el rango seleccionado",
     "statSsl": "SSL",
     "sslInvalid": "Inválido",
@@ -785,13 +957,13 @@
     "sslChecked": "verificado",
     "sslNotCheckedYet": "aún no verificado",
     "incidentsTitle": "Incidentes recientes",
-    "incidentsSubtitle": "Últimos checks mal",
+    "incidentsSubtitle": "Últimas comprobaciones con fallo",
     "historyTitle": "Historial",
     "historySubtitle": "Elige rango para ver los gráficos.",
-    "checkLogTitle": "Log de checks",
+    "checkLogTitle": "Registro de comprobaciones",
     "checkLogSubtitle": "Cada {n} min · mostrando {count} resultado",
     "checkLogSubtitlePlural": "Cada {n} min · mostrando {count} resultados",
-    "checkLogEmpty": "Todavía no hay checks. Aparecen cuando corre el cron.",
+    "checkLogEmpty": "Todavía no hay comprobaciones. Aparecen cuando corre el cron.",
     "colTime": "Hora",
     "colStatus": "Estado",
     "colCode": "Código",
@@ -815,31 +987,31 @@
     "chartUptimeLastHourOnly": "Solo última hora (los demás gráficos usan el rango elegido)",
     "chartUptimeAxisHourStart": "hace 1h",
     "chartUptimeAxisHourEnd": "Ahora",
-    "chartUptimeEmptyHour": "Sin checks en la última hora.",
+    "chartUptimeEmptyHour": "Sin comprobaciones en la última hora.",
     "chartUptimeGroupedHint": "Agrupado en segmentos de tiempo para que quepa en la tarjeta",
-    "chartUptimeStripTitleBucketOk": "{range} · {checks} checks · todo OK",
-    "chartUptimeStripTitleBucketAllDown": "{range} · {checks} checks · todo mal",
-    "chartUptimeStripTitleBucketMixed": "{range} · {checks} checks · {failures} mal, {ups} bien",
+    "chartUptimeStripTitleBucketOk": "{range} · {checks} comprobaciones · todo OK",
+    "chartUptimeStripTitleBucketAllDown": "{range} · {checks} comprobaciones · todo mal",
+    "chartUptimeStripTitleBucketMixed": "{range} · {checks} comprobaciones · {failures} mal, {ups} bien",
     "chartOlder": "Más antiguo",
     "chartNewer": "Más reciente",
     "chartResponseTrend": "Tendencia de respuesta",
     "chartResponseTrendSubAverages": "Promedio de tiempo de respuesta por ventana (suavizado).",
-    "chartResponseTrendSubFull": "Cada punto es un check.",
+    "chartResponseTrendSubFull": "Cada punto es una comprobación.",
     "chartDistribution": "Distribución del tiempo de respuesta",
-    "chartDistributionSub": "Solo checks OK",
+    "chartDistributionSub": "Solo comprobaciones OK",
     "chartTimeline": "Línea de tiempo",
     "chartTimelineSubAverages": "Un punto por ventana — latencia media si todo OK; rojo si hubo algún fallo.",
-    "chartTimelineSubFull": "Cada punto es un check — rojo = fallo.",
+    "chartTimelineSubFull": "Cada punto es una comprobación — rojo = fallo.",
     "chartBaseline": "Base vs reciente",
-    "chartBaselineSub": "P75 base (40 checks) vs media de las últimas 7",
+    "chartBaselineSub": "P75 base (40 comprobaciones) vs media de las últimas 7",
     "chartBaselineP75": "P75 base",
     "chartRecentAvg": "Promedio reciente (7 verif.)",
     "chartWithinBaseline": "Dentro de la base — {pct}% del P75",
     "chartAboveBaseline": "{ratio}× por encima de la base",
     "tooltipResponse": "Respuesta",
-    "tooltipBucketChecks": "{n} checks en esta ventana",
-    "tooltipCheck": "check",
-    "tooltipChecks": "checks"
+    "tooltipBucketChecks": "{n} comprobaciones en esta ventana",
+    "tooltipCheck": "comprobación",
+    "tooltipChecks": "comprobaciones"
   },
   "installBanner": {
     "title": "Añadir a inicio",

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Globe2, Network, Plug, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
@@ -13,14 +14,22 @@ import {
   isGlobalDegradationDeferHint,
 } from "@/lib/degradation-callout-dismiss";
 import { DNS_RECORD_TYPES } from "@/lib/validate-monitor";
+import { cn } from "@/lib/utils";
 
 const inputClass =
-  "h-9 w-full min-w-0 rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus";
+  "h-10 w-full min-w-0 rounded-lg border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 transition-[border-color,box-shadow,background-color] focus-visible:border-input-focus focus-visible:ring-2 focus-visible:ring-input-focus/20";
 
 const selectClass = inputClass;
 
 const labelClass = "mb-1.5 block text-sm font-medium text-text-primary";
 const hintClass = "mt-1.5 text-xs text-text-muted";
+const sectionClass = "rounded-xl border border-border bg-bg-card p-4";
+const sectionTitleClass = "text-sm font-semibold text-text-primary";
+const sectionHintClass = "mt-1 text-sm leading-5 text-text-muted";
+const checkboxRowClass =
+  "flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-bg-page px-3 py-3 transition-colors hover:bg-bg-elevated/60";
+
+type MonitorType = "http" | "keyword" | "dns" | "tcp";
 
 export function AddMonitorForm({
   onSuccess,
@@ -39,7 +48,7 @@ export function AddMonitorForm({
   const tMonitors = useTranslations("monitorsPage");
 
   // Monitor type
-  const [monitorType, setMonitorType] = useState<"http" | "keyword" | "dns" | "tcp">("http");
+  const [monitorType, setMonitorType] = useState<MonitorType>("http");
 
   // Common fields
   const [name, setName] = useState("");
@@ -87,7 +96,7 @@ export function AddMonitorForm({
     setShowDegradationDeferHint(isGlobalDegradationDeferHint());
   }, []);
 
-  function handleTypeChange(newType: "http" | "keyword" | "dns" | "tcp") {
+  function handleTypeChange(newType: MonitorType) {
     setMonitorType(newType);
     // Reset URL when switching to/from DNS to avoid confusion
     setUrl("");
@@ -201,204 +210,262 @@ export function AddMonitorForm({
   const isDns = monitorType === "dns";
   const isKeyword = monitorType === "keyword";
   const isTcp = monitorType === "tcp";
+  const monitorTypeOptions = [
+    {
+      value: "http" as const,
+      label: tMonitorTypes("httpName"),
+      description: tMonitorTypes("httpDescription"),
+      icon: Globe2,
+    },
+    {
+      value: "keyword" as const,
+      label: tMonitorTypes("keywordName"),
+      description: tMonitorTypes("keywordDescription"),
+      icon: Search,
+    },
+    {
+      value: "dns" as const,
+      label: tMonitorTypes("dnsName"),
+      description: tMonitorTypes("dnsDescription"),
+      icon: Network,
+    },
+    {
+      value: "tcp" as const,
+      label: tMonitorTypes("tcpName"),
+      description: tMonitorTypes("tcpDescription"),
+      icon: Plug,
+    },
+  ];
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {error && (
         <div
           role="alert"
-          className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400"
+          className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400"
         >
           {error}
         </div>
       )}
 
-      {/* Monitor type selector */}
-      <div>
-        <Label htmlFor="add-type" className={labelClass}>
-          {tMonitorTypes("typeLabel")}
-        </Label>
-        <select
-          id="add-type"
-          value={monitorType}
-          onChange={(e) => handleTypeChange(e.target.value as "http" | "keyword" | "dns" | "tcp")}
-          className={selectClass}
-        >
-          <option value="http">{tMonitorTypes("http")}</option>
-          <option value="keyword">{tMonitorTypes("keyword")}</option>
-          <option value="dns">{tMonitorTypes("dns")}</option>
-          <option value="tcp">{tMonitorTypes("tcp")}</option>
-        </select>
-      </div>
-
-      {/* Name */}
-      <div>
-        <Label htmlFor="add-name" className={labelClass}>
-          {tForm("name")}
-        </Label>
-        <Input
-          id="add-name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder={tForm("namePlaceholder")}
-          required
-          className={inputClass}
-        />
-      </div>
-
-      {/* URL / Hostname */}
-      <div>
-        <Label htmlFor="add-url" className={labelClass}>
-          {isDns || isTcp ? tMonitorTypes("hostnameLabel") : tForm("url")}
-        </Label>
-        <Input
-          id="add-url"
-          type={isDns || isTcp ? "text" : "url"}
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-          placeholder={isDns || isTcp ? tMonitorTypes("hostnamePlaceholder") : "https://example.com"}
-          required
-          className={inputClass}
-        />
-        <p className={hintClass}>
-          {isDns || isTcp
-            ? tMonitorTypes("hostnameHint")
-            : tForm("urlHint")}
-        </p>
-      </div>
-
-      {/* Check options */}
-      {isDns ? (
-        <div>
-          <Label htmlFor="add-interval" className={labelClass}>
-            {tForm("intervalMinutes")}
-          </Label>
-          <Input
-            id="add-interval"
-            type="number"
-            min={1}
-            max={60}
-            value={intervalMinutes}
-            onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
-            className={inputClass}
-          />
+      <section className={sectionClass}>
+        <div className="mb-4">
+          <p className={sectionTitleClass}>{tForm("basicsTitle")}</p>
+          <p className={sectionHintClass}>{tForm("basicsHint")}</p>
         </div>
-      ) : isTcp ? (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+
+        <fieldset>
+          <legend className={labelClass}>{tMonitorTypes("typeLabel")}</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {monitorTypeOptions.map((option) => {
+              const Icon = option.icon;
+              const selected = monitorType === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  onClick={() => handleTypeChange(option.value)}
+                  className={cn(
+                    "flex min-h-24 rounded-xl border p-3 text-left transition-[border-color,background-color,box-shadow,transform]",
+                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-input-focus/25",
+                    selected
+                      ? "border-primary bg-primary/10 shadow-sm"
+                      : "border-border bg-bg-page hover:border-border-muted hover:bg-bg-elevated/60"
+                  )}
+                  aria-pressed={selected}
+                >
+                  <span className="mr-3 mt-0.5 inline-flex size-9 shrink-0 items-center justify-center self-start rounded-full border border-border bg-bg-card text-text-muted">
+                    <Icon className="size-4" aria-hidden="true" />
+                  </span>
+                  <span>
+                    <span className="block text-sm font-semibold text-text-primary">
+                      {option.label}
+                    </span>
+                    <span className="mt-1 block text-xs leading-5 text-text-muted">
+                      {option.description}
+                    </span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
-            <Label htmlFor="add-interval" className={labelClass}>
-              {tForm("intervalMinutes")}
+            <Label htmlFor="add-name" className={labelClass}>
+              {tForm("name")}
             </Label>
             <Input
-              id="add-interval"
-              type="number"
-              min={1}
-              max={60}
-              value={intervalMinutes}
-              onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <Label htmlFor="add-timeout" className={labelClass}>
-              {tForm("timeoutSeconds")}
-            </Label>
-            <Input
-              id="add-timeout"
-              type="number"
-              min={5}
-              max={120}
-              value={timeoutSeconds}
-              onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <Label htmlFor="add-tcp-port" className={labelClass}>
-              {tForm("port")}
-            </Label>
-            <Input
-              id="add-tcp-port"
-              type="number"
-              min={1}
-              max={65535}
-              value={tcpPort}
-              onChange={(e) => setTcpPort(Number(e.target.value) || 443)}
-              className={inputClass}
-            />
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <div>
-            <Label htmlFor="add-interval" className={labelClass}>
-              {tForm("intervalMinutes")}
-            </Label>
-            <Input
-              id="add-interval"
-              type="number"
-              min={1}
-              max={60}
-              value={intervalMinutes}
-              onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <Label htmlFor="add-method" className={labelClass}>
-              {tForm("method")}
-            </Label>
-            <select
-              id="add-method"
-              value={isKeyword ? "GET" : method}
-              onChange={(e) => setMethod(e.target.value as "GET" | "HEAD" | "POST" | "PUT" | "PATCH")}
-              disabled={isKeyword}
-              className={selectClass}
-            >
-              <option value="GET">GET</option>
-              <option value="HEAD">HEAD</option>
-              <option value="POST">POST</option>
-              <option value="PUT">PUT</option>
-              <option value="PATCH">PATCH</option>
-            </select>
-            {isKeyword && (
-              <p className={hintClass}>{tMonitorTypes("methodLockedToGet")}</p>
-            )}
-          </div>
-          <div>
-            <Label htmlFor="add-timeout" className={labelClass}>
-              {tForm("timeoutSeconds")}
-            </Label>
-            <Input
-              id="add-timeout"
-              type="number"
-              min={5}
-              max={120}
-              value={timeoutSeconds}
-              onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <Label htmlFor="add-expectedCodes" className={labelClass}>
-              {tForm("statusCodes")}
-            </Label>
-            <Input
-              id="add-expectedCodes"
+              id="add-name"
               type="text"
-              value={expectedStatusCodes}
-              onChange={(e) => setExpectedStatusCodes(e.target.value)}
-              placeholder="200-299"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={tForm("namePlaceholder")}
+              required
               className={inputClass}
             />
           </div>
+
+          <div>
+            <Label htmlFor="add-url" className={labelClass}>
+              {isDns || isTcp ? tMonitorTypes("hostnameLabel") : tForm("url")}
+            </Label>
+            <Input
+              id="add-url"
+              type={isDns || isTcp ? "text" : "url"}
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder={isDns || isTcp ? tMonitorTypes("hostnamePlaceholder") : "https://example.com"}
+              required
+              className={inputClass}
+            />
+            <p className={hintClass}>
+              {isDns || isTcp
+                ? tMonitorTypes("hostnameHint")
+                : tForm("urlHint")}
+            </p>
+          </div>
         </div>
-      )}
+      </section>
+
+      <section className={sectionClass}>
+        <div className="mb-4">
+          <p className={sectionTitleClass}>{tForm("checkSettingsTitle")}</p>
+          <p className={sectionHintClass}>{tForm("checkSettingsHint")}</p>
+        </div>
+
+        {isDns ? (
+          <div>
+            <Label htmlFor="add-interval" className={labelClass}>
+              {tForm("intervalMinutes")}
+            </Label>
+            <Input
+              id="add-interval"
+              type="number"
+              min={1}
+              max={60}
+              value={intervalMinutes}
+              onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
+              className={inputClass}
+            />
+          </div>
+        ) : isTcp ? (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <div>
+              <Label htmlFor="add-interval" className={labelClass}>
+                {tForm("intervalMinutes")}
+              </Label>
+              <Input
+                id="add-interval"
+                type="number"
+                min={1}
+                max={60}
+                value={intervalMinutes}
+                onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <Label htmlFor="add-timeout" className={labelClass}>
+                {tForm("timeoutSeconds")}
+              </Label>
+              <Input
+                id="add-timeout"
+                type="number"
+                min={5}
+                max={120}
+                value={timeoutSeconds}
+                onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <Label htmlFor="add-tcp-port" className={labelClass}>
+                {tForm("port")}
+              </Label>
+              <Input
+                id="add-tcp-port"
+                type="number"
+                min={1}
+                max={65535}
+                value={tcpPort}
+                onChange={(e) => setTcpPort(Number(e.target.value) || 443)}
+                className={inputClass}
+              />
+            </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <Label htmlFor="add-interval" className={labelClass}>
+                {tForm("intervalMinutes")}
+              </Label>
+              <Input
+                id="add-interval"
+                type="number"
+                min={1}
+                max={60}
+                value={intervalMinutes}
+                onChange={(e) => setIntervalMinutes(Number(e.target.value) || 5)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <Label htmlFor="add-method" className={labelClass}>
+                {tForm("method")}
+              </Label>
+              <select
+                id="add-method"
+                value={isKeyword ? "GET" : method}
+                onChange={(e) => setMethod(e.target.value as "GET" | "HEAD" | "POST" | "PUT" | "PATCH")}
+                disabled={isKeyword}
+                className={selectClass}
+              >
+                <option value="GET">GET</option>
+                <option value="HEAD">HEAD</option>
+                <option value="POST">POST</option>
+                <option value="PUT">PUT</option>
+                <option value="PATCH">PATCH</option>
+              </select>
+              {isKeyword && (
+                <p className={hintClass}>{tMonitorTypes("methodLockedToGet")}</p>
+              )}
+            </div>
+            <div>
+              <Label htmlFor="add-timeout" className={labelClass}>
+                {tForm("timeoutSeconds")}
+              </Label>
+              <Input
+                id="add-timeout"
+                type="number"
+                min={5}
+                max={120}
+                value={timeoutSeconds}
+                onChange={(e) => setTimeoutSeconds(Number(e.target.value) || 15)}
+                className={inputClass}
+              />
+            </div>
+            <div>
+              <Label htmlFor="add-expectedCodes" className={labelClass}>
+                {tForm("statusCodes")}
+              </Label>
+              <Input
+                id="add-expectedCodes"
+                type="text"
+                value={expectedStatusCodes}
+                onChange={(e) => setExpectedStatusCodes(e.target.value)}
+                placeholder="200-299"
+                className={inputClass}
+              />
+            </div>
+          </div>
+        )}
+      </section>
 
       {monitorType === "http" && (
-        <details className="rounded-md border border-border bg-bg-page px-3 py-2">
-          <summary className="cursor-pointer text-sm font-medium text-text-primary">
+        <details className="rounded-xl border border-border bg-bg-card px-4 py-3">
+          <summary className="cursor-pointer text-sm font-semibold text-text-primary">
             {tForm("advancedRequestSettings")}
           </summary>
           <div className="mt-3 grid gap-3">
@@ -477,8 +544,8 @@ export function AddMonitorForm({
 
       {/* Keyword section */}
       {isKeyword && (
-        <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">{tMonitorTypes("keywordSectionTitle")}</p>
+        <section className={sectionClass}>
+          <p className={sectionTitleClass}>{tMonitorTypes("keywordSectionTitle")}</p>
           <div>
             <Label htmlFor="add-keyword" className={labelClass}>
               {tMonitorTypes("keywordLabel")}
@@ -516,13 +583,13 @@ export function AddMonitorForm({
               <span className="text-sm text-text-primary">{tMonitorTypes("keywordShouldNotContain")}</span>
             </label>
           </div>
-        </div>
+        </section>
       )}
 
       {/* DNS section */}
       {isDns && (
-        <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">{tMonitorTypes("dnsSectionTitle")}</p>
+        <section className={sectionClass}>
+          <p className={sectionTitleClass}>{tMonitorTypes("dnsSectionTitle")}</p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <Label htmlFor="add-dns-record-type" className={labelClass}>
@@ -569,20 +636,21 @@ export function AddMonitorForm({
               </p>
             </div>
           </div>
-        </div>
+        </section>
       )}
 
       {/* Notifications */}
-      <div className="border-t border-border pt-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("notifications")}</p>
-        <label className="flex cursor-pointer items-center gap-2.5">
+      <section className={sectionClass}>
+        <p className={sectionTitleClass}>{tForm("notifications")}</p>
+        <p className={sectionHintClass}>{tForm("notificationsHint")}</p>
+        <label className={cn(checkboxRowClass, "mt-3")}>
           <input
             type="checkbox"
             checked={alertEmail}
             onChange={(e) => setAlertEmail(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="mt-0.5 h-4 w-4 rounded border-input-border accent-accent"
           />
-          <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
+          <span className="text-sm font-medium text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
         {alertEmail && (
           <div className="mt-3">
@@ -609,15 +677,15 @@ export function AddMonitorForm({
         )}
         {!isDns && !isTcp && (
           <div className="mt-3">
-            <label className={`flex items-center gap-2.5 ${alertEmail ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
+            <label className={cn(checkboxRowClass, alertEmail ? "" : "cursor-not-allowed opacity-50")}>
               <input
                 type="checkbox"
                 checked={degradationAlertEnabled}
                 onChange={(e) => setDegradationAlertEnabled(e.target.checked)}
                 disabled={!alertEmail}
-                className="h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
+                className="mt-0.5 h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
               />
-              <span className="text-sm text-text-primary">{tForm("slowResponseAlerts")}</span>
+              <span className="text-sm font-medium text-text-primary">{tForm("slowResponseAlerts")}</span>
             </label>
             {degradationAlertEnabled && alertEmail && (
               <p className={hintClass}>
@@ -629,31 +697,34 @@ export function AddMonitorForm({
             )}
           </div>
         )}
-      </div>
+      </section>
 
       {/* SSL monitoring — only for HTTP/keyword HTTPS */}
       {!isDns && !isTcp && url.startsWith("https://") && (
-        <div className="border-t border-border pt-4">
-          <p className="mb-3 text-sm font-medium text-text-primary">{tForm("sslMonitoring")}</p>
-          <label className="flex cursor-pointer items-center gap-2.5">
+        <section className={sectionClass}>
+          <p className={sectionTitleClass}>{tForm("sslMonitoring")}</p>
+          <label className={cn(checkboxRowClass, "mt-3")}>
             <input
               type="checkbox"
               checked={sslMonitoring}
               onChange={(e) => setSslMonitoring(e.target.checked)}
-              className="h-4 w-4 rounded border-input-border accent-accent"
+              className="mt-0.5 h-4 w-4 rounded border-input-border accent-accent"
             />
-            <span className="text-sm text-text-primary">{tForm("monitorSslCertificate")}</span>
+            <span className="text-sm font-medium text-text-primary">{tForm("monitorSslCertificate")}</span>
           </label>
           {sslMonitoring && (
             <p className="mt-2 text-xs text-text-muted">
               {tForm("sslMonitoringHint")}
             </p>
           )}
-        </div>
+        </section>
       )}
 
-      <div className="border-t border-border pt-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("maintenanceWindow")}</p>
+      <details className="rounded-xl border border-border bg-bg-card px-4 py-3">
+        <summary className="cursor-pointer text-sm font-semibold text-text-primary">
+          {tForm("maintenanceWindow")}
+        </summary>
+        <p className={sectionHintClass}>{tForm("maintenanceWindowHint")}</p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <Label htmlFor="add-maintenance-start" className={labelClass}>
@@ -694,27 +765,27 @@ export function AddMonitorForm({
           />
           <p className={hintClass}>{tForm("maintenanceSuppressesAlerts")}</p>
         </div>
-      </div>
+      </details>
 
       {/* Status page */}
-      <div className="border-t border-border pt-4">
-        <p className="mb-3 text-sm font-medium text-text-primary">{tForm("statusPage")}</p>
-        <label className="flex cursor-pointer items-center gap-2.5">
+      <section className={sectionClass}>
+        <p className={sectionTitleClass}>{tForm("statusPage")}</p>
+        <label className={cn(checkboxRowClass, "mt-3")}>
           <input
             type="checkbox"
             checked={showOnStatusPage}
             onChange={(e) => setShowOnStatusPage(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="mt-0.5 h-4 w-4 rounded border-input-border accent-accent"
           />
-          <span className="text-sm text-text-primary">{tForm("showOnPublicStatusPage")}</span>
+          <span className="text-sm font-medium text-text-primary">{tForm("showOnPublicStatusPage")}</span>
         </label>
         <p className="mt-2 text-xs text-text-muted">
           {tForm("statusPageHint")}{" "}
           <span className="font-mono">/status/[your-username]</span>
         </p>
-      </div>
+      </section>
 
-      <div className="flex flex-wrap items-center justify-end gap-2 border-t border-border pt-4">
+      <div className="sticky -bottom-6 -mx-6 flex flex-wrap items-center justify-end gap-2 border-t border-border bg-bg-card/95 px-6 py-4 backdrop-blur">
         {onBack && (
           <Button
             type="button"
