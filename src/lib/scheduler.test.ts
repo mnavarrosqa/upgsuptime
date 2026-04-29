@@ -58,4 +58,49 @@ describe("scheduler", () => {
       maintenanceActive: true,
     });
   });
+
+  it("continues running due monitors when one check fails", async () => {
+    const firstMonitor = {
+      id: "monitor-1",
+      userId: "user-1",
+      paused: false,
+      intervalMinutes: 5,
+      lastCheckAt: null,
+    };
+    const secondMonitor = {
+      id: "monitor-2",
+      userId: "user-2",
+      paused: false,
+      intervalMinutes: 5,
+      lastCheckAt: null,
+    };
+    mocks.queryResults.push(
+      [firstMonitor, secondMonitor],
+      [
+        { id: "user-1", email: "first@example.com" },
+        { id: "user-2", email: "second@example.com" },
+      ]
+    );
+    mocks.runCheck
+      .mockRejectedValueOnce(new Error("network failed"))
+      .mockResolvedValueOnce(undefined);
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { runDueChecks } = await import("@/lib/scheduler");
+
+    await expect(runDueChecks()).resolves.toEqual({ ran: 1 });
+    expect(mocks.runCheck).toHaveBeenCalledTimes(2);
+    expect(mocks.runCheck).toHaveBeenNthCalledWith(1, firstMonitor, "first@example.com", {
+      maintenanceActive: false,
+    });
+    expect(mocks.runCheck).toHaveBeenNthCalledWith(2, secondMonitor, "second@example.com", {
+      maintenanceActive: false,
+    });
+    expect(consoleError).toHaveBeenCalledWith(
+      "[scheduler] check failed for monitor",
+      "monitor-1",
+      expect.any(Error)
+    );
+
+    consoleError.mockRestore();
+  });
 });

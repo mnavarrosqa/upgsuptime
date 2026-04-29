@@ -154,7 +154,7 @@ export function StatusPageSettingsForm({
               checked={showPoweredBy}
               onChange={(e) => setShowPoweredBy(e.target.checked)}
               disabled={saving}
-              className="mt-0.5 h-4 w-4 shrink-0 rounded border-input-border accent-accent"
+              className="ui-checkbox mt-0.5"
             />
             <span className="text-sm leading-snug text-text-primary">
               {tAccount("statusPageShowPoweredBy")}

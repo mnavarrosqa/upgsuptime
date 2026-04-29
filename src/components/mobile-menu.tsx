@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useId, useCallback } from "react";
 import { Menu, X, Sun, Moon, User, LogOut, CircleHelp, Globe } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -34,6 +34,9 @@ export function MobileMenu({
   const t = useTranslations("nav");
   const tLocale = useTranslations("locale");
   const ref = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const menuId = useId();
 
   useEffect(() => {
     setMounted(true);
@@ -44,6 +47,13 @@ export function MobileMenu({
     setDark(isDark);
   }, []);
 
+  const closeMenu = useCallback(({ restoreFocus = false }: { restoreFocus?: boolean } = {}) => {
+    setOpen(false);
+    if (restoreFocus) {
+      requestAnimationFrame(() => buttonRef.current?.focus());
+    }
+  }, []);
+
   // Close on navigation
   useEffect(() => {
     setOpen(false);
@@ -52,18 +62,46 @@ export function MobileMenu({
   useEffect(() => {
     if (!open) return;
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeMenu({ restoreFocus: true });
+        return;
+      }
+      if (e.key !== "Tab" || !menuRef.current) return;
+
+      const focusable = Array.from(
+        menuRef.current.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (focusable.length === 0) return;
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
     }
     function onClickOutside(e: PointerEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+      if (ref.current && !ref.current.contains(e.target as Node)) closeMenu();
     }
     document.addEventListener("keydown", onKey);
     document.addEventListener("pointerdown", onClickOutside);
+    requestAnimationFrame(() => {
+      const firstItem = menuRef.current?.querySelector<HTMLElement>(
+        'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      firstItem?.focus();
+    });
     return () => {
       document.removeEventListener("keydown", onKey);
       document.removeEventListener("pointerdown", onClickOutside);
     };
-  }, [open]);
+  }, [closeMenu, open]);
 
   async function switchLanguage() {
     const next = locale === "en" ? "es" : "en";
@@ -90,6 +128,7 @@ export function MobileMenu({
   return (
     <div ref={ref} className="relative">
       <Button
+        ref={buttonRef}
         type="button"
         variant="ghost"
         size="icon-sm"
@@ -97,6 +136,8 @@ export function MobileMenu({
         className="h-11 w-11 rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
         aria-label={open ? t("closeMenu") : t("openMenu")}
         aria-expanded={open}
+        aria-controls={menuId}
+        aria-haspopup="menu"
       >
         {open ? (
           <X className="h-5 w-5" aria-hidden />
@@ -107,6 +148,8 @@ export function MobileMenu({
 
       {open && (
         <div
+          id={menuId}
+          ref={menuRef}
           className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-bg-card py-1 shadow-lg"
           role="menu"
           aria-label={t("navMenu")}
@@ -134,7 +177,7 @@ export function MobileMenu({
                 href={href}
                 role="menuitem"
                 aria-current={active ? "page" : undefined}
-                onClick={() => setOpen(false)}
+                onClick={() => closeMenu()}
                 className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
                   active
                     ? "font-medium text-text-primary"
@@ -156,7 +199,7 @@ export function MobileMenu({
               href="/admin"
               role="menuitem"
               aria-current={isAdminNavActive(pathname) ? "page" : undefined}
-              onClick={() => setOpen(false)}
+              onClick={() => closeMenu()}
               className={`flex items-center px-3 py-2 text-sm transition-colors ${
                 isAdminNavActive(pathname)
                   ? "font-medium text-text-primary"
@@ -174,6 +217,7 @@ export function MobileMenu({
             <Button
               type="button"
               variant="ghost"
+              role="menuitem"
               onClick={toggleTheme}
               className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
             >
@@ -190,6 +234,7 @@ export function MobileMenu({
           <Button
             type="button"
             variant="ghost"
+            role="menuitem"
             onClick={switchLanguage}
             disabled={switchingLocale}
             className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
@@ -202,7 +247,7 @@ export function MobileMenu({
           <Link
             href="/account"
             role="menuitem"
-            onClick={() => setOpen(false)}
+            onClick={() => closeMenu()}
             className="flex items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
           >
             <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
@@ -211,7 +256,7 @@ export function MobileMenu({
           <Link
             href="/help"
             role="menuitem"
-            onClick={() => setOpen(false)}
+            onClick={() => closeMenu()}
             className="flex items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
           >
             <CircleHelp className="h-3.5 w-3.5 shrink-0" aria-hidden />

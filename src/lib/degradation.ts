@@ -1,8 +1,9 @@
 import { db } from "@/db";
-import { checkResult } from "@/db/schema";
+import { checkResult, degradationAlertEvent } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import type { Monitor } from "@/db/schema";
 import {
+  DEGRADATION_ALERT_COOLDOWN_MINUTES as ALERT_COOLDOWN_MINUTES,
   DEGRADATION_BASELINE_MIN_SAMPLES as BASELINE_MIN_SAMPLES,
   DEGRADATION_BASELINE_WINDOW as BASELINE_WINDOW,
   DEGRADATION_CLEAR_RATIO,
@@ -90,8 +91,20 @@ export async function evaluateDegradation(
   const isDegraded = recentAvgMs >= enterThresholdMs;
   const newConsecutive = isDegraded ? (m.consecutiveDegradedChecks ?? 0) + 1 : 0;
 
-  const shouldAlert =
-    newConsecutive >= CONFIRM_COUNT && m.degradingAlertSentAt === null;
+  let shouldAlert = newConsecutive >= CONFIRM_COUNT && m.degradingAlertSentAt === null;
+  if (shouldAlert && ALERT_COOLDOWN_MINUTES > 0) {
+    const latestEvent = await db
+      .select({ createdAt: degradationAlertEvent.createdAt })
+      .from(degradationAlertEvent)
+      .where(eq(degradationAlertEvent.monitorId, m.id))
+      .orderBy(desc(degradationAlertEvent.createdAt))
+      .limit(1);
+    const latestCreatedAt = latestEvent[0]?.createdAt;
+    if (latestCreatedAt) {
+      const elapsedMs = Date.now() - latestCreatedAt.getTime();
+      shouldAlert = elapsedMs >= ALERT_COOLDOWN_MINUTES * 60 * 1000;
+    }
+  }
 
   const clearDegradingAlertSentAt =
     recentAvgMs < DEGRADATION_CLEAR_RATIO * newP75 &&

@@ -13,19 +13,27 @@ type AddMode = "single" | "bulk";
 export function AddMonitorFlow({
   onSuccess,
   onCancel,
+  onDirtyChange,
 }: {
   onSuccess?: () => void;
   onCancel?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [mode, setMode] = useState<AddMode | null>(null);
   const t = useTranslations("addMonitorFlow");
+
+  function handleBack() {
+    onDirtyChange?.(false);
+    setMode(null);
+  }
 
   if (mode === "single") {
     return (
       <AddMonitorForm
         onSuccess={onSuccess}
         onCancel={onCancel}
-        onBack={() => setMode(null)}
+        onBack={handleBack}
+        onDirtyChange={onDirtyChange}
       />
     );
   }
@@ -35,7 +43,8 @@ export function AddMonitorFlow({
       <AddBulkMonitorsForm
         onSuccess={onSuccess}
         onCancel={onCancel}
-        onBack={() => setMode(null)}
+        onBack={handleBack}
+        onDirtyChange={onDirtyChange}
       />
     );
   }

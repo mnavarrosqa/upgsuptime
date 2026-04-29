@@ -13,3 +13,5 @@ export const DEGRADATION_CLEAR_RATIO = 1.75;
 export const DEGRADATION_CONFIRM_COUNT = 5;
 /** Recent avg must be at least this many ms to count as degraded (avoids noisy ratio spikes on very fast endpoints). */
 export const DEGRADATION_MIN_RECENT_MS = 450;
+/** Minimum time between degradation emails for the same monitor. */
+export const DEGRADATION_ALERT_COOLDOWN_MINUTES = 720;

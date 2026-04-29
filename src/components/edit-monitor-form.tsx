@@ -432,7 +432,7 @@ export function EditMonitorForm({
                   type="checkbox"
                   checked={followRedirects}
                   onChange={(e) => setFollowRedirects(e.target.checked)}
-                  className="h-4 w-4 rounded border-input-border accent-accent"
+                  className="ui-checkbox"
                 />
                 <span className="text-sm text-text-primary">{tForm("followRedirects")}</span>
               </label>
@@ -559,7 +559,7 @@ export function EditMonitorForm({
             type="checkbox"
             checked={alertEmail}
             onChange={(e) => setAlertEmail(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
@@ -594,7 +594,7 @@ export function EditMonitorForm({
                 checked={degradationAlertEnabled}
                 onChange={(e) => setDegradationAlertEnabled(e.target.checked)}
                 disabled={!alertEmail}
-                className="h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
+                className="ui-checkbox"
               />
               <span className="text-sm text-text-primary">{tForm("slowResponseAlerts")}</span>
             </label>
@@ -619,7 +619,7 @@ export function EditMonitorForm({
               type="checkbox"
               checked={sslMonitoring}
               onChange={(e) => setSslMonitoring(e.target.checked)}
-              className="h-4 w-4 rounded border-input-border accent-accent"
+              className="ui-checkbox"
             />
             <span className="text-sm text-text-primary">{tForm("monitorSslCertificate")}</span>
           </label>
@@ -683,7 +683,7 @@ export function EditMonitorForm({
             type="checkbox"
             checked={showOnStatusPage}
             onChange={(e) => setShowOnStatusPage(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">{tForm("showOnPublicStatusPage")}</span>
         </label>

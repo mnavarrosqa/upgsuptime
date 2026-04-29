@@ -337,6 +337,10 @@ export function UptimeTrendCharts({
 }) {
   const t = useTranslations("monitorDetail");
   const gradientId = useId().replace(/:/g, "");
+  const summaryId = `${gradientId}-summary`;
+  const responseTrendId = `${gradientId}-response-trend`;
+  const distributionId = `${gradientId}-distribution`;
+  const timelineId = `${gradientId}-timeline`;
 
   if (results.length === 0) {
     return (
@@ -354,6 +358,19 @@ export function UptimeTrendCharts({
   const uptimeStripIsDense = uptimeHourChronological.length > UPTIME_STRIP_MAX_BUCKETS;
   const uptimeHourUp = uptimeHourChronological.filter((r) => r.ok).length;
   const uptimeHourDown = uptimeHourChronological.length - uptimeHourUp;
+  const selectedRangeUp = chronological.filter((r) => r.ok).length;
+  const selectedRangeDown = chronological.length - selectedRangeUp;
+  const responseTimes = chronological
+    .filter((r) => r.ok && r.responseTimeMs != null)
+    .map((r) => r.responseTimeMs as number);
+  const responseAverageMs =
+    responseTimes.length > 0
+      ? Math.round(responseTimes.reduce((sum, ms) => sum + ms, 0) / responseTimes.length)
+      : null;
+  const fastestResponseMs = responseTimes.length > 0 ? Math.min(...responseTimes) : null;
+  const slowestResponseMs = responseTimes.length > 0 ? Math.max(...responseTimes) : null;
+  const rangeStartLabel = formatAxisTime(chronological[0].createdAt);
+  const rangeEndLabel = formatAxisTime(chronological[chronological.length - 1].createdAt);
 
   // ── histogram buckets (successful checks only) ───────────────────────────
   const histBuckets = (() => {
@@ -426,6 +443,51 @@ export function UptimeTrendCharts({
 
   return (
     <div className="mt-4 min-w-0 space-y-8">
+      <section id={summaryId} className="sr-only" aria-label={t("chartSummaryTitle")}>
+        <h3>{t("chartSummaryTitle")}</h3>
+        <p>
+          {t("chartSummaryRange", {
+            total: chronological.length,
+            from: rangeStartLabel,
+            to: rangeEndLabel,
+          })}
+        </p>
+        <p>
+          {t("chartSummaryUptime", {
+            up: selectedRangeUp,
+            down: selectedRangeDown,
+          })}
+        </p>
+        <p>
+          {t("chartSummaryLastHour", {
+            up: uptimeHourUp,
+            down: uptimeHourDown,
+          })}
+        </p>
+        {responseAverageMs == null || fastestResponseMs == null || slowestResponseMs == null ? (
+          <p>{t("chartSummaryNoResponse")}</p>
+        ) : (
+          <p>
+            {t("chartSummaryResponse", {
+              avg: responseAverageMs,
+              fastest: fastestResponseMs,
+              slowest: slowestResponseMs,
+            })}
+          </p>
+        )}
+        {hasHistData && (
+          <ul>
+            {histBuckets.map((bucket) => (
+              <li key={bucket.range}>
+                {t("chartSummaryDistribution", {
+                  range: bucket.range,
+                  count: bucket.count,
+                })}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       {/* ── 1. Uptime bar — last hour only (full range used for charts below) ─ */}
       <div>
@@ -535,7 +597,15 @@ export function UptimeTrendCharts({
         <p className="mt-0.5 text-[10px] text-text-muted">
           {detailMode === "averages" ? t("chartResponseTrendSubAverages") : t("chartResponseTrendSubFull")}
         </p>
-        <div className="mt-2 h-[160px] w-full">
+        <div
+          className="mt-2 h-[160px] w-full"
+          role="img"
+          aria-label={t("chartResponseTrend")}
+          aria-describedby={`${summaryId} ${responseTrendId}`}
+        >
+          <p id={responseTrendId} className="sr-only">
+            {detailMode === "averages" ? t("chartResponseTrendSubAverages") : t("chartResponseTrendSubFull")}
+          </p>
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart
               data={trendSeries}
@@ -593,7 +663,15 @@ export function UptimeTrendCharts({
             {t("chartDistribution")}
           </p>
           <p className="mt-0.5 text-[10px] text-text-muted">{t("chartDistributionSub")}</p>
-          <div className="mt-2 h-[140px] w-full">
+          <div
+            className="mt-2 h-[140px] w-full"
+            role="img"
+            aria-label={t("chartDistribution")}
+            aria-describedby={`${summaryId} ${distributionId}`}
+          >
+            <p id={distributionId} className="sr-only">
+              {t("chartDistributionSub")}
+            </p>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart
                 data={histBuckets}
@@ -643,7 +721,15 @@ export function UptimeTrendCharts({
           <p className="mt-0.5 text-[10px] text-text-muted">
             {detailMode === "averages" ? t("chartTimelineSubAverages") : t("chartTimelineSubFull")}
           </p>
-          <div className="mt-2 h-[160px] w-full">
+          <div
+            className="mt-2 h-[160px] w-full"
+            role="img"
+            aria-label={t("chartTimeline")}
+            aria-describedby={`${summaryId} ${timelineId}`}
+          >
+            <p id={timelineId} className="sr-only">
+              {detailMode === "averages" ? t("chartTimelineSubAverages") : t("chartTimelineSubFull")}
+            </p>
             <ResponsiveContainer width="100%" height="100%">
               <ScatterChart margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" vertical={false} />

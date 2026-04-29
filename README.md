@@ -26,9 +26,10 @@ npm install && npm run db:push && npm run build && npm run start
 - App listens on **3077** — terminate HTTPS at your reverse proxy (Nginx, Caddy, …).
 - Cron (every 1–5 min): `curl -H "x-cron-secret: YOUR_CRON_SECRET" "https://your-domain/api/cron/run-checks"`
 - After `git pull`: `npm run db:push` and restart the process if the schema changed.
-- Pick one scheduler owner per environment: either the in-process scheduler or an external cron hitting `/api/cron/run-checks`. Running both is safe enough for small installs but wastes work under concurrency.
+- Pick one scheduler owner per environment: either the in-process scheduler from `src/instrumentation.ts` or an external cron hitting `/api/cron/run-checks`. The in-process scheduler prevents overlapping runs only within the same Node process; multiple app replicas can still tick at the same time unless only one replica owns scheduling.
+- For horizontally scaled deployments, prefer an external cron/worker or run exactly one scheduler-enabled app instance. All other web instances should serve requests only.
 - Login/API rate limits are in-memory and per Node process. For multi-instance deployments, put rate limiting at the proxy/load balancer or move buckets to a shared store.
-- The production CSP is intentionally compatible with Next.js defaults. If you need a stricter policy, plan a nonce-based CSP pass before removing inline/eval allowances.
+- The production CSP keeps inline script/style allowances for Next.js compatibility, but does not allow `unsafe-eval`. If you need a stricter policy, plan a nonce-based CSP pass before removing inline allowances.
 
 ---
 

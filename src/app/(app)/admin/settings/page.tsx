@@ -19,16 +19,26 @@ export default async function AdminSettingsPage() {
     .where(eq(settings.key, "registrationEnabled"));
 
   const registrationEnabled = row ? row.value !== "false" : true;
-  const smtpConfigured = !!process.env.SMTP_HOST;
   const smtpVarsSet = SMTP_VARS.reduce<Record<string, boolean>>((acc, v) => {
     acc[v] = !!process.env[v];
     return acc;
   }, {});
+  const smtpConfigured = Object.values(smtpVarsSet).every(Boolean);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Admin</h1>
+    <div className="space-y-7">
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+          Configuration
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+            <p className="mt-1 max-w-2xl text-sm text-text-muted">
+              Control sign-ups and verify deployment-level notification settings.
+            </p>
+          </div>
+        </div>
       </div>
       <AdminSubNav />
       <AdminSettingsClient

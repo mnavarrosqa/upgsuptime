@@ -319,6 +319,16 @@ body {
   }
 }
 
+@layer components {
+  .ui-checkbox {
+    @apply h-4 w-4 shrink-0 rounded-[0.3rem] border border-input-border bg-bg-card accent-accent shadow-sm transition-[box-shadow,border-color,background-color,transform] duration-150 hover:border-border-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-2 focus-visible:ring-offset-bg-card disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .ui-checkbox:active:not(:disabled) {
+    transform: scale(0.96);
+  }
+}
+
 @layer utilities {
   .motion-enter {
     animation: var(--animate-fade-slide-up);

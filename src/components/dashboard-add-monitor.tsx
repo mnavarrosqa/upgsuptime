@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Overlay } from "@/components/overlay";
 import { AddMonitorFlow } from "@/components/add-monitor-flow";
 import { Button } from "@/components/ui/button";
@@ -11,9 +12,25 @@ export function DashboardAddMonitor() {
   const router = useRouter();
   const t = useTranslations("monitorsPage");
   const [addOpen, setAddOpen] = useState(false);
+  const [addFormDirty, setAddFormDirty] = useState(false);
+  const [confirmCloseOpen, setConfirmCloseOpen] = useState(false);
+
+  function closeAddOverlay() {
+    setAddFormDirty(false);
+    setConfirmCloseOpen(false);
+    setAddOpen(false);
+  }
+
+  function handleAddCloseRequest() {
+    if (addFormDirty) {
+      setConfirmCloseOpen(true);
+      return;
+    }
+    closeAddOverlay();
+  }
 
   function handleSuccess() {
-    setAddOpen(false);
+    closeAddOverlay();
     router.refresh();
   }
 
@@ -29,12 +46,25 @@ export function DashboardAddMonitor() {
       </Button>
       <Overlay
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={handleAddCloseRequest}
         title={t("addMonitorTitle")}
         panelClassName="max-w-2xl"
       >
-        <AddMonitorFlow onSuccess={handleSuccess} onCancel={() => setAddOpen(false)} />
+        <AddMonitorFlow
+          onSuccess={handleSuccess}
+          onCancel={closeAddOverlay}
+          onDirtyChange={setAddFormDirty}
+        />
       </Overlay>
+      <ConfirmDialog
+        open={confirmCloseOpen}
+        title={t("unsavedAddMonitorTitle")}
+        message={t("unsavedAddMonitorMessage")}
+        confirmLabel={t("leaveForm")}
+        destructive
+        onConfirm={closeAddOverlay}
+        onCancel={() => setConfirmCloseOpen(false)}
+      />
     </>
   );
 }

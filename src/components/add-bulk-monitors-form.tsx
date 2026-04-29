@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useId, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
@@ -50,10 +50,12 @@ export function AddBulkMonitorsForm({
   onSuccess,
   onCancel,
   onBack,
+  onDirtyChange,
 }: {
   onSuccess?: () => void;
   onCancel?: () => void;
   onBack?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const router = useRouter();
   const fileInputId = useId();
@@ -72,6 +74,22 @@ export function AddBulkMonitorsForm({
   const [showOnStatusPage, setShowOnStatusPage] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const isDirty =
+    rows.length > 0 ||
+    pasteText.trim().length > 0 ||
+    intervalMinutes !== 5 ||
+    timeoutSeconds !== 15 ||
+    method !== "GET" ||
+    expectedStatusCodes !== "200-299" ||
+    alertEmail ||
+    alertEmailTo.trim().length > 0 ||
+    sslMonitoring ||
+    showOnStatusPage !== true;
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   function downloadTextFile(filename: string, content: string, mime: string) {
     const blob = new Blob([content], { type: mime });
@@ -536,7 +554,7 @@ export function AddBulkMonitorsForm({
             type="checkbox"
             checked={alertEmail}
             onChange={(e) => setAlertEmail(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">Send email alerts</span>
         </label>
@@ -569,7 +587,7 @@ export function AddBulkMonitorsForm({
             type="checkbox"
             checked={sslMonitoring}
             onChange={(e) => setSslMonitoring(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">
             Monitor SSL certificate
@@ -589,7 +607,7 @@ export function AddBulkMonitorsForm({
             type="checkbox"
             checked={showOnStatusPage}
             onChange={(e) => setShowOnStatusPage(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">
             Show on public status page

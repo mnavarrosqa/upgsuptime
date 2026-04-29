@@ -1,16 +1,13 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import {
   Activity,
   CheckCircle2,
   Layers,
-  MoreHorizontal,
   XCircle,
 } from "lucide-react";
 import type { Monitor } from "@/db/schema";
@@ -23,14 +20,9 @@ import {
   SearchWithTypeahead,
   filterMonitorsBySearch,
 } from "@/components/search-with-typeahead";
-import { MonitorStatusBadge } from "@/components/monitor-status-badge";
-import { SslBadge } from "@/components/ssl-badge";
-import { SortableTableHeader } from "@/components/sortable-table-header";
 import { sortMonitors, type LatestByMonitor } from "@/lib/sort-monitors";
-import { isDowntimeAcked } from "@/lib/downtime-ack";
-import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
 import { Button } from "@/components/ui/button";
-import { MonitorFavicon } from "@/components/monitor-favicon";
+import { MonitorsListView } from "@/components/monitors-list-view";
 import { cn } from "@/lib/utils";
 
 type MonitorConfig = {
@@ -46,142 +38,15 @@ type MonitorConfig = {
   showOnStatusPage?: boolean;
 };
 
-function getFaviconUrl(url: string): string {
-  try {
-    const host = new URL(url).hostname;
-    return `/api/favicon?domain=${host}`;
-  } catch {
-    return "";
-  }
-}
-
 type DeleteConfirmState =
   | { kind: "single"; id: string; name: string }
   | { kind: "bulk"; ids: string[] };
 
-function formatLastChecked(
-  date: Date | null,
-  tTime: (key: string, values?: Record<string, number>) => string
-): string {
-  if (!date) return tTime("never");
-  const diffMs = Date.now() - new Date(date).getTime();
-  const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return tTime("justNow");
-  if (diffMin < 60) return tTime("minutesAgo", { count: diffMin });
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return tTime("hoursAgo", { count: diffHr });
-  return tTime("daysAgo", { count: Math.floor(diffHr / 24) });
-}
-
-function RowActionsMenu({
-  monitor,
-  isPausing,
-  onEdit,
-  onPause,
-  onDelete,
-}: {
-  monitor: Monitor;
-  isPausing: boolean;
-  onEdit: (id: string) => void;
-  onPause: (id: string, currentlyPaused: boolean) => void;
-  onDelete: (id: string, name: string) => void;
-}) {
-  const t = useTranslations("monitorsPage");
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, right: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  function handleOpen() {
-    if (!btnRef.current) return;
-    const rect = btnRef.current.getBoundingClientRect();
-    // `fixed` is viewport-relative; getBoundingClientRect() is too — do not add scrollY.
-    setPos({
-      top: rect.bottom + 4,
-      right: window.innerWidth - rect.right,
-    });
-    setOpen((v) => !v);
-  }
-
-  useEffect(() => {
-    if (!open) return;
-    function onClickOutside(e: PointerEvent) {
-      if (
-        menuRef.current &&
-        !menuRef.current.contains(e.target as Node) &&
-        !btnRef.current?.contains(e.target as Node)
-      ) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("pointerdown", onClickOutside);
-    return () => document.removeEventListener("pointerdown", onClickOutside);
-  }, [open]);
-
-  const menu = open
-    ? createPortal(
-        <div
-          ref={menuRef}
-          style={{ top: pos.top, right: pos.right }}
-          className="fixed z-50 w-40 overflow-hidden rounded-lg border border-border bg-bg-card shadow-lg"
-        >
-          <Link
-            href={`/monitors/${monitor.id}`}
-            className="flex w-full items-center px-3.5 py-2 text-sm text-text-primary transition hover:bg-bg-page active:scale-[0.98]"
-            onClick={() => setOpen(false)}
-          >
-            {t("view")}
-          </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => { setOpen(false); onEdit(monitor.id); }}
-            className="h-auto w-full justify-start rounded-none border-0 px-3.5 py-2 text-sm font-normal text-text-primary shadow-none hover:bg-bg-page active:scale-[0.98]"
-          >
-            {t("edit")}
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            disabled={isPausing}
-            onClick={() => { setOpen(false); onPause(monitor.id, !!monitor.paused); }}
-            className="h-auto w-full justify-start rounded-none border-0 px-3.5 py-2 text-sm font-normal text-text-primary shadow-none hover:bg-bg-page active:scale-[0.98]"
-          >
-            {isPausing
-              ? monitor.paused ? t("resuming") : t("pausing")
-              : monitor.paused ? t("resume") : t("pause")}
-          </Button>
-          <div className="my-1 border-t border-border" />
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => { setOpen(false); onDelete(monitor.id, monitor.name); }}
-            className="h-auto w-full justify-start rounded-none border-0 px-3.5 py-2 text-sm font-normal text-red-600 shadow-none hover:bg-red-50 active:scale-[0.98] dark:text-red-400 dark:hover:bg-red-900/20"
-          >
-            {t("delete")}
-          </Button>
-        </div>,
-        document.body
-      )
-    : null;
-
-  return (
-    <>
-      <Button
-        ref={btnRef}
-        type="button"
-        variant="ghost"
-        size="icon-sm"
-        onClick={handleOpen}
-        className="h-11 w-11 rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary active:scale-90"
-        aria-label={t("actions")}
-      >
-        <MoreHorizontal className="h-5 w-5" />
-      </Button>
-      {menu}
-    </>
-  );
-}
+type ImportResult = {
+  created: number;
+  errors: { index: number; name: string; url: string; error: string }[];
+  error?: string;
+};
 
 export function MonitorsPageClient({
   monitors,
@@ -193,8 +58,9 @@ export function MonitorsPageClient({
   const router = useRouter();
   const t = useTranslations("monitorsPage");
   const tDash = useTranslations("dashboard");
-  const tTime = useTranslations("time");
   const [addOpen, setAddOpen] = useState(false);
+  const [addFormDirty, setAddFormDirty] = useState(false);
+  const [confirmCloseAddOpen, setConfirmCloseAddOpen] = useState(false);
   const [editMonitorId, setEditMonitorId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<{ field: string; direction: "asc" | "desc" }>({
@@ -218,10 +84,7 @@ export function MonitorsPageClient({
   const [importData, setImportData] = useState<MonitorConfig[] | null>(null);
   const [importParseError, setImportParseError] = useState<string | null>(null);
   const [importing, setImporting] = useState(false);
-  const [importResult, setImportResult] = useState<{
-    created: number;
-    errors: { index: number; name: string; url: string; error: string }[];
-  } | null>(null);
+  const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const headerSelectRef = useRef<HTMLInputElement>(null);
 
@@ -281,6 +144,14 @@ export function MonitorsPageClient({
       headerSelectRef.current.indeterminate = someVisibleSelected;
     }
   }, [someVisibleSelected]);
+
+  useEffect(() => {
+    const validIds = new Set(monitors.map((m) => m.id));
+    setSelectedIds((prev) => {
+      const next = new Set([...prev].filter((id) => validIds.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [monitors]);
 
   function toggleSelected(id: string) {
     setSelectedIds((prev) => {
@@ -361,8 +232,13 @@ export function MonitorsPageClient({
         body: JSON.stringify(importData),
       });
       const data = await res.json();
-      setImportResult(data);
-      if (data.created > 0) router.refresh();
+      const result: ImportResult = {
+        created: typeof data.created === "number" ? data.created : 0,
+        errors: Array.isArray(data.errors) ? data.errors : [],
+        error: typeof data.error === "string" ? data.error : undefined,
+      };
+      setImportResult(result);
+      if (res.ok && result.created > 0) router.refresh();
     } finally {
       setImporting(false);
     }
@@ -384,6 +260,12 @@ export function MonitorsPageClient({
         const res = await fetch(`/api/monitors/${id}`, { method: "DELETE" });
         if (res.ok) {
           toast.success(t("deleteSuccessSingle", { name }));
+          setSelectedIds((prev) => {
+            if (!prev.has(id)) return prev;
+            const next = new Set(prev);
+            next.delete(id);
+            return next;
+          });
           router.refresh();
         } else {
           const data = await res.json().catch(() => ({}));
@@ -519,6 +401,20 @@ export function MonitorsPageClient({
     } finally {
       setPausingId(null);
     }
+  }
+
+  function closeAddOverlay() {
+    setAddFormDirty(false);
+    setConfirmCloseAddOpen(false);
+    setAddOpen(false);
+  }
+
+  function handleAddCloseRequest() {
+    if (addFormDirty) {
+      setConfirmCloseAddOpen(true);
+      return;
+    }
+    closeAddOverlay();
   }
 
   return (
@@ -795,18 +691,28 @@ export function MonitorsPageClient({
       {/* Modals */}
       <Overlay
         open={addOpen}
-        onClose={() => setAddOpen(false)}
+        onClose={handleAddCloseRequest}
         title={t("addMonitorTitle")}
         panelClassName="max-w-2xl"
       >
         <AddMonitorFlow
           onSuccess={() => {
-            setAddOpen(false);
+            closeAddOverlay();
             router.refresh();
           }}
-          onCancel={() => setAddOpen(false)}
+          onCancel={closeAddOverlay}
+          onDirtyChange={setAddFormDirty}
         />
       </Overlay>
+      <ConfirmDialog
+        open={confirmCloseAddOpen}
+        title={t("unsavedAddMonitorTitle")}
+        message={t("unsavedAddMonitorMessage")}
+        confirmLabel={t("leaveForm")}
+        destructive
+        onConfirm={closeAddOverlay}
+        onCancel={() => setConfirmCloseAddOpen(false)}
+      />
       <Overlay
         open={editMonitorId !== null}
         onClose={() => setEditMonitorId(null)}
@@ -846,13 +752,19 @@ export function MonitorsPageClient({
             </p>
           ) : importResult ? (
             <div className="space-y-3">
-              <p className="text-sm text-text-primary">
-                {importResult.created > 0 ? (
-                  t("importSuccess", { count: importResult.created })
-                ) : (
-                  t("importNone")
-                )}
-              </p>
+              {importResult.error ? (
+                <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                  {importResult.error}
+                </p>
+              ) : (
+                <p className="text-sm text-text-primary">
+                  {importResult.created > 0 ? (
+                    t("importSuccess", { count: importResult.created })
+                  ) : (
+                    t("importNone")
+                  )}
+                </p>
+              )}
               {importResult.errors.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-text-muted uppercase tracking-wider">
@@ -963,182 +875,26 @@ export function MonitorsPageClient({
           </Button>
         </div>
       ) : (
-        <div className="mt-6 w-full min-w-0 overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-          <div className="border-b border-border/80 bg-gradient-to-b from-muted/40 to-transparent px-4 py-2.5 dark:from-muted/25 sm:px-5 sm:py-3">
-            <h2
-              className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              {t("tableSectionHeading")}
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-          <table className="w-full table-fixed divide-y divide-border">
-            <caption className="sr-only">{t("tableCaption")}</caption>
-            <thead>
-              <tr className="bg-muted/30 dark:bg-muted/15">
-                <th className="w-10 px-3 py-2.5">
-                  <input
-                    ref={headerSelectRef}
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={toggleSelectAllVisible}
-                    className="h-4 w-4 rounded border-input-border accent-accent"
-                    aria-label={t("selectAllAria")}
-                  />
-                </th>
-                <SortableTableHeader
-                  column="name"
-                  label={t("colMonitor")}
-                  currentSort={sortBy}
-                  onSort={(field) =>
-                    setSortBy((prev) => ({
-                      field,
-                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
-                    }))
-                  }
-                />
-                <SortableTableHeader
-                  column="url"
-                  label={t("colUrl")}
-                  currentSort={sortBy}
-                  onSort={(field) =>
-                    setSortBy((prev) => ({
-                      field,
-                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
-                    }))
-                  }
-                  className="hidden sm:table-cell"
-                />
-                <SortableTableHeader
-                  column="status"
-                  label={t("colStatus")}
-                  currentSort={sortBy}
-                  onSort={(field) =>
-                    setSortBy((prev) => ({
-                      field,
-                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
-                    }))
-                  }
-                />
-                <SortableTableHeader
-                  column="ssl"
-                  label={t("colSsl")}
-                  currentSort={sortBy}
-                  onSort={(field) =>
-                    setSortBy((prev) => ({
-                      field,
-                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
-                    }))
-                  }
-                  className="hidden sm:table-cell"
-                />
-                <SortableTableHeader
-                  column="lastCheckAt"
-                  label={t("colLastChecked")}
-                  currentSort={sortBy}
-                  onSort={(field) =>
-                    setSortBy((prev) => ({
-                      field,
-                      direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
-                    }))
-                  }
-                  className="hidden md:table-cell"
-                />
-                <th
-                  className="sticky right-0 z-[2] w-[9rem] bg-muted/30 px-3 py-2.5 text-right text-xs font-medium uppercase tracking-wider text-text-muted dark:bg-muted/15 md:px-4"
-                  scope="col"
-                >
-                  {t("colActions")}
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {sortedMonitors.map((m) => {
-                const favicon = getFaviconUrl(m.url);
-                const latest = latestByMonitor[m.id];
-                return (
-                  <tr
-                    key={m.id}
-                    className={`group ${m.paused ? "opacity-60 hover:opacity-80" : "hover:bg-bg-page"}`}
-                  >
-                    <td className="w-10 px-3 py-3 align-top">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(m.id)}
-                        onChange={() => toggleSelected(m.id)}
-                        className="h-4 w-4 rounded border-input-border accent-accent"
-                        aria-label={t("selectMonitorAria", { name: m.name })}
-                      />
-                    </td>
-                    <td className="min-w-0 px-4 py-3">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <MonitorFavicon src={favicon} />
-                        <Link
-                          href={`/monitors/${m.id}`}
-                          className="min-w-0 truncate font-medium text-text-primary transition active:scale-95 hover:text-text-muted"
-                          title={m.name}
-                        >
-                          {m.name}
-                        </Link>
-                      </div>
-                      {/* URL shown below name on mobile */}
-                      <a
-                        href={m.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="mt-0.5 block truncate text-xs text-text-muted underline-offset-2 hover:text-text-primary hover:underline sm:hidden"
-                      >
-                        {m.url}
-                      </a>
-                      <p className="mt-0.5 hidden truncate text-xs text-text-muted sm:max-md:block">
-                        {formatLastChecked(m.lastCheckAt, tTime)} · {t("everyMinutes", { count: m.intervalMinutes })}
-                      </p>
-                    </td>
-                    <td className="hidden min-w-0 px-4 py-3 text-sm sm:table-cell">
-                      <a
-                        href={m.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block truncate text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
-                      >
-                        {m.url}
-                      </a>
-                    </td>
-                    <td className="min-w-0 px-4 py-3">
-                      <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                        <MonitorStatusBadge paused={m.paused} latest={latest} />
-                        {isDowntimeAcked(m) ? <DowntimeAckBadge /> : null}
-                      </div>
-                    </td>
-                    <td className="hidden min-w-0 px-4 py-3 sm:table-cell">
-                      <SslBadge
-                        monitoring={!!m.sslMonitoring}
-                        valid={m.sslValid ?? null}
-                        expiresAt={m.sslExpiresAt ?? null}
-                      />
-                    </td>
-                    <td className="hidden whitespace-nowrap px-3 py-3 text-sm text-text-muted md:table-cell md:px-4">
-                      {formatLastChecked(m.lastCheckAt, tTime)}
-                    </td>
-                    <td className="sticky right-0 z-[1] w-[9rem] bg-bg-card px-3 py-3 text-right align-top group-hover:bg-bg-page md:px-4">
-                      <RowActionsMenu
-                        monitor={m}
-                        isPausing={pausingId === m.id}
-                        onEdit={setEditMonitorId}
-                        onPause={handlePause}
-                        onDelete={(id, name) =>
-              setDeleteConfirm({ kind: "single", id, name })
-            }
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          </div>
-        </div>
+        <MonitorsListView
+          monitors={sortedMonitors}
+          latestByMonitor={latestByMonitor}
+          selectedIds={selectedIds}
+          headerSelectRef={headerSelectRef}
+          allVisibleSelected={allVisibleSelected}
+          sortBy={sortBy}
+          onSortChange={(field) =>
+            setSortBy((prev) => ({
+              field,
+              direction: prev.field === field && prev.direction === "asc" ? "desc" : "asc",
+            }))
+          }
+          onToggleSelected={toggleSelected}
+          onToggleSelectAllVisible={toggleSelectAllVisible}
+          pausingId={pausingId}
+          onEdit={setEditMonitorId}
+          onPause={handlePause}
+          onDelete={(id, name) => setDeleteConfirm({ kind: "single", id, name })}
+        />
       )}
       </div>
     </>

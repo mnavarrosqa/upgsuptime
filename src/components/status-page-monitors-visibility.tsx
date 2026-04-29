@@ -82,7 +82,7 @@ export function StatusPageMonitorsVisibility({
                 checked={on}
                 disabled={busy}
                 onChange={(e) => setVisibility(m.id, e.target.checked)}
-                className="h-4 w-4 rounded border-input-border accent-accent disabled:opacity-50"
+                className="ui-checkbox"
                 aria-label={tAccount("statusPageMonitorShowAria", { name: m.name })}
               />
               <span className="text-sm text-text-primary">

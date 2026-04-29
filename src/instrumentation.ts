@@ -2,7 +2,10 @@ export async function register() {
   // Skip the Edge runtime — croner only works in Node.js
   if (process.env.NEXT_RUNTIME === "edge") return;
 
-  // Guard against double-registration in Next.js dev mode (fast refresh)
+  // Guard against double-registration within one Node process, including
+  // Next.js dev mode fast refresh. This is not a distributed lock: production
+  // deployments with multiple Node instances should nominate one scheduler
+  // owner or use only the authenticated HTTP cron endpoint.
   const g = global as typeof globalThis & { __schedulerStarted?: boolean };
   if (g.__schedulerStarted) return;
   g.__schedulerStarted = true;

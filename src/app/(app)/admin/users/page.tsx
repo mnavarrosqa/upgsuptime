@@ -38,9 +38,19 @@ export default async function AdminUsersPage() {
   }));
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">Admin</h1>
+    <div className="space-y-7">
+      <div className="space-y-2">
+        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+          Access control
+        </p>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
+            <p className="mt-1 max-w-2xl text-sm text-text-muted">
+              Review accounts, ownership load, and elevated permissions.
+            </p>
+          </div>
+        </div>
       </div>
       <AdminSubNav />
       <AdminUsersClient users={users} currentUserId={session!.user.id} />

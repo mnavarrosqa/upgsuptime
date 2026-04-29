@@ -330,7 +330,7 @@ export function BulkEditMonitorsForm({
             onChange={(e) => {
               setAlertEmail(e.target.checked);
             }}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
@@ -361,7 +361,7 @@ export function BulkEditMonitorsForm({
                 checked={degradationAlertEnabled === true}
                 onChange={(e) => setDegradationAlertEnabled(e.target.checked)}
                 disabled={alertEmail !== true}
-                className="h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
+                className="ui-checkbox"
               />
               <span className="text-sm text-text-primary">{tForm("slowResponseAlerts")}</span>
             </label>
@@ -388,7 +388,7 @@ export function BulkEditMonitorsForm({
               type="checkbox"
               checked={sslMonitoring === true}
               onChange={(e) => setSslMonitoring(e.target.checked)}
-              className="h-4 w-4 rounded border-input-border accent-accent"
+              className="ui-checkbox"
             />
             <span className="text-sm text-text-primary">
               {tForm("monitorSslCertificate")}
@@ -412,7 +412,7 @@ export function BulkEditMonitorsForm({
             type="checkbox"
             checked={showOnStatusPage === true}
             onChange={(e) => setShowOnStatusPage(e.target.checked)}
-            className="h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">
             {tForm("showOnPublicStatusPage")}

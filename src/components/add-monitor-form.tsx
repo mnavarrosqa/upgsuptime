@@ -35,10 +35,12 @@ export function AddMonitorForm({
   onSuccess,
   onCancel,
   onBack,
+  onDirtyChange,
 }: {
   onSuccess?: () => void;
   onCancel?: () => void;
   onBack?: () => void;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const router = useRouter();
   const tDegradationHint = useTranslations("degradationFormHint");
@@ -92,9 +94,40 @@ export function AddMonitorForm({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const isDirty =
+    monitorType !== "http" ||
+    name.trim().length > 0 ||
+    url.trim().length > 0 ||
+    intervalMinutes !== 5 ||
+    alertEmail ||
+    alertEmailTo.trim().length > 0 ||
+    showOnStatusPage !== true ||
+    timeoutSeconds !== 15 ||
+    method !== "GET" ||
+    expectedStatusCodes !== "200-299" ||
+    sslMonitoring ||
+    requestHeaders.trim().length > 0 ||
+    requestBody.trim().length > 0 ||
+    requestBodyType !== "none" ||
+    followRedirects !== true ||
+    maxRedirects !== 20 ||
+    keywordContains.trim().length > 0 ||
+    keywordShouldExist !== true ||
+    dnsRecordType !== "A" ||
+    dnsExpectedValue.trim().length > 0 ||
+    tcpPort !== 443 ||
+    maintenanceStartsAt.length > 0 ||
+    maintenanceEndsAt.length > 0 ||
+    maintenanceNote.trim().length > 0 ||
+    degradationAlertEnabled;
+
   useEffect(() => {
     setShowDegradationDeferHint(isGlobalDegradationDeferHint());
   }, []);
+
+  useEffect(() => {
+    onDirtyChange?.(isDirty);
+  }, [isDirty, onDirtyChange]);
 
   function handleTypeChange(newType: MonitorType) {
     setMonitorType(newType);
@@ -520,7 +553,7 @@ export function AddMonitorForm({
                   type="checkbox"
                   checked={followRedirects}
                   onChange={(e) => setFollowRedirects(e.target.checked)}
-                  className="h-4 w-4 rounded border-input-border accent-accent"
+                  className="ui-checkbox"
                 />
                 <span className="text-sm text-text-primary">{tForm("followRedirects")}</span>
               </label>
@@ -648,7 +681,7 @@ export function AddMonitorForm({
             type="checkbox"
             checked={alertEmail}
             onChange={(e) => setAlertEmail(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox mt-0.5"
           />
           <span className="text-sm font-medium text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
@@ -683,7 +716,7 @@ export function AddMonitorForm({
                 checked={degradationAlertEnabled}
                 onChange={(e) => setDegradationAlertEnabled(e.target.checked)}
                 disabled={!alertEmail}
-                className="mt-0.5 h-4 w-4 rounded border-input-border accent-accent disabled:cursor-not-allowed"
+                className="ui-checkbox mt-0.5"
               />
               <span className="text-sm font-medium text-text-primary">{tForm("slowResponseAlerts")}</span>
             </label>
@@ -708,7 +741,7 @@ export function AddMonitorForm({
               type="checkbox"
               checked={sslMonitoring}
               onChange={(e) => setSslMonitoring(e.target.checked)}
-              className="mt-0.5 h-4 w-4 rounded border-input-border accent-accent"
+              className="ui-checkbox mt-0.5"
             />
             <span className="text-sm font-medium text-text-primary">{tForm("monitorSslCertificate")}</span>
           </label>
@@ -775,7 +808,7 @@ export function AddMonitorForm({
             type="checkbox"
             checked={showOnStatusPage}
             onChange={(e) => setShowOnStatusPage(e.target.checked)}
-            className="mt-0.5 h-4 w-4 rounded border-input-border accent-accent"
+            className="ui-checkbox mt-0.5"
           />
           <span className="text-sm font-medium text-text-primary">{tForm("showOnPublicStatusPage")}</span>
         </label>

@@ -19,11 +19,11 @@ export async function GET() {
     .where(eq(settings.key, "registrationEnabled"));
 
   const registrationEnabled = row ? row.value !== "false" : true;
-  const smtpConfigured = !!process.env.SMTP_HOST;
   const smtpVarsSet = SMTP_VARS.reduce<Record<string, boolean>>((acc, v) => {
     acc[v] = !!process.env[v];
     return acc;
   }, {});
+  const smtpConfigured = Object.values(smtpVarsSet).every(Boolean);
 
   return NextResponse.json({ registrationEnabled, smtpConfigured, smtpVarsSet });
 }
