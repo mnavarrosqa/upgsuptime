@@ -594,7 +594,8 @@ export function AddBulkMonitorsForm({
           </span>
         </label>
         <p className="mt-2 text-xs text-text-muted">
-          Applied to HTTPS URLs. Checks cert validity and expiry on every run.
+          Applied to HTTPS URLs. Checks cert validity and expiry on every run. Email
+          reminders at ~7 days and ~2 days before expiry when alerts are enabled.
         </p>
       </div>
 

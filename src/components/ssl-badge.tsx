@@ -59,9 +59,8 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
     );
   }
 
-  // Valid cert — check expiry
-  if (days !== null && days <= 7) {
-    // Critical — expiring very soon
+  // Valid cert — check expiry (critical ≤2d, warning ≤7d; aligns with email reminders)
+  if (days !== null && days <= 2) {
     if (compact) {
       return (
         <span
@@ -81,8 +80,8 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
     );
   }
 
-  if (days !== null && days <= 30) {
-    // Warning — expiring soon
+  if (days !== null && days <= 7) {
+    // Warning — renew this week
     if (compact) {
       return (
         <span

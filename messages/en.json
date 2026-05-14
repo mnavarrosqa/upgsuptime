@@ -91,7 +91,7 @@
     "requiresEmailAlerts": "Requires email alerts to be enabled.",
     "sslMonitoring": "SSL monitoring",
     "monitorSslCertificate": "Monitor SSL certificate",
-    "sslMonitoringHint": "Checks cert validity and expiry on every run. Alerts fire when the cert becomes invalid or has 30 days or less left.",
+    "sslMonitoringHint": "Checks cert validity and expiry on every run. Email sends twice before expiry: about 7 days left and about 2 days left. Invalid certs show in the app but do not trigger SSL emails.",
     "maintenanceWindow": "Maintenance window",
     "starts": "Starts",
     "ends": "Ends",
@@ -692,7 +692,7 @@
         "summary": "Validity and expiry checks for HTTPS monitors.",
         "body": [
           "When SSL monitoring is enabled, HTTPS monitors check certificate validity and expiry during regular runs.",
-          "Alerts fire when the certificate becomes invalid or has 30 days or less remaining, giving you time to renew before visitors are affected."
+          "Email reminders fire once when the certificate crosses about 7 days remaining, and again when it crosses about 2 days remaining, so you can renew before expiry. Invalid or untrusted certificates still appear on the monitor but are not emailed as SSL alerts."
         ]
       },
       "degradationAlerts": {

@@ -169,23 +169,15 @@ async function applyCheckResult(
   // Await SSL result (likely already done by now); DNS monitors always pass null
   const sslResult = await sslPromise;
 
-  // Detect SSL alert type by comparing new state to stored values
+  // Expiry-only SSL emails: one reminder when crossing into ≤7 days, another at ≤2 days
   let sslAlertType: SslAlertType | null = null;
-  if (sslResult) {
+  if (sslResult?.valid && sslResult.daysUntilExpiry !== null) {
     const oldDays = daysUntil(m.sslExpiresAt);
     const newDays = sslResult.daysUntilExpiry;
-    const wasValid = m.sslValid; // null = first ever SSL check
-
-    if (!sslResult.valid && wasValid !== false) {
-      sslAlertType = "invalid";
-    } else if (sslResult.valid && wasValid === false) {
-      sslAlertType = "recovered";
-    } else if (sslResult.valid && newDays !== null) {
-      if (newDays <= 7 && (oldDays === null || oldDays > 7)) {
-        sslAlertType = "critical";
-      } else if (newDays <= 30 && (oldDays === null || oldDays > 30)) {
-        sslAlertType = "expiring";
-      }
+    if (newDays <= 2 && (oldDays === null || oldDays > 2)) {
+      sslAlertType = "critical";
+    } else if (newDays <= 7 && (oldDays === null || oldDays > 7)) {
+      sslAlertType = "expiring";
     }
   }
 

@@ -91,7 +91,7 @@
     "requiresEmailAlerts": "Necesita alertas por correo activadas.",
     "sslMonitoring": "Monitoreo SSL",
     "monitorSslCertificate": "Monitorear certificado SSL",
-    "sslMonitoringHint": "Comprueba validez y vencimiento del certificado en cada ejecución. Avisa si el certificado deja de ser válido o le quedan 30 días o menos.",
+    "sslMonitoringHint": "Comprueba validez y vencimiento del certificado en cada ejecución. El correo avisa dos veces antes del vencimiento: con ~7 días restantes y con ~2 días. Los certificados inválidos se ven en la app pero no generan correos SSL.",
     "maintenanceWindow": "Ventana de mantenimiento",
     "starts": "Empieza",
     "ends": "Termina",
@@ -685,7 +685,7 @@
         "summary": "Validez y vencimiento para monitores HTTPS.",
         "body": [
           "Cuando SSL está activado, los monitores HTTPS revisan validez y vencimiento del certificado en las ejecuciones normales.",
-          "Las alertas salen si el certificado deja de ser válido o quedan 30 días o menos, para que puedas renovarlo antes de afectar visitantes."
+          "Los recordatorios por correo se envían una vez al pasar ~7 días restantes y otra al pasar ~2 días, para renovar antes del vencimiento. Los certificados inválidos o no confiables siguen viéndose en el monitor pero no generan correos de alerta SSL."
         ]
       },
       "degradationAlerts": {

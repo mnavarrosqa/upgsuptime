@@ -168,19 +168,10 @@ function wrap(body: string) {
 </html>`;
 }
 
-function sslProblemDetailRows(
-  sslResult: SslCheckResult,
-  alertType: "invalid" | "expiring" | "critical"
-): string[] {
-  const rows: string[] = [];
-  if (alertType === "invalid") {
-    rows.push(
-      detailRow("Issue", escHtml(sslResult.error ?? "Certificate not trusted"))
-    );
-  }
-  if (alertType === "expiring" || alertType === "critical") {
-    rows.push(detailRow("Days remaining", `${sslResult.daysUntilExpiry}`));
-  }
+function sslProblemDetailRows(sslResult: SslCheckResult): string[] {
+  const rows: string[] = [
+    detailRow("Days remaining", `${sslResult.daysUntilExpiry ?? "—"}`),
+  ];
   if (sslResult.expiresAt != null) {
     rows.push(detailRow("Expires", new Date(sslResult.expiresAt).toUTCString()));
   }
@@ -275,28 +266,17 @@ export function buildSslAlertHtml(
   let headline: string;
 
   switch (alertType) {
-    case "invalid":
-      statusBadge = badge("SSL Invalid", COLORS.downBg, COLORS.downText, iconLock(COLORS.downText));
-      headline = `SSL certificate for <span style="color:${COLORS.down};">${escHtml(m.name)}</span> is not trusted`;
-      break;
     case "expiring":
-      statusBadge = badge("SSL Expiring", COLORS.warnBg, COLORS.warnText, iconLock(COLORS.warnText));
-      headline = `SSL certificate for <span style="color:${COLORS.warn};">${escHtml(m.name)}</span> is expiring soon`;
+      statusBadge = badge("SSL — 1 week", COLORS.warnBg, COLORS.warnText, iconLock(COLORS.warnText));
+      headline = `About one week left on the SSL certificate for <span style="color:${COLORS.warn};">${escHtml(m.name)}</span>`;
       break;
     case "critical":
-      statusBadge = badge("SSL Critical", COLORS.criticalBg, COLORS.criticalText, iconWarn(COLORS.criticalText));
-      headline = `SSL certificate for <span style="color:${COLORS.critical};">${escHtml(m.name)}</span> expires very soon`;
-      break;
-    case "recovered":
-      statusBadge = badge("SSL Valid", COLORS.upBg, COLORS.upText, iconLock(COLORS.upText));
-      headline = `SSL certificate for <span style="color:${COLORS.up};">${escHtml(m.name)}</span> is valid`;
+      statusBadge = badge("SSL — 2 days", COLORS.criticalBg, COLORS.criticalText, iconWarn(COLORS.criticalText));
+      headline = `About two days left on the SSL certificate for <span style="color:${COLORS.critical};">${escHtml(m.name)}</span>`;
       break;
   }
 
-  const rows: string[] =
-    alertType === "recovered"
-      ? [detailRow("Status", "Certificate is valid and trusted")]
-      : sslProblemDetailRows(sslResult, alertType);
+  const rows: string[] = sslProblemDetailRows(sslResult);
 
   const monitorCta = buildMonitorDetailCtaBlock(monitorDetailUrl);
 

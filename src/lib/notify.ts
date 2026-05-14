@@ -9,7 +9,8 @@ import {
   signEmailAckToken,
 } from "@/lib/email-ack-token";
 
-export type SslAlertType = "invalid" | "expiring" | "critical" | "recovered";
+/** Expiry reminder emails only: ~1 week left, then ~2 days left. */
+export type SslAlertType = "expiring" | "critical";
 
 /** Base URL for links in emails (NEXTAUTH_URL, or https://VERCEL_URL). */
 export function getAppBaseUrlForEmail(): string {
@@ -158,21 +159,13 @@ export async function sendSslNotifications(
   let statusLine: string;
 
   switch (alertType) {
-    case "invalid":
-      subject = `[SSL] ${m.name} — certificate not trusted`;
-      statusLine = `Status: INVALID — ${sslResult.error ?? "Certificate not trusted"}`;
-      break;
     case "expiring":
-      subject = `[SSL] ${m.name} — expires in ${sslResult.daysUntilExpiry} days`;
-      statusLine = `Status: EXPIRING SOON — ${sslResult.daysUntilExpiry} days remaining`;
+      subject = `[SSL] ${m.name} — about one week until certificate expires`;
+      statusLine = `Reminder: renew soon — ${sslResult.daysUntilExpiry} day(s) until expiry (7-day notice)`;
       break;
     case "critical":
-      subject = `[SSL] ${m.name} — expires in ${sslResult.daysUntilExpiry} days (critical)`;
-      statusLine = `Status: CRITICAL — only ${sslResult.daysUntilExpiry} days remaining`;
-      break;
-    case "recovered":
-      subject = `[SSL] ${m.name} — certificate valid again`;
-      statusLine = `Status: VALID`;
+      subject = `[SSL] ${m.name} — about two days until certificate expires`;
+      statusLine = `Reminder: renew urgently — ${sslResult.daysUntilExpiry} day(s) until expiry (2-day notice)`;
       break;
   }
 

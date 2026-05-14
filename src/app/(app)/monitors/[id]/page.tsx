@@ -268,9 +268,9 @@ export default async function MonitorDetailPage({
                 ? "text-text-muted"
                 : !m.sslValid
                   ? "text-red-600 dark:text-red-400"
-                  : sslDays !== null && sslDays <= 7
+                  : sslDays !== null && sslDays <= 2
                     ? "text-red-600 dark:text-red-400"
-                    : sslDays !== null && sslDays <= 30
+                    : sslDays !== null && sslDays <= 7
                       ? "text-yellow-600 dark:text-yellow-400"
                       : "text-emerald-600 dark:text-emerald-400";
             const sslLabel =
@@ -278,9 +278,9 @@ export default async function MonitorDetailPage({
                 ? "—"
                 : !m.sslValid
                   ? t("sslInvalid")
-                  : sslDays !== null && sslDays <= 7
+                  : sslDays !== null && sslDays <= 2
                     ? t("sslCritical")
-                    : sslDays !== null && sslDays <= 30
+                    : sslDays !== null && sslDays <= 7
                       ? t("sslExpiring")
                       : t("sslValid");
             return (
