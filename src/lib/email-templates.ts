@@ -314,16 +314,17 @@ export function buildSslAlertHtml(
 
 export function buildDegradationAlertHtml(
   m: Monitor,
-  recentAvgMs: number,
+  recentP75Ms: number,
   baselineP75Ms: number,
   checkedAt: string,
   monitorDetailUrl?: string | null,
 ): string {
-  const ratio = (recentAvgMs / baselineP75Ms).toFixed(1);
+  const ratio =
+    baselineP75Ms > 0 ? (recentP75Ms / baselineP75Ms).toFixed(1) : "—";
   const statusBadge = badge("Degrading", COLORS.warnBg, COLORS.warnText, iconWarn(COLORS.warnText));
 
   const rows = [
-    detailRow("Recent avg response", `${recentAvgMs} ms`),
+    detailRow("Recent P75 response", `${recentP75Ms} ms`),
     detailRow("Normal baseline (P75)", `${baselineP75Ms} ms`),
     detailRow("Slowdown", `<span style="color:${COLORS.warn};font-weight:700;">${ratio}× above baseline</span>`),
     detailRow("URL", escHtml(m.url)),

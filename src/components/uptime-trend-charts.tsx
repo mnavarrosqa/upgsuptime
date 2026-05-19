@@ -10,10 +10,8 @@ import {
   Content as UptimeTooltipContent,
 } from "@radix-ui/react-tooltip";
 import type { TooltipProps } from "recharts";
-import {
-  DEGRADATION_ENTER_RATIO,
-  DEGRADATION_RECENT_WINDOW,
-} from "@/lib/degradation-config";
+import { DEGRADATION_ENTER_RATIO } from "@/lib/degradation-config";
+import { computeDegradationSnapshotFromHistory } from "@/lib/degradation-snapshot";
 import {
   ResponsiveContainer,
   AreaChart,
@@ -415,31 +413,38 @@ export function UptimeTrendCharts({
   const scatterOk = allScatterPoints.filter((p) => p.ok && p.y > 0);
   const scatterFailed = allScatterPoints.filter((p) => !p.ok);
 
-  // ── baseline comparison ───────────────────────────────────────────────────
-  const recentOkTimes = chronological
-    .slice(-DEGRADATION_RECENT_WINDOW)
-    .filter((r) => r.ok && r.responseTimeMs != null)
-    .map((r) => r.responseTimeMs as number);
-  const recentAvgMs =
-    recentOkTimes.length > 0
-      ? Math.round(recentOkTimes.reduce((a, b) => a + b, 0) / recentOkTimes.length)
-      : null;
+  // ── baseline comparison (same windows + P75 logic as evaluateDegradation) ───
+  const okTimesNewestFirst = chronological
+    .filter((r) => r.ok && r.responseTimeMs != null && r.responseTimeMs > 0)
+    .map((r) => r.responseTimeMs as number)
+    .reverse();
+  const chartSnapshot = computeDegradationSnapshotFromHistory(okTimesNewestFirst);
+  const displayBaselineP75Ms = chartSnapshot?.baselineP75Ms ?? baselineP75Ms ?? null;
+  const recentP75Ms = chartSnapshot?.recentP75Ms ?? null;
   const showBaseline =
-    degradationAlertEnabled && baselineP75Ms != null && recentAvgMs != null;
+    degradationAlertEnabled && displayBaselineP75Ms != null && recentP75Ms != null;
+  const enterThresholdMs = chartSnapshot?.enterThresholdMs ?? null;
   const baselineMax = showBaseline
-    ? Math.max(baselineP75Ms as number, recentAvgMs as number)
+    ? Math.max(
+        displayBaselineP75Ms as number,
+        recentP75Ms as number,
+        enterThresholdMs as number,
+      )
     : 1;
   const ratio = showBaseline
-    ? (recentAvgMs as number) / (baselineP75Ms as number)
+    ? (recentP75Ms as number) / (displayBaselineP75Ms as number)
     : null;
+  const isAboveEnterThreshold = chartSnapshot?.isDegraded ?? false;
   const ratioColor =
     ratio == null
       ? "text-text-muted"
-      : ratio <= 1
-        ? "text-emerald-600 dark:text-emerald-400"
-        : ratio <= DEGRADATION_ENTER_RATIO
-          ? "text-yellow-600 dark:text-yellow-400"
-          : "text-red-600 dark:text-red-400";
+      : isAboveEnterThreshold
+        ? "text-red-600 dark:text-red-400"
+        : ratio <= 1
+          ? "text-emerald-600 dark:text-emerald-400"
+          : ratio <= DEGRADATION_ENTER_RATIO
+            ? "text-yellow-600 dark:text-yellow-400"
+            : "text-yellow-600 dark:text-yellow-400";
 
   return (
     <div className="mt-4 min-w-0 space-y-8">
@@ -791,10 +796,10 @@ export function UptimeTrendCharts({
           </p>
           <div className="mt-3 space-y-3">
             {([
-              { label: t("chartBaselineP75"), value: baselineP75Ms as number, color: "var(--color-accent)" },
+              { label: t("chartBaselineP75"), value: displayBaselineP75Ms as number, color: "var(--color-accent)" },
               {
-                label: t("chartRecentAvg"),
-                value: recentAvgMs as number,
+                label: t("chartRecentP75"),
+                value: recentP75Ms as number,
                 color:
                   ratio != null && ratio > 2
                     ? "var(--color-destructive)"

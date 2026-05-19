@@ -184,7 +184,7 @@ async function applyCheckResult(
   // Degradation detection — only for successful HTTP/keyword checks with the feature enabled
   let degradationFields: Record<string, unknown> = {};
   let shouldSendDegradationAlert = false;
-  let degradationAlertArgs: { recentAvgMs: number; baselineP75Ms: number } | null = null;
+  let degradationAlertArgs: { recentP75Ms: number; baselineP75Ms: number } | null = null;
 
   if (ok && (m.type === "http" || m.type === "keyword") && m.degradationAlertEnabled) {
     const deg = await evaluateDegradation(m);
@@ -195,13 +195,14 @@ async function applyCheckResult(
       ...(deg.clearDegradingAlertSentAt ? { degradingAlertSentAt: null } : {}),
       ...(deg.shouldAlert ? { degradingAlertSentAt: now } : {}),
     };
-    if (deg.shouldAlert && deg.recentAvgMs !== null && deg.baselineP75Ms !== null) {
+    if (deg.shouldAlert && deg.recentP75Ms !== null && deg.baselineP75Ms !== null) {
       shouldSendDegradationAlert = true;
-      degradationAlertArgs = { recentAvgMs: deg.recentAvgMs, baselineP75Ms: deg.baselineP75Ms };
+      degradationAlertArgs = { recentP75Ms: deg.recentP75Ms, baselineP75Ms: deg.baselineP75Ms };
     }
   } else if (!ok && m.degradationAlertEnabled) {
-    // Reset consecutive degraded count on a failed check so the episode restarts cleanly
-    degradationFields = { consecutiveDegradedChecks: 0, degradingAlertSentAt: null };
+    // Failed checks are excluded from latency windows; reset confirmation only so a
+    // prior slow-response episode is not extended by downtime.
+    degradationFields = { consecutiveDegradedChecks: 0 };
   }
 
   // Single DB update: HTTP fields + SSL fields + consecutiveFailures + degradation in one round-trip
@@ -228,7 +229,7 @@ async function applyCheckResult(
       id: randomUUID(),
       monitorId: m.id,
       createdAt: now,
-      recentAvgMs: degradationAlertArgs.recentAvgMs,
+      recentAvgMs: degradationAlertArgs.recentP75Ms,
       baselineP75Ms: degradationAlertArgs.baselineP75Ms,
     });
   }
@@ -258,7 +259,7 @@ async function applyCheckResult(
   }
 
   if (shouldSendDegradationAlert && degradationAlertArgs && m.alertEmail && !maintenanceActive) {
-    sendDegradationAlert(m, degradationAlertArgs.recentAvgMs, degradationAlertArgs.baselineP75Ms, ownerEmail).catch((err) => {
+    sendDegradationAlert(m, degradationAlertArgs.recentP75Ms, degradationAlertArgs.baselineP75Ms, ownerEmail).catch((err) => {
       console.error("[run-check] degradation alert error for monitor", m.id, err);
     });
   }

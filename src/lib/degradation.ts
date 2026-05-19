@@ -4,24 +4,18 @@ import { eq, and, desc } from "drizzle-orm";
 import type { Monitor } from "@/db/schema";
 import {
   DEGRADATION_ALERT_COOLDOWN_MINUTES as ALERT_COOLDOWN_MINUTES,
-  DEGRADATION_BASELINE_MIN_SAMPLES as BASELINE_MIN_SAMPLES,
   DEGRADATION_BASELINE_WINDOW as BASELINE_WINDOW,
-  DEGRADATION_CLEAR_RATIO,
   DEGRADATION_CONFIRM_COUNT as CONFIRM_COUNT,
-  DEGRADATION_ENTER_RATIO,
-  DEGRADATION_MIN_RECENT_MS,
   DEGRADATION_RECENT_WINDOW as RECENT_WINDOW,
 } from "@/lib/degradation-config";
+import {
+  computeDegradationSnapshot,
+  DEGRADATION_FETCH_BUFFER,
+  isDegradationWarmup,
+  splitDegradationWindowsFromRows,
+} from "@/lib/degradation-snapshot";
 import { getAppBaseUrlForEmail, getTransporter } from "@/lib/notify";
 import { buildDegradationAlertHtml } from "@/lib/email-templates";
-
-// ─── Core logic ───────────────────────────────────────────────────────────────
-
-function computeP75(sortedAsc: number[]): number {
-  if (sortedAsc.length === 0) return 0;
-  const idx = Math.floor(0.75 * (sortedAsc.length - 1));
-  return sortedAsc[idx];
-}
 
 export type DegradationUpdate = {
   baselineP75Ms: number | null;
@@ -31,7 +25,8 @@ export type DegradationUpdate = {
   clearDegradingAlertSentAt: boolean;
   /** When true, caller should set degradingAlertSentAt = now and send the email */
   shouldAlert: boolean;
-  recentAvgMs: number | null;
+  /** Recent-window P75 (stored in recent_avg_ms column for compatibility). */
+  recentP75Ms: number | null;
 };
 
 /**
@@ -51,44 +46,33 @@ export async function evaluateDegradation(
     .from(checkResult)
     .where(and(eq(checkResult.monitorId, m.id), eq(checkResult.ok, true)))
     .orderBy(desc(checkResult.createdAt))
-    .limit(RECENT_WINDOW + BASELINE_WINDOW);
+    .limit(RECENT_WINDOW + BASELINE_WINDOW + DEGRADATION_FETCH_BUFFER);
 
-  const times = rows
-    .map((r) => r.responseTimeMs)
-    .filter((t): t is number => t != null && t > 0);
+  const { recentTimes, baselineTimes } = splitDegradationWindowsFromRows(rows);
+  const sampleCount = baselineTimes.length;
 
-  // Slice out the two windows (times is newest-first)
-  const recentSlice = times.slice(0, Math.min(RECENT_WINDOW, times.length));
-  const baselineSlice = times.slice(RECENT_WINDOW);
+  const snapshot = computeDegradationSnapshot(recentTimes, baselineTimes);
+  if (!snapshot) {
+    const insufficientRecent = recentTimes.length < RECENT_WINDOW;
+    const inWarmup = isDegradationWarmup(sampleCount);
+    // Keep confirmation progress when baseline is ready but recent window is short
+    // (e.g. null response times on the latest checks). Warmup always resets.
+    const preserveConsecutive = insufficientRecent && !inWarmup;
 
-  const sampleCount = baselineSlice.length;
-
-  // Not enough baseline data yet — update count but skip detection
-  if (sampleCount < BASELINE_MIN_SAMPLES || recentSlice.length < RECENT_WINDOW) {
     return {
       baselineP75Ms: null,
       baselineSampleCount: sampleCount,
-      consecutiveDegradedChecks: 0,
+      consecutiveDegradedChecks: preserveConsecutive
+        ? (m.consecutiveDegradedChecks ?? 0)
+        : 0,
       clearDegradingAlertSentAt: false,
       shouldAlert: false,
-      recentAvgMs: null,
+      recentP75Ms: null,
     };
   }
 
-  // Baseline P75 from the older window only
-  const sorted = [...baselineSlice].sort((a, b) => a - b);
-  const newP75 = computeP75(sorted);
-
-  // Recent average from the newest window
-  const recentAvgMs = Math.round(
-    recentSlice.reduce((a, b) => a + b, 0) / recentSlice.length
-  );
-
-  const enterThresholdMs = Math.max(
-    DEGRADATION_ENTER_RATIO * newP75,
-    DEGRADATION_MIN_RECENT_MS
-  );
-  const isDegraded = recentAvgMs >= enterThresholdMs;
+  const { baselineP75Ms: newP75, recentP75Ms, isDegraded, shouldClearEpisode } =
+    snapshot;
   const newConsecutive = isDegraded ? (m.consecutiveDegradedChecks ?? 0) + 1 : 0;
 
   let shouldAlert = newConsecutive >= CONFIRM_COUNT && m.degradingAlertSentAt === null;
@@ -107,8 +91,7 @@ export async function evaluateDegradation(
   }
 
   const clearDegradingAlertSentAt =
-    recentAvgMs < DEGRADATION_CLEAR_RATIO * newP75 &&
-    m.degradingAlertSentAt !== null;
+    shouldClearEpisode && m.degradingAlertSentAt !== null;
 
   return {
     baselineP75Ms: newP75,
@@ -116,7 +99,7 @@ export async function evaluateDegradation(
     consecutiveDegradedChecks: newConsecutive,
     clearDegradingAlertSentAt,
     shouldAlert,
-    recentAvgMs,
+    recentP75Ms,
   };
 }
 
@@ -124,7 +107,7 @@ export async function evaluateDegradation(
 
 export async function sendDegradationAlert(
   m: Monitor,
-  recentAvgMs: number,
+  recentP75Ms: number,
   baselineP75Ms: number,
   ownerEmail: string
 ): Promise<void> {
@@ -132,7 +115,8 @@ export async function sendDegradationAlert(
   if (!transporter) return;
 
   const to = m.alertEmailTo ?? ownerEmail;
-  const ratio = (recentAvgMs / baselineP75Ms).toFixed(1);
+  const ratio =
+    baselineP75Ms > 0 ? (recentP75Ms / baselineP75Ms).toFixed(1) : "—";
   const checkedAt = new Date().toUTCString();
 
   const subject = `[Slow] ${m.name} — response time degrading (${ratio}× above normal)`;
@@ -146,7 +130,7 @@ export async function sendDegradationAlert(
     `URL: ${m.url}`,
     monitorDetailUrl ? `View monitor: ${monitorDetailUrl}` : null,
     ``,
-    `Recent average response time: ${recentAvgMs} ms`,
+    `Recent P75 response time: ${recentP75Ms} ms`,
     `Normal baseline (P75): ${baselineP75Ms} ms`,
     `Slowdown: ${ratio}× above baseline`,
     ``,
@@ -157,7 +141,7 @@ export async function sendDegradationAlert(
 
   const html = buildDegradationAlertHtml(
     m,
-    recentAvgMs,
+    recentP75Ms,
     baselineP75Ms,
     checkedAt,
     monitorDetailUrl,
