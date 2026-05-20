@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Monitor } from "@/db/schema";
+import { NotificationsPanel } from "@/components/notifications-panel";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -322,6 +323,7 @@ export function BulkEditMonitorsForm({
         <p className="mb-3 text-sm font-medium text-text-primary">
           {tForm("notifications")}
         </p>
+        <NotificationsPanel>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
             ref={alertEmailRef}
@@ -335,7 +337,7 @@ export function BulkEditMonitorsForm({
           <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
         {alertEmail === true && (
-          <div className="mt-3">
+          <div>
             <Label htmlFor="bulk-alertEmailTo" className={labelClass}>
               {tForm("alertEmail")}{" "}
               <span className="font-normal text-text-muted">
@@ -353,7 +355,7 @@ export function BulkEditMonitorsForm({
           </div>
         )}
         {anyHttpLike && (
-          <div className="mt-3">
+          <div>
             <label className={`flex items-center gap-2.5 ${alertEmail === true ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
               <input
                 ref={degradationRef}
@@ -375,6 +377,7 @@ export function BulkEditMonitorsForm({
             )}
           </div>
         )}
+        </NotificationsPanel>
       </div>
 
       {anyHttps && (

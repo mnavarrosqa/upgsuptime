@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { monitor } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { runCheck } from "@/lib/run-check";
+import { monitorOwnerFromUser } from "@/lib/monitor-owner";
 import { isMaintenanceActive } from "@/lib/monitor-config";
 
 export async function POST(
@@ -26,7 +27,7 @@ export async function POST(
   }
 
   try {
-    const result = await runCheck(m, session.user.email ?? "", {
+    const result = await runCheck(m, monitorOwnerFromUser(session.user), {
       maintenanceActive: isMaintenanceActive(m),
       manual: true,
     });

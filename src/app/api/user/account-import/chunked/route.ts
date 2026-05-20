@@ -14,6 +14,7 @@ import {
   type ParsedMonitorRow,
 } from "@/lib/account-data";
 import { runCheck } from "@/lib/run-check";
+import { monitorOwnerFromUser, type MonitorOwner } from "@/lib/monitor-owner";
 import type { Monitor } from "@/db/schema";
 
 const MAX_CHUNKED_BODY_BYTES = 900 * 1024;
@@ -122,10 +123,10 @@ async function applyProfilePatch(
   return { ok: true };
 }
 
-async function triggerChecksForUserMonitors(userId: string, ownerEmail: string) {
+async function triggerChecksForUserMonitors(userId: string, owner: MonitorOwner) {
   const created = await db.select().from(monitor).where(eq(monitor.userId, userId));
   for (const m of created) {
-    runCheck(m as Monitor, ownerEmail).catch((err) => {
+    runCheck(m as Monitor, owner).catch((err) => {
       console.error("[account-import/chunked] check failed for", m.id, err);
     });
   }
@@ -167,7 +168,7 @@ export async function POST(request: Request) {
   }
 
   const userId = session.user.id;
-  const ownerEmail = session.user?.email ?? "";
+  const owner = monitorOwnerFromUser(session.user);
 
   if (stage === "init") {
     if (!Array.isArray(obj.monitors)) {
@@ -344,6 +345,6 @@ export async function POST(request: Request) {
     });
   }
 
-  await triggerChecksForUserMonitors(userId, ownerEmail);
+  await triggerChecksForUserMonitors(userId, owner);
   return NextResponse.json({ stage: "finalize", ok: true });
 }

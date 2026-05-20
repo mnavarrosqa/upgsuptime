@@ -1,10 +1,38 @@
-// Usage: node --env-file=.env scripts/test-email.mjs [recipient@example.com]
+// Usage:
+//   node --env-file=.env scripts/test-email.mjs [recipient@example.com]
+//   node --env-file=.env scripts/test-email.mjs [recipient] --template uptime-down
+//
+// Templates: uptime-down, uptime-up, ssl-expiring, degradation
+import { spawnSync } from "node:child_process";
 import nodemailer from "nodemailer";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 
-const to = process.argv[2] ?? process.env.SMTP_USER;
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const args = process.argv.slice(2);
+const templateIdx = args.indexOf("--template");
+const template =
+  templateIdx >= 0 ? args[templateIdx + 1] : args.find((a) => a.startsWith("--template="))?.split("=")[1];
+const to = args.find((a) => !a.startsWith("--") && a !== template) ?? process.env.SMTP_USER;
+
 if (!to) {
-  console.error("Usage: node --env-file=.env scripts/test-email.mjs <recipient>");
+  console.error(
+    "Usage: node --env-file=.env scripts/test-email.mjs <recipient> [--template uptime-down]",
+  );
   process.exit(1);
+}
+
+if (template) {
+  const result = spawnSync(
+    "npx",
+    ["vitest", "run", "src/lib/send-template-email.test.ts"],
+    {
+      stdio: "inherit",
+      cwd: root,
+      env: { ...process.env, EMAIL_TEMPLATE: template, EMAIL_TO: to },
+    },
+  );
+  process.exit(result.status ?? 1);
 }
 
 const host = process.env.SMTP_HOST;

@@ -47,16 +47,21 @@ describe("scheduler", () => {
       intervalMinutes: 5,
       lastCheckAt: null,
     };
-    mocks.queryResults.push([dueMonitor], [{ id: "user-1", email: "owner@example.com" }]);
+    mocks.queryResults.push(
+      [dueMonitor],
+      [{ id: "user-1", email: "owner@example.com", language: "es" }],
+    );
     mocks.isMaintenanceActive.mockReturnValue(true);
     const { runDueChecks } = await import("@/lib/scheduler");
 
     await expect(runDueChecks()).resolves.toEqual({ ran: 1 });
     expect(mocks.db.select).toHaveBeenCalledTimes(2);
     expect(mocks.isMaintenanceActive).toHaveBeenCalledWith(dueMonitor, expect.any(Date));
-    expect(mocks.runCheck).toHaveBeenCalledWith(dueMonitor, "owner@example.com", {
-      maintenanceActive: true,
-    });
+    expect(mocks.runCheck).toHaveBeenCalledWith(
+      dueMonitor,
+      { email: "owner@example.com", language: "es" },
+      { maintenanceActive: true },
+    );
   });
 
   it("continues running due monitors when one check fails", async () => {
@@ -77,9 +82,9 @@ describe("scheduler", () => {
     mocks.queryResults.push(
       [firstMonitor, secondMonitor],
       [
-        { id: "user-1", email: "first@example.com" },
-        { id: "user-2", email: "second@example.com" },
-      ]
+        { id: "user-1", email: "first@example.com", language: "en" },
+        { id: "user-2", email: "second@example.com", language: "en" },
+      ],
     );
     mocks.runCheck
       .mockRejectedValueOnce(new Error("network failed"))
@@ -89,12 +94,18 @@ describe("scheduler", () => {
 
     await expect(runDueChecks()).resolves.toEqual({ ran: 1 });
     expect(mocks.runCheck).toHaveBeenCalledTimes(2);
-    expect(mocks.runCheck).toHaveBeenNthCalledWith(1, firstMonitor, "first@example.com", {
-      maintenanceActive: false,
-    });
-    expect(mocks.runCheck).toHaveBeenNthCalledWith(2, secondMonitor, "second@example.com", {
-      maintenanceActive: false,
-    });
+    expect(mocks.runCheck).toHaveBeenNthCalledWith(
+      1,
+      firstMonitor,
+      { email: "first@example.com", language: "en" },
+      { maintenanceActive: false },
+    );
+    expect(mocks.runCheck).toHaveBeenNthCalledWith(
+      2,
+      secondMonitor,
+      { email: "second@example.com", language: "en" },
+      { maintenanceActive: false },
+    );
     expect(consoleError).toHaveBeenCalledWith(
       "[scheduler] check failed for monitor",
       "monitor-1",

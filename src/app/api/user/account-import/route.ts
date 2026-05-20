@@ -16,6 +16,7 @@ import {
   type ParsedMonitorRow,
 } from "@/lib/account-data";
 import { runCheck } from "@/lib/run-check";
+import { monitorOwnerFromUser } from "@/lib/monitor-owner";
 import type { Monitor } from "@/db/schema";
 
 const MAX_MONITORS_PER_IMPORT = 500;
@@ -112,7 +113,7 @@ export async function POST(request: Request) {
   }
 
   const userId = session.user.id;
-  const ownerEmail = session.user?.email ?? "";
+  const owner = monitorOwnerFromUser(session.user);
 
   if (applyProfile && obj.user !== null && typeof obj.user === "object") {
     const u = obj.user as Record<string, unknown>;
@@ -349,7 +350,7 @@ export async function POST(request: Request) {
       .where(eq(monitor.userId, userId));
 
     for (const m of created) {
-      runCheck(m as Monitor, ownerEmail).catch((err) => {
+      runCheck(m as Monitor, owner).catch((err) => {
         console.error("[account-import] check failed for", m.id, err);
       });
     }
@@ -429,7 +430,7 @@ export async function POST(request: Request) {
   const idSet = new Set(newIds);
   for (const m of appended) {
     if (idSet.has(m.id)) {
-      runCheck(m as Monitor, ownerEmail).catch((err) => {
+      runCheck(m as Monitor, owner).catch((err) => {
         console.error("[account-import] check failed for", m.id, err);
       });
     }

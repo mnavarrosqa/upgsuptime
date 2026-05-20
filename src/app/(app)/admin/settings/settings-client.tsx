@@ -117,11 +117,11 @@ export function AdminSettingsClient({
         <p className="text-sm text-text-muted">
           Set every required variable to enable outbound notifications.
         </p>
-        <div className="mt-4 space-y-2">
+        <div className="mt-4 space-y-2 rounded-xl border border-border bg-muted/30 p-3 dark:bg-muted/20">
           {Object.entries(initial.smtpVarsSet).map(([key, set]) => (
             <div
               key={key}
-              className="flex items-center justify-between gap-3 rounded-xl border border-border bg-bg-page px-3 py-2 text-sm"
+              className="flex items-center justify-between gap-3 rounded-lg border border-border bg-bg-card px-3 py-2 text-sm"
             >
               <code className="text-xs">{key}</code>
               <span

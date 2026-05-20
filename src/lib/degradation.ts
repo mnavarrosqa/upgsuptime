@@ -14,6 +14,8 @@ import {
   isDegradationWarmup,
   splitDegradationWindowsFromRows,
 } from "@/lib/degradation-snapshot";
+import type { AppLocale } from "@/i18n/config";
+import { emailFormat, getEmailMessages } from "@/lib/email-i18n";
 import { getAppBaseUrlForEmail, getTransporter } from "@/lib/notify";
 import { buildDegradationAlertHtml } from "@/lib/email-templates";
 
@@ -109,32 +111,39 @@ export async function sendDegradationAlert(
   m: Monitor,
   recentP75Ms: number,
   baselineP75Ms: number,
-  ownerEmail: string
+  ownerEmail: string,
+  locale: AppLocale,
 ): Promise<void> {
   const transporter = getTransporter();
   if (!transporter) return;
 
+  const messages = await getEmailMessages(locale);
   const to = m.alertEmailTo ?? ownerEmail;
   const ratio =
     baselineP75Ms > 0 ? (recentP75Ms / baselineP75Ms).toFixed(1) : "—";
   const checkedAt = new Date().toUTCString();
 
-  const subject = `[Slow] ${m.name} — response time degrading (${ratio}× above normal)`;
+  const subject = emailFormat(messages.degradation.subject, {
+    name: m.name,
+    ratio,
+  });
   const baseUrl = getAppBaseUrlForEmail();
   const monitorDetailUrl = baseUrl
     ? `${baseUrl}/monitors/${encodeURIComponent(m.id)}`
     : null;
 
   const text = [
-    `Monitor: ${m.name}`,
-    `URL: ${m.url}`,
-    monitorDetailUrl ? `View monitor: ${monitorDetailUrl}` : null,
+    `${messages.monitor}: ${m.name}`,
+    `${messages.url}: ${m.url}`,
+    monitorDetailUrl
+      ? emailFormat(messages.viewMonitorText, { url: monitorDetailUrl })
+      : null,
     ``,
-    `Recent P75 response time: ${recentP75Ms} ms`,
-    `Normal baseline (P75): ${baselineP75Ms} ms`,
-    `Slowdown: ${ratio}× above baseline`,
+    emailFormat(messages.degradation.textRecentP75, { ms: recentP75Ms }),
+    emailFormat(messages.degradation.textBaselineP75, { ms: baselineP75Ms }),
+    emailFormat(messages.degradation.textSlowdown, { ratio }),
     ``,
-    `Checked at: ${checkedAt}`,
+    emailFormat(messages.checkedAt, { at: checkedAt }),
   ]
     .filter((l): l is string => l !== null)
     .join("\n");
@@ -144,6 +153,8 @@ export async function sendDegradationAlert(
     recentP75Ms,
     baselineP75Ms,
     checkedAt,
+    messages,
+    locale,
     monitorDetailUrl,
   );
 

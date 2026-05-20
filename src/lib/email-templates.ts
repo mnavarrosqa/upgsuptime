@@ -2,6 +2,8 @@ import type { Monitor } from "@/db/schema";
 import type { RunCheckResult } from "@/lib/run-check";
 import type { SslAlertType } from "@/lib/notify";
 import type { SslCheckResult } from "@/lib/check-ssl";
+import type { AppLocale } from "@/i18n/config";
+import { emailFormat, type EmailMessages } from "@/lib/email-i18n";
 
 // ─── shared primitives ────────────────────────────────────────────────────────
 
@@ -11,6 +13,7 @@ const FONT_STACK =
 const COLORS = {
   pageBg: "#faf9f7",
   cardBg: "#ffffff",
+  panelBg: "#f5f5f4",
   border: "#e7e5e4",
   textPrimary: "#1c1917",
   textMuted: "#78716c",
@@ -29,8 +32,6 @@ const COLORS = {
   criticalText: "#9a3412",
 };
 
-// ─── flat inline-SVG icons (email-safe, color baked in) ───────────────────────
-
 function iconCheck(color: string) {
   return `<svg width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><path d="M1.5 6L4.5 9L10.5 3" stroke="${color}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
@@ -48,7 +49,7 @@ function iconLock(color: string) {
 }
 
 function badge(label: string, bg: string, color: string, icon: string) {
-  return `<span style="display:inline-block;background:${bg};color:${color};font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:5px 12px;border-radius:100px;font-family:${FONT_STACK};line-height:1.4;"><span style="display:inline-block;vertical-align:middle;margin-right:5px;line-height:0;">${icon}</span><span style="display:inline-block;vertical-align:middle;">${label}</span></span>`;
+  return `<span style="display:inline-block;background:${bg};color:${color};font-size:12px;font-weight:600;letter-spacing:0.02em;padding:6px 12px;border-radius:100px;font-family:${FONT_STACK};line-height:1.4;"><span style="display:inline-block;vertical-align:middle;margin-right:6px;line-height:0;">${icon}</span><span style="display:inline-block;vertical-align:middle;">${label}</span></span>`;
 }
 
 function escAttr(str: string): string {
@@ -58,69 +59,70 @@ function escAttr(str: string): string {
     .replace(/</g, "&lt;");
 }
 
-/** Primary navigation: open this monitor in the app (when base URL is configured). */
-function buildMonitorDetailCtaBlock(monitorDetailUrl: string | null | undefined): string {
+function primaryButton(href: string, label: string) {
+  return `<a href="${escAttr(href)}" style="display:inline-block;background:${COLORS.textPrimary};color:#fafaf9;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;font-family:${FONT_STACK};min-height:44px;line-height:20px;box-sizing:border-box;">${label}</a>`;
+}
+
+function buildMonitorDetailCtaBlock(
+  messages: EmailMessages,
+  monitorDetailUrl: string | null | undefined,
+): string {
   if (!monitorDetailUrl) return "";
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:24px 0 0;">
       <tr>
         <td>
-          <a href="${escAttr(monitorDetailUrl)}" style="display:inline-block;background:${COLORS.cardBg};color:${COLORS.textPrimary};border:1px solid ${COLORS.border};padding:10px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;font-family:${FONT_STACK};">
-            View monitor
-          </a>
+          ${primaryButton(monitorDetailUrl, escHtml(messages.viewMonitor))}
         </td>
       </tr>
     </table>`;
 }
 
-/** CTA for down alerts: one-click ack from email (link is pre-signed). */
-function buildDownAckEmailBlock(ackEmailUrl: string): string {
+function buildDownAckEmailBlock(messages: EmailMessages, ackEmailUrl: string): string {
   return `
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-bottom:20px;">
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:24px 0 0;">
       <tr>
-        <td style="padding:16px 18px;background:${COLORS.warnBg};border:1px solid ${COLORS.border};border-radius:10px;">
-          <p style="margin:0 0 10px;font-size:13px;font-weight:600;color:${COLORS.warnText};font-family:${FONT_STACK};">
-            Is this downtime expected?
+        <td style="padding:18px 20px;background:${COLORS.warnBg};border-radius:12px;">
+          <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:${COLORS.warnText};font-family:${FONT_STACK};">
+            ${escHtml(messages.uptime.ackTitle)}
           </p>
-          <p style="margin:0 0 14px;font-size:13px;color:${COLORS.textMuted};line-height:1.5;font-family:${FONT_STACK};">
-            If this is planned maintenance or a known issue, you can acknowledge it. Your dashboard will show this outage as known, and repeat down alerts for this incident are paused until the outage ends or you undo the acknowledgment. You will still receive an email when the monitor recovers.
+          <p style="margin:0 0 16px;font-size:13px;color:${COLORS.textMuted};line-height:1.55;font-family:${FONT_STACK};">
+            ${escHtml(messages.uptime.ackBody)}
           </p>
-          <a href="${escAttr(ackEmailUrl)}" style="display:inline-block;background:${COLORS.textPrimary};color:#fafaf9;padding:11px 18px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;font-family:${FONT_STACK};">
-            Acknowledge downtime
-          </a>
+          ${primaryButton(ackEmailUrl, escHtml(messages.uptime.ackButton))}
         </td>
       </tr>
     </table>`;
 }
 
-function detailRow(label: string, value: string) {
+function detailRow(label: string, value: string, isLast = false) {
+  const paddingBottom = isLast ? "0" : "16px";
   return `
   <tr>
-    <td style="padding:0 20px 0 0;padding-bottom:14px;vertical-align:top;width:40%;">
-      <span style="display:block;font-size:11px;color:${COLORS.textMuted};text-transform:uppercase;letter-spacing:0.07em;font-weight:600;font-family:${FONT_STACK};">${label}</span>
-    </td>
-    <td style="padding-bottom:14px;vertical-align:top;">
-      <span style="font-size:14px;color:${COLORS.textPrimary};font-weight:500;font-family:${FONT_STACK};">${value}</span>
+    <td style="padding-bottom:${paddingBottom};">
+      <span style="display:block;font-size:13px;color:${COLORS.textMuted};font-weight:500;margin-bottom:4px;font-family:${FONT_STACK};">${label}</span>
+      <span style="display:block;font-size:15px;color:${COLORS.textPrimary};font-weight:500;font-family:${FONT_STACK};line-height:1.4;">${value}</span>
     </td>
   </tr>`;
 }
 
-/** Neutral double rule (replaces status-colored top stripe). */
-function cardTopAccent() {
-  return `<tr>
-    <td style="padding:0;background:${COLORS.cardBg};border-radius:12px 12px 0 0;">
-      <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
-        <tr><td style="height:1px;background:${COLORS.border};font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td></tr>
-        <tr><td style="height:5px;font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td></tr>
-        <tr><td style="height:1px;background:${COLORS.border};font-size:0;line-height:0;mso-line-height-rule:exactly;">&nbsp;</td></tr>
-      </table>
-    </td>
-  </tr>`;
+function detailsPanel(rows: string[]): string {
+  if (rows.length === 0) return "";
+  return `
+    <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin-top:24px;">
+      <tr>
+        <td style="padding:18px 20px;background:${COLORS.panelBg};border-radius:12px;">
+          <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+            ${rows.join("")}
+          </table>
+        </td>
+      </tr>
+    </table>`;
 }
 
-function wrap(body: string) {
+function wrap(body: string, messages: EmailMessages, locale: AppLocale) {
   return `<!DOCTYPE html>
-<html lang="en">
+<html lang="${locale}">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -130,33 +132,21 @@ function wrap(body: string) {
   <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="background:${COLORS.pageBg};padding:40px 20px;">
     <tr>
       <td align="center">
-        <!-- Wordmark -->
         <table width="100%" style="max-width:520px;" cellpadding="0" cellspacing="0" role="presentation">
           <tr>
-            <td style="padding-bottom:20px;">
-              <span style="font-size:12px;color:${COLORS.textFaint};font-weight:600;letter-spacing:0.1em;text-transform:uppercase;font-family:${FONT_STACK};">UPG Monitor</span>
+            <td style="padding-bottom:16px;">
+              <span style="font-size:13px;color:${COLORS.textFaint};font-weight:500;font-family:${FONT_STACK};">${escHtml(messages.wordmark)}</span>
             </td>
           </tr>
-
-          <!-- Card outer (accent + body) -->
           <tr>
-            <td>
-              <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="border-collapse:separate;border:1px solid ${COLORS.border};border-radius:12px;overflow:hidden;">
-                ${cardTopAccent()}
-                <tr>
-                  <td style="background:${COLORS.cardBg};padding:28px 32px;border-radius:0 0 12px 12px;">
-                    ${body}
-                  </td>
-                </tr>
-              </table>
+            <td style="background:${COLORS.cardBg};border:1px solid ${COLORS.border};border-radius:16px;padding:32px;">
+              ${body}
             </td>
           </tr>
-
-          <!-- Footer note -->
           <tr>
-            <td style="padding-top:18px;text-align:center;">
-              <p style="margin:0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
-                You're receiving this because email alerts are enabled for this monitor.
+            <td style="padding-top:20px;text-align:center;">
+              <p style="margin:0;font-size:12px;color:${COLORS.textFaint};line-height:1.5;font-family:${FONT_STACK};">
+                ${escHtml(messages.footer)}
               </p>
             </td>
           </tr>
@@ -168,14 +158,28 @@ function wrap(body: string) {
 </html>`;
 }
 
-function sslProblemDetailRows(sslResult: SslCheckResult): string[] {
+function sslProblemDetailRows(messages: EmailMessages, sslResult: SslCheckResult): string[] {
   const rows: string[] = [
-    detailRow("Days remaining", `${sslResult.daysUntilExpiry ?? "—"}`),
+    detailRow(
+      messages.daysRemaining,
+      `${sslResult.daysUntilExpiry ?? "—"}`,
+    ),
   ];
   if (sslResult.expiresAt != null) {
-    rows.push(detailRow("Expires", new Date(sslResult.expiresAt).toUTCString()));
+    rows.push(
+      detailRow(messages.expires, new Date(sslResult.expiresAt).toUTCString()),
+    );
   }
   return rows;
+}
+
+function finalizeDetailRows(rows: string[]): string[] {
+  return rows.map((row, i) => {
+    if (i === rows.length - 1) {
+      return row.replace(/padding-bottom:16px/, "padding-bottom:0");
+    }
+    return row;
+  });
 }
 
 // ─── uptime alert ─────────────────────────────────────────────────────────────
@@ -185,72 +189,67 @@ export function buildUptimeAlertHtml(
   newStatus: boolean,
   result: RunCheckResult,
   checkedAt: string,
+  messages: EmailMessages,
+  locale: AppLocale,
   options?: { ackEmailUrl?: string | null; monitorDetailUrl?: string | null },
 ): string {
   const isUp = newStatus;
   const statusBadge = isUp
-    ? badge("Up", COLORS.upBg, COLORS.upText, iconCheck(COLORS.upText))
-    : badge("Down", COLORS.downBg, COLORS.downText, iconX(COLORS.downText));
+    ? badge(messages.uptime.badgeUp, COLORS.upBg, COLORS.upText, iconCheck(COLORS.upText))
+    : badge(messages.uptime.badgeDown, COLORS.downBg, COLORS.downText, iconX(COLORS.downText));
 
   const monitorType = m.type ?? "http";
-  const downHeadline =
-    monitorType === "dns"
-      ? `DNS check for <span style="color:${COLORS.down};">${escHtml(m.name)}</span> failed`
-      : monitorType === "keyword"
-        ? `<span style="color:${COLORS.down};">${escHtml(m.name)}</span> — keyword check failed`
-        : monitorType === "tcp"
-          ? `TCP check for <span style="color:${COLORS.down};">${escHtml(m.name)}</span> failed`
-        : `<span style="color:${COLORS.down};">${escHtml(m.name)}</span> is unreachable`;
+  const name = escHtml(m.name);
+  let headline: string;
+  if (isUp) {
+    headline = emailFormat(messages.uptime.headlineUp, { name });
+  } else if (monitorType === "dns") {
+    headline = emailFormat(messages.uptime.headlineDownDns, { name });
+  } else if (monitorType === "keyword") {
+    headline = emailFormat(messages.uptime.headlineDownKeyword, { name });
+  } else if (monitorType === "tcp") {
+    headline = emailFormat(messages.uptime.headlineDownTcp, { name });
+  } else {
+    headline = emailFormat(messages.uptime.headlineDown, { name });
+  }
 
-  const headline = isUp
-    ? `<span style="color:${COLORS.up};">${escHtml(m.name)}</span> is back online`
-    : downHeadline;
-
-  const rows: string[] = [];
-  if (result.statusCode != null)
-    rows.push(detailRow("Status code", String(result.statusCode)));
-  if (result.responseTimeMs != null)
-    rows.push(detailRow("Response time", `${result.responseTimeMs} ms`));
-  if (!isUp && result.message)
-    rows.push(detailRow("Error", escHtml(result.message)));
+  const rawRows: string[] = [];
+  if (result.statusCode != null) {
+    rawRows.push(detailRow(messages.statusCode, String(result.statusCode)));
+  }
+  if (result.responseTimeMs != null) {
+    rawRows.push(
+      detailRow(messages.responseTime, `${result.responseTimeMs} ms`),
+    );
+  }
+  if (!isUp && result.message) {
+    rawRows.push(detailRow(messages.error, escHtml(result.message)));
+  }
+  const rows = finalizeDetailRows(rawRows);
 
   const ackBlock =
     !isUp && options?.ackEmailUrl
-      ? buildDownAckEmailBlock(options.ackEmailUrl)
+      ? buildDownAckEmailBlock(messages, options.ackEmailUrl)
       : "";
 
-  const monitorCta = buildMonitorDetailCtaBlock(options?.monitorDetailUrl);
+  const monitorCta = buildMonitorDetailCtaBlock(messages, options?.monitorDetailUrl);
+  const checkedAtLabel = emailFormat(messages.checkedAt, { at: escHtml(checkedAt) });
+  const detailsBlock = detailsPanel(rows);
 
   const body = `
-    <!-- Badge -->
-    <div style="margin-bottom:16px;">${statusBadge}</div>
-
-    <!-- Headline -->
-    <h1 style="margin:0 0 6px;font-size:21px;font-weight:700;color:${COLORS.textPrimary};line-height:1.3;font-family:${FONT_STACK};">
+    <div style="margin-bottom:20px;">${statusBadge}</div>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:${COLORS.textPrimary};line-height:1.35;font-family:${FONT_STACK};">
       ${headline}
     </h1>
-    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">${escHtml(m.url)}</p>
-
+    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};line-height:1.5;font-family:${FONT_STACK};word-break:break-all;">${escHtml(m.url)}</p>
     ${monitorCta}
-
-    <!-- Divider -->
-    <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
-
     ${ackBlock}
-
-    <!-- Details -->
-    ${
-      rows.length > 0
-        ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">${rows.join("")}</table>`
-        : ""
-    }
-
-    <!-- Timestamp -->
-    <p style="margin:${rows.length > 0 ? "6px" : "0"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
-      Checked at ${escHtml(checkedAt)}
+    ${detailsBlock}
+    <p style="margin:${rows.length > 0 || ackBlock ? "20px" : "24px"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
+      ${checkedAtLabel}
     </p>`;
 
-  return wrap(body);
+  return wrap(body, messages, locale);
 }
 
 // ─── SSL alert ────────────────────────────────────────────────────────────────
@@ -260,54 +259,53 @@ export function buildSslAlertHtml(
   sslResult: SslCheckResult,
   alertType: SslAlertType,
   checkedAt: string,
+  messages: EmailMessages,
+  locale: AppLocale,
   monitorDetailUrl?: string | null,
 ): string {
+  const name = escHtml(m.name);
   let statusBadge: string;
   let headline: string;
 
   switch (alertType) {
     case "expiring":
-      statusBadge = badge("SSL — 1 week", COLORS.warnBg, COLORS.warnText, iconLock(COLORS.warnText));
-      headline = `About one week left on the SSL certificate for <span style="color:${COLORS.warn};">${escHtml(m.name)}</span>`;
+      statusBadge = badge(
+        messages.ssl.badgeExpiring,
+        COLORS.warnBg,
+        COLORS.warnText,
+        iconLock(COLORS.warnText),
+      );
+      headline = emailFormat(messages.ssl.headlineExpiring, { name });
       break;
     case "critical":
-      statusBadge = badge("SSL — 2 days", COLORS.criticalBg, COLORS.criticalText, iconWarn(COLORS.criticalText));
-      headline = `About two days left on the SSL certificate for <span style="color:${COLORS.critical};">${escHtml(m.name)}</span>`;
+      statusBadge = badge(
+        messages.ssl.badgeCritical,
+        COLORS.criticalBg,
+        COLORS.criticalText,
+        iconWarn(COLORS.criticalText),
+      );
+      headline = emailFormat(messages.ssl.headlineCritical, { name });
       break;
   }
 
-  const rows: string[] = sslProblemDetailRows(sslResult);
-
-  const monitorCta = buildMonitorDetailCtaBlock(monitorDetailUrl);
+  const rows = finalizeDetailRows(sslProblemDetailRows(messages, sslResult));
+  const monitorCta = buildMonitorDetailCtaBlock(messages, monitorDetailUrl);
+  const checkedAtLabel = emailFormat(messages.checkedAt, { at: escHtml(checkedAt) });
+  const detailsBlock = detailsPanel(rows);
 
   const body = `
-    <!-- Badge -->
-    <div style="margin-bottom:16px;">${statusBadge}</div>
-
-    <!-- Headline -->
-    <h1 style="margin:0 0 6px;font-size:21px;font-weight:700;color:${COLORS.textPrimary};line-height:1.3;font-family:${FONT_STACK};">
+    <div style="margin-bottom:20px;">${statusBadge}</div>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:${COLORS.textPrimary};line-height:1.35;font-family:${FONT_STACK};">
       ${headline}
     </h1>
-    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">${escHtml(m.url)}</p>
-
+    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};line-height:1.5;font-family:${FONT_STACK};word-break:break-all;">${escHtml(m.url)}</p>
     ${monitorCta}
-
-    <!-- Divider -->
-    <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
-
-    <!-- Details -->
-    ${
-      rows.length > 0
-        ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation">${rows.join("")}</table>`
-        : ""
-    }
-
-    <!-- Timestamp -->
-    <p style="margin:${rows.length > 0 ? "6px" : "0"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
-      Checked at ${escHtml(checkedAt)}
+    ${detailsBlock}
+    <p style="margin:${rows.length > 0 ? "20px" : "24px"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
+      ${checkedAtLabel}
     </p>`;
 
-  return wrap(body);
+  return wrap(body, messages, locale);
 }
 
 // ─── degradation alert ────────────────────────────────────────────────────────
@@ -317,36 +315,49 @@ export function buildDegradationAlertHtml(
   recentP75Ms: number,
   baselineP75Ms: number,
   checkedAt: string,
+  messages: EmailMessages,
+  locale: AppLocale,
   monitorDetailUrl?: string | null,
 ): string {
   const ratio =
     baselineP75Ms > 0 ? (recentP75Ms / baselineP75Ms).toFixed(1) : "—";
-  const statusBadge = badge("Degrading", COLORS.warnBg, COLORS.warnText, iconWarn(COLORS.warnText));
+  const statusBadge = badge(
+    messages.degradation.badge,
+    COLORS.warnBg,
+    COLORS.warnText,
+    iconWarn(COLORS.warnText),
+  );
 
-  const rows = [
-    detailRow("Recent P75 response", `${recentP75Ms} ms`),
-    detailRow("Normal baseline (P75)", `${baselineP75Ms} ms`),
-    detailRow("Slowdown", `<span style="color:${COLORS.warn};font-weight:700;">${ratio}× above baseline</span>`),
-    detailRow("URL", escHtml(m.url)),
+  const rawRows = [
+    detailRow(messages.degradation.recentP75, `${recentP75Ms} ms`),
+    detailRow(messages.degradation.baselineP75, `${baselineP75Ms} ms`),
+    detailRow(
+      messages.degradation.slowdown,
+      `<span style="color:${COLORS.warn};font-weight:600;">${emailFormat(messages.degradation.slowdownValue, { ratio })}</span>`,
+    ),
+    detailRow(messages.url, escHtml(m.url)),
   ];
+  const rows = finalizeDetailRows(rawRows);
 
-  const monitorCta = buildMonitorDetailCtaBlock(monitorDetailUrl);
+  const monitorCta = buildMonitorDetailCtaBlock(messages, monitorDetailUrl);
+  const checkedAtLabel = emailFormat(messages.checkedAt, { at: escHtml(checkedAt) });
+  const headline = emailFormat(messages.degradation.headline, {
+    name: escHtml(m.name),
+  });
+  const detailsBlock = detailsPanel(rows);
 
   const body = `
-    <div style="margin-bottom:16px;">${statusBadge}</div>
-    <h1 style="margin:0 0 6px;font-size:21px;font-weight:700;color:${COLORS.textPrimary};line-height:1.3;font-family:${FONT_STACK};">
-      <span style="color:${COLORS.warn};">${escHtml(m.name)}</span> is responding slowly
+    <div style="margin-bottom:20px;">${statusBadge}</div>
+    <h1 style="margin:0 0 8px;font-size:22px;font-weight:600;color:${COLORS.textPrimary};line-height:1.35;font-family:${FONT_STACK};">
+      ${headline}
     </h1>
-    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};font-family:${FONT_STACK};">Response time has been elevated for several consecutive checks.</p>
+    <p style="margin:0;font-size:14px;color:${COLORS.textMuted};line-height:1.5;font-family:${FONT_STACK};">${escHtml(messages.degradation.subhead)}</p>
     ${monitorCta}
-    <div style="height:1px;background:${COLORS.border};margin:24px 0;"></div>
-    <table width="100%" cellpadding="0" cellspacing="0" role="presentation">${rows.join("")}</table>
-    <p style="margin:6px 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">Checked at ${escHtml(checkedAt)}</p>`;
+    ${detailsBlock}
+    <p style="margin:20px 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">${checkedAtLabel}</p>`;
 
-  return wrap(body);
+  return wrap(body, messages, locale);
 }
-
-// ─── util ─────────────────────────────────────────────────────────────────────
 
 function escHtml(str: string): string {
   return str

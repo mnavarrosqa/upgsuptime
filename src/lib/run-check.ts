@@ -12,6 +12,7 @@ import type { SslAlertType } from "@/lib/notify";
 import { evaluateDegradation, sendDegradationAlert } from "@/lib/degradation";
 import { checkSSL } from "@/lib/check-ssl";
 import { isMaintenanceActive, parseStoredRequestHeaders } from "@/lib/monitor-config";
+import type { MonitorOwner } from "@/lib/monitor-owner";
 
 export type RunCheckResult = {
   monitorId: string;
@@ -120,7 +121,7 @@ async function applyCheckResult(
   responseTimeMs: number,
   message: string | undefined,
   sslPromise: Promise<import("@/lib/check-ssl").SslCheckResult | null>,
-  ownerEmail: string,
+  owner: MonitorOwner,
   opts: RunCheckOptions = {}
 ): Promise<RunCheckResult> {
   const now = new Date();
@@ -244,7 +245,7 @@ async function applyCheckResult(
 
   // Fire-and-forget: notification errors must not propagate
   if (shouldNotify && !maintenanceActive) {
-    sendNotifications(m, ok, result, ownerEmail, {
+    sendNotifications(m, ok, result, owner.email, owner.language, {
       downEpisodeAt: !ok ? now : undefined,
     }).catch((err) => {
       console.error("[run-check] notification error for monitor", m.id, err);
@@ -253,13 +254,13 @@ async function applyCheckResult(
   // Only send standalone SSL alerts when the site is up — if it's down, SSL
   // failure is expected and would just add noise to the inbox.
   if (ok && sslResult && sslAlertType && !maintenanceActive) {
-    sendSslNotifications(m, sslResult, sslAlertType, ownerEmail).catch((err) => {
+    sendSslNotifications(m, sslResult, sslAlertType, owner.email, owner.language).catch((err) => {
       console.error("[run-check] SSL notification error for monitor", m.id, err);
     });
   }
 
   if (shouldSendDegradationAlert && degradationAlertArgs && m.alertEmail && !maintenanceActive) {
-    sendDegradationAlert(m, degradationAlertArgs.recentP75Ms, degradationAlertArgs.baselineP75Ms, ownerEmail).catch((err) => {
+    sendDegradationAlert(m, degradationAlertArgs.recentP75Ms, degradationAlertArgs.baselineP75Ms, owner.email, owner.language).catch((err) => {
       console.error("[run-check] degradation alert error for monitor", m.id, err);
     });
   }
@@ -307,7 +308,7 @@ function buildHttpRequestOptions(m: Monitor): {
 
 async function runCheckHttp(
   m: Monitor,
-  ownerEmail: string,
+  owner: MonitorOwner,
   opts: RunCheckOptions = {}
 ): Promise<RunCheckResult> {
   const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
@@ -369,14 +370,14 @@ async function runCheckHttp(
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
-  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, ownerEmail, opts);
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts);
 }
 
 // ─── Keyword check ────────────────────────────────────────────────────────────
 
 async function runCheckKeyword(
   m: Monitor,
-  ownerEmail: string,
+  owner: MonitorOwner,
   opts: RunCheckOptions = {}
 ): Promise<RunCheckResult> {
   const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
@@ -475,14 +476,14 @@ async function runCheckKeyword(
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
-  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, ownerEmail, opts);
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts);
 }
 
 // ─── DNS check ────────────────────────────────────────────────────────────────
 
 async function runCheckDns(
   m: Monitor,
-  ownerEmail: string,
+  owner: MonitorOwner,
   opts: RunCheckOptions = {}
 ): Promise<RunCheckResult> {
   const hostname = m.url; // DNS monitors store bare hostname in url column
@@ -526,11 +527,11 @@ async function runCheckDns(
     }
 
     // DNS monitors never run SSL checks
-    return applyCheckResult(m, ok, undefined, responseTimeMs, message, Promise.resolve(null), ownerEmail, opts);
+    return applyCheckResult(m, ok, undefined, responseTimeMs, message, Promise.resolve(null), owner, opts);
   } catch (err) {
     const responseTimeMs = Date.now() - start;
     message = err instanceof Error ? err.message : String(err);
-    return applyCheckResult(m, false, undefined, responseTimeMs, message, Promise.resolve(null), ownerEmail, opts);
+    return applyCheckResult(m, false, undefined, responseTimeMs, message, Promise.resolve(null), owner, opts);
   }
 }
 
@@ -538,7 +539,7 @@ async function runCheckDns(
 
 async function runCheckTcp(
   m: Monitor,
-  ownerEmail: string,
+  owner: MonitorOwner,
   opts: RunCheckOptions = {}
 ): Promise<RunCheckResult> {
   const host = (m.tcpHost ?? m.url).trim();
@@ -585,7 +586,7 @@ async function runCheckTcp(
     Date.now() - start,
     message,
     Promise.resolve(null),
-    ownerEmail,
+    owner,
     opts
   );
 }
@@ -598,12 +599,12 @@ async function runCheckTcp(
  */
 export async function runCheck(
   m: Monitor,
-  ownerEmail: string,
+  owner: MonitorOwner,
   opts: RunCheckOptions = {}
 ): Promise<RunCheckResult> {
   const monitorType = m.type ?? "http";
-  if (monitorType === "dns") return runCheckDns(m, ownerEmail, opts);
-  if (monitorType === "keyword") return runCheckKeyword(m, ownerEmail, opts);
-  if (monitorType === "tcp") return runCheckTcp(m, ownerEmail, opts);
-  return runCheckHttp(m, ownerEmail, opts);
+  if (monitorType === "dns") return runCheckDns(m, owner, opts);
+  if (monitorType === "keyword") return runCheckKeyword(m, owner, opts);
+  if (monitorType === "tcp") return runCheckTcp(m, owner, opts);
+  return runCheckHttp(m, owner, opts);
 }

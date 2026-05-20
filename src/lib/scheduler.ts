@@ -3,6 +3,8 @@ import { monitor, user } from "@/db/schema";
 import { runCheck } from "@/lib/run-check";
 import { isMaintenanceActive } from "@/lib/monitor-config";
 import { inArray, sql } from "drizzle-orm";
+import { normalizeLocale } from "@/i18n/config";
+import type { MonitorOwner } from "@/lib/monitor-owner";
 
 /**
  * Run all monitors that are due for a check.
@@ -27,10 +29,15 @@ export async function runDueChecks(): Promise<{ ran: number }> {
 
   const userIds = Array.from(new Set(due.map((m) => m.userId)));
   const users = await db
-    .select({ id: user.id, email: user.email })
+    .select({ id: user.id, email: user.email, language: user.language })
     .from(user)
     .where(inArray(user.id, userIds));
-  const emailById = new Map(users.map((u) => [u.id, u.email]));
+  const ownerById = new Map<string, MonitorOwner>(
+    users.map((u) => [
+      u.id,
+      { email: u.email, language: normalizeLocale(u.language) },
+    ]),
+  );
 
   const MAX_CONCURRENCY = 10;
   let active = 0;
@@ -48,9 +55,12 @@ export async function runDueChecks(): Promise<{ ran: number }> {
   let ran = 0;
   const tasks = due.map((m) => async () => {
     await acquire();
-    const ownerEmail = emailById.get(m.userId) ?? "";
+    const owner = ownerById.get(m.userId) ?? {
+      email: "",
+      language: normalizeLocale(null),
+    };
     try {
-      await runCheck(m, ownerEmail, { maintenanceActive: isMaintenanceActive(m, now) });
+      await runCheck(m, owner, { maintenanceActive: isMaintenanceActive(m, now) });
       ran++;
     } catch (err) {
       console.error("[scheduler] check failed for monitor", m.id, err);

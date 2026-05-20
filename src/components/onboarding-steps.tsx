@@ -242,7 +242,7 @@ export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+        <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-muted text-muted-foreground">
           <Mail className="h-6 w-6" />
         </div>
         <h2 className="text-xl font-semibold text-text-primary">
@@ -253,23 +253,23 @@ export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
         </p>
       </div>
 
-      <div className="space-y-3 rounded-lg bg-bg-page p-4">
+      <div className="space-y-3 rounded-xl border border-border bg-muted/50 p-4 dark:bg-muted/20">
         <p className="text-sm font-medium text-text-primary">How it works</p>
         <div className="flex items-start gap-3">
-          <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-          <p className="text-sm text-text-muted">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">1</span>
+          <p className="pt-0.5 text-sm text-text-muted">
             Enable email alerts when creating or editing a monitor
           </p>
         </div>
         <div className="flex items-start gap-3">
-          <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-          <p className="text-sm text-text-muted">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">2</span>
+          <p className="pt-0.5 text-sm text-text-muted">
             You&apos;ll receive emails at your account address or a custom email
           </p>
         </div>
         <div className="flex items-start gap-3">
-          <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-          <p className="text-sm text-text-muted">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">3</span>
+          <p className="pt-0.5 text-sm text-text-muted">
             Alerts fire only when status changes, avoiding spam
           </p>
         </div>

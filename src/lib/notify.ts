@@ -3,7 +3,9 @@ import type { Transporter } from "nodemailer";
 import type { Monitor } from "@/db/schema";
 import type { RunCheckResult } from "@/lib/run-check";
 import type { SslCheckResult } from "@/lib/check-ssl";
+import type { AppLocale } from "@/i18n/config";
 import { buildUptimeAlertHtml, buildSslAlertHtml } from "@/lib/email-templates";
+import { emailFormat, getEmailMessages } from "@/lib/email-i18n";
 import {
   canSignEmailAckTokens,
   signEmailAckToken,
@@ -50,25 +52,27 @@ export async function sendEmailAlert(
   newStatus: boolean,
   result: RunCheckResult,
   ownerEmail: string,
+  locale: AppLocale,
   downEpisodeAt?: Date,
 ): Promise<void> {
   const transporter = getTransporter();
   if (!transporter) return;
 
+  const messages = await getEmailMessages(locale);
   const to = m.alertEmailTo ?? ownerEmail;
   const monitorType = m.type ?? "http";
 
   let subject: string;
   if (newStatus) {
-    subject = `[Up] ${m.name} — back online`;
+    subject = emailFormat(messages.uptime.subjectUp, { name: m.name });
   } else if (monitorType === "dns") {
-    subject = `[Down] ${m.name} — DNS check failed`;
+    subject = emailFormat(messages.uptime.subjectDownDns, { name: m.name });
   } else if (monitorType === "keyword") {
-    subject = `[Down] ${m.name} — keyword check failed`;
+    subject = emailFormat(messages.uptime.subjectDownKeyword, { name: m.name });
   } else if (monitorType === "tcp") {
-    subject = `[Down] ${m.name} — TCP port check failed`;
+    subject = emailFormat(messages.uptime.subjectDownTcp, { name: m.name });
   } else {
-    subject = `[Down] ${m.name} — unreachable`;
+    subject = emailFormat(messages.uptime.subjectDown, { name: m.name });
   }
 
   const checkedAt = new Date().toUTCString();
@@ -88,30 +92,39 @@ export async function sendEmailAlert(
     ackEmailUrl = `${baseUrl}/api/monitors/${encodeURIComponent(m.id)}/ack-downtime/email?t=${encodeURIComponent(token)}`;
   }
 
+  const targetLabel =
+    monitorType === "dns" || monitorType === "tcp" ? messages.host : messages.url;
+
   const textParts: (string | null)[] = [
-    `Monitor: ${m.name}`,
-    `${monitorType === "dns" || monitorType === "tcp" ? "Host" : "URL"}: ${m.url}`,
-    monitorDetailUrl ? `View monitor: ${monitorDetailUrl}` : null,
-    `Status: ${newStatus ? "UP" : "DOWN"}`,
+    `${messages.monitor}: ${m.name}`,
+    `${targetLabel}: ${m.url}`,
+    monitorDetailUrl
+      ? emailFormat(messages.viewMonitorText, { url: monitorDetailUrl })
+      : null,
+    `${messages.status}: ${newStatus ? messages.statusUp : messages.statusDown}`,
     ``,
-    result.statusCode != null ? `Status code: ${result.statusCode}` : null,
-    result.responseTimeMs != null ? `Response time: ${result.responseTimeMs}ms` : null,
-    result.message ? `Error: ${result.message}` : null,
+    result.statusCode != null
+      ? `${messages.statusCode}: ${result.statusCode}`
+      : null,
+    result.responseTimeMs != null
+      ? `${messages.responseTime}: ${result.responseTimeMs}ms`
+      : null,
+    result.message ? `${messages.error}: ${result.message}` : null,
     ``,
-    `Checked at: ${checkedAt}`,
+    emailFormat(messages.checkedAt, { at: checkedAt }),
   ];
   if (ackEmailUrl) {
     textParts.push(
       ``,
-      `Is this downtime expected? Acknowledge it in one click (no login required):`,
+      messages.uptime.ackTextIntro,
       ackEmailUrl,
       ``,
-      `This marks the outage in your dashboard. Repeat down alerts for this incident are paused until the outage ends or you undo the acknowledgment; you will still receive an email when the monitor recovers.`
+      messages.uptime.ackTextFooter,
     );
   }
   const textLines = textParts.filter((l): l is string => l !== null).join("\n");
 
-  const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt, {
+  const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt, messages, locale, {
     ackEmailUrl,
     monitorDetailUrl,
   });
@@ -130,12 +143,13 @@ export async function sendNotifications(
   newStatus: boolean,
   result: RunCheckResult,
   ownerEmail: string,
+  locale: AppLocale,
   opts?: { downEpisodeAt?: Date },
 ): Promise<void> {
   if (!m.alertEmail) return;
 
   try {
-    await sendEmailAlert(m, newStatus, result, ownerEmail, opts?.downEpisodeAt);
+    await sendEmailAlert(m, newStatus, result, ownerEmail, locale, opts?.downEpisodeAt);
   } catch (err) {
     console.error("[notify] email failed for monitor", m.id, err);
   }
@@ -145,13 +159,15 @@ export async function sendSslNotifications(
   m: Monitor,
   sslResult: SslCheckResult,
   alertType: SslAlertType,
-  ownerEmail: string
+  ownerEmail: string,
+  locale: AppLocale,
 ): Promise<void> {
   if (!m.alertEmail) return;
 
   const transporter = getTransporter();
   if (!transporter) return;
 
+  const messages = await getEmailMessages(locale);
   const to = m.alertEmailTo ?? ownerEmail;
   const checkedAt = new Date().toUTCString();
 
@@ -160,18 +176,25 @@ export async function sendSslNotifications(
 
   switch (alertType) {
     case "expiring":
-      subject = `[SSL] ${m.name} — about one week until certificate expires`;
-      statusLine = `Reminder: renew soon — ${sslResult.daysUntilExpiry} day(s) until expiry (7-day notice)`;
+      subject = emailFormat(messages.ssl.subjectExpiring, { name: m.name });
+      statusLine = emailFormat(messages.ssl.statusExpiring, {
+        days: sslResult.daysUntilExpiry ?? "—",
+      });
       break;
     case "critical":
-      subject = `[SSL] ${m.name} — about two days until certificate expires`;
-      statusLine = `Reminder: renew urgently — ${sslResult.daysUntilExpiry} day(s) until expiry (2-day notice)`;
+      subject = emailFormat(messages.ssl.subjectCritical, { name: m.name });
+      statusLine = emailFormat(messages.ssl.statusCritical, {
+        days: sslResult.daysUntilExpiry ?? "—",
+      });
       break;
   }
 
   const expiryLine =
     sslResult.expiresAt != null
-      ? `Expires: ${new Date(sslResult.expiresAt).toUTCString()} (${sslResult.daysUntilExpiry} days)`
+      ? emailFormat(messages.ssl.expiresLine, {
+          at: new Date(sslResult.expiresAt).toUTCString(),
+          days: sslResult.daysUntilExpiry ?? "—",
+        })
       : null;
 
   const baseUrl = getAppBaseUrlForEmail();
@@ -180,18 +203,28 @@ export async function sendSslNotifications(
     : null;
 
   const textLines = [
-    `Monitor: ${m.name}`,
-    `URL: ${m.url}`,
-    monitorDetailUrl ? `View monitor: ${monitorDetailUrl}` : null,
+    `${messages.monitor}: ${m.name}`,
+    `${messages.url}: ${m.url}`,
+    monitorDetailUrl
+      ? emailFormat(messages.viewMonitorText, { url: monitorDetailUrl })
+      : null,
     statusLine,
     expiryLine,
     ``,
-    `Checked at: ${checkedAt}`,
+    emailFormat(messages.checkedAt, { at: checkedAt }),
   ]
     .filter((l) => l !== null)
     .join("\n");
 
-  const html = buildSslAlertHtml(m, sslResult, alertType, checkedAt, monitorDetailUrl);
+  const html = buildSslAlertHtml(
+    m,
+    sslResult,
+    alertType,
+    checkedAt,
+    messages,
+    locale,
+    monitorDetailUrl,
+  );
 
   try {
     await transporter.sendMail({

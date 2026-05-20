@@ -17,7 +17,8 @@
     "db:studio:local": "drizzle-kit studio",
     "db:check-users": "node scripts/check-users.mjs",
     "generate:icons": "node scripts/generate-pwa-icons.mjs",
-    "knip": "knip"
+    "knip": "knip",
+    "preview:email": "vitest run src/lib/email-preview.test.ts"
   },
   "dependencies": {
     "@serwist/next": "^9.5.7",

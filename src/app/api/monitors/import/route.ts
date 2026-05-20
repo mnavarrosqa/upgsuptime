@@ -11,6 +11,7 @@ import {
 } from "@/lib/validate-monitor";
 import { parseMonitorConfigForCreate, type ParsedMonitorConfig } from "@/lib/monitor-config";
 import { runCheck } from "@/lib/run-check";
+import { monitorOwnerFromUser } from "@/lib/monitor-owner";
 import type { Monitor } from "@/db/schema";
 
 const MAX_IMPORT_COUNT = 100;
@@ -104,9 +105,9 @@ export async function POST(request: Request) {
     .from(monitor)
     .where(inArray(monitor.id, ids));
 
-  const ownerEmail = session.user?.email ?? "";
+  const owner = monitorOwnerFromUser(session.user);
   for (const m of created) {
-    runCheck(m as Monitor, ownerEmail).catch((err) => {
+    runCheck(m as Monitor, owner).catch((err) => {
       console.error("[monitors/import] immediate check failed for", m.id, err);
     });
   }

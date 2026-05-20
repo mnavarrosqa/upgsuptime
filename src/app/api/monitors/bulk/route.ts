@@ -12,6 +12,7 @@ import {
 import { parseMonitorConfigForCreate, type ParsedMonitorConfig } from "@/lib/monitor-config";
 import { deriveMonitorNameFromUrl } from "@/lib/derive-monitor-name";
 import { runCheck } from "@/lib/run-check";
+import { monitorOwnerFromUser } from "@/lib/monitor-owner";
 import type { Monitor } from "@/db/schema";
 
 const MAX_BULK_URLS = 100;
@@ -118,9 +119,9 @@ export async function POST(request: Request) {
     .from(monitor)
     .where(inArray(monitor.id, ids));
 
-  const ownerEmail = session.user?.email ?? "";
+  const owner = monitorOwnerFromUser(session.user);
   for (const m of created) {
-    runCheck(m as Monitor, ownerEmail).catch((err) => {
+    runCheck(m as Monitor, owner).catch((err) => {
       console.error("[monitors/bulk] immediate check failed for", m.id, err);
     });
   }

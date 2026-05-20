@@ -88,10 +88,14 @@ describe("POST /api/monitors/[id]/check-now", () => {
     });
     expect(response.status).toBe(200);
     expect(mocks.isMaintenanceActive).toHaveBeenCalledWith(ownedMonitor);
-    expect(mocks.runCheck).toHaveBeenCalledWith(ownedMonitor, "owner@example.com", {
-      maintenanceActive: true,
-      manual: true,
-    });
+    expect(mocks.runCheck).toHaveBeenCalledWith(
+      ownedMonitor,
+      { email: "owner@example.com", language: "en" },
+      {
+        maintenanceActive: true,
+        manual: true,
+      },
+    );
   });
 
   it("returns check failure details when the manual check throws", async () => {

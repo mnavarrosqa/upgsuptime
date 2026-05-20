@@ -8,6 +8,7 @@ import { randomUUID } from "crypto";
 import { checkBodySizeLimit } from "@/lib/validate-monitor";
 import { parseMonitorConfigForCreate } from "@/lib/monitor-config";
 import { runCheck } from "@/lib/run-check";
+import { monitorOwnerFromUser } from "@/lib/monitor-owner";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   const [created] = await db.select().from(monitor).where(eq(monitor.id, id));
 
   // Kick off an immediate check so the monitor has data right away
-  runCheck(created, session.user.email ?? "").catch((err) => {
+  runCheck(created, monitorOwnerFromUser(session.user)).catch((err) => {
     console.error("[monitors] immediate check failed for", id, err);
   });
 

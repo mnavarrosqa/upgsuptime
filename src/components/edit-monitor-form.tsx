@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import type { Monitor } from "@/db/schema";
+import { NotificationsPanel } from "@/components/notifications-panel";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -554,6 +555,7 @@ export function EditMonitorForm({
       {/* Notifications */}
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">{tForm("notifications")}</p>
+        <NotificationsPanel>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
@@ -564,7 +566,7 @@ export function EditMonitorForm({
           <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
         {alertEmail && (
-          <div className="mt-3">
+          <div>
             <Label htmlFor="edit-alertEmailTo" className={labelClass}>
               {tForm("alertEmail")} <span className="font-normal text-text-muted">{tForm("useAccountEmailHint")}</span>
             </Label>
@@ -581,13 +583,13 @@ export function EditMonitorForm({
         {!isDns && !isTcp && showDegradationDeferHint && (
           <div
             role="note"
-            className="mt-3 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs text-amber-950/90 dark:border-amber-800/40 dark:bg-amber-950/25 dark:text-amber-100/90"
+            className="rounded-md border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-xs text-amber-950/90 dark:border-amber-800/40 dark:bg-amber-950/25 dark:text-amber-100/90"
           >
             {tDegradationHint("editReminder")}
           </div>
         )}
         {!isDns && !isTcp && (
-          <div className="mt-3">
+          <div>
             <label className={`flex items-center gap-2.5 ${alertEmail ? "cursor-pointer" : "cursor-not-allowed opacity-50"}`}>
               <input
                 type="checkbox"
@@ -608,6 +610,7 @@ export function EditMonitorForm({
             )}
           </div>
         )}
+        </NotificationsPanel>
       </div>
 
       {/* SSL monitoring — only for HTTP/keyword HTTPS */}

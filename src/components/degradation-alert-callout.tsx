@@ -63,27 +63,27 @@ export function DegradationAlertCallout({
 
   return (
     <section
-      className="rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-amber-800/40 dark:bg-amber-900/10"
+      className="rounded-xl border border-amber-200/80 bg-amber-50 p-5 dark:border-amber-800/40 dark:bg-amber-950/25"
       aria-label={t("title")}
     >
-      <h2 className="text-sm font-medium text-amber-800 dark:text-amber-400">
+      <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
         {t("title")}
       </h2>
-      <p className="mt-1 text-xs text-amber-700/70 dark:text-amber-400/60">
+      <p className="mt-1.5 text-sm text-amber-800/90 dark:text-amber-200/80">
         {t("description")}
       </p>
-      <p className="mt-2 text-xs text-amber-700/70 dark:text-amber-400/60">
+      <p className="mt-2 text-sm text-amber-800/80 dark:text-amber-200/70">
         {t("details")}
       </p>
 
-      <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+      <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         {hasEmailAlerts ? (
           <>
             <button
               type="button"
               onClick={handleEnable}
               disabled={enabling}
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-amber-800 px-3.5 py-2 text-xs font-medium text-white hover:bg-amber-900 disabled:opacity-60 dark:bg-amber-700 dark:hover:bg-amber-600"
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-md bg-accent px-4 py-2.5 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
             >
               {enabling && <Spinner size="sm" />}
               {enabling ? t("enabling") : t("enableButton")}
@@ -92,20 +92,20 @@ export function DegradationAlertCallout({
               type="button"
               onClick={handleLater}
               disabled={enabling}
-              className="inline-flex items-center justify-center rounded-md border border-amber-800/35 bg-transparent px-3.5 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100/80 disabled:opacity-60 dark:border-amber-500/40 dark:text-amber-200 dark:hover:bg-amber-950/40"
+              className="inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-transparent px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-muted disabled:opacity-60"
             >
               {t("laterButton")}
             </button>
           </>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <p className="text-xs text-amber-700/80 dark:text-amber-400/70 sm:max-w-[28rem]">
+            <p className="text-sm text-amber-800/90 dark:text-amber-200/80 sm:max-w-[28rem]">
               {t("requiresEmail")}
             </p>
             <button
               type="button"
               onClick={handleLater}
-              className="inline-flex shrink-0 items-center justify-center rounded-md border border-amber-800/35 bg-transparent px-3.5 py-2 text-xs font-medium text-amber-900 hover:bg-amber-100/80 dark:border-amber-500/40 dark:text-amber-200 dark:hover:bg-amber-950/40"
+              className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-md border border-border bg-transparent px-4 py-2.5 text-sm font-medium text-text-primary hover:bg-muted"
             >
               {t("laterButton")}
             </button>

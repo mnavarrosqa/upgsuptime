@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { NotificationsPanel } from "@/components/notifications-panel";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -549,6 +550,7 @@ export function AddBulkMonitorsForm({
         <p className="mb-3 text-sm font-medium text-text-primary">
           Notifications
         </p>
+        <NotificationsPanel>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
             type="checkbox"
@@ -559,7 +561,7 @@ export function AddBulkMonitorsForm({
           <span className="text-sm text-text-primary">Send email alerts</span>
         </label>
         {alertEmail && (
-          <div className="mt-3">
+          <div>
             <Label htmlFor="bulk-alertEmailTo" className={labelClass}>
               Alert email{" "}
               <span className="font-normal text-text-muted">
@@ -576,6 +578,7 @@ export function AddBulkMonitorsForm({
             />
           </div>
         )}
+        </NotificationsPanel>
       </div>
 
       <div className="border-t border-border pt-4">
