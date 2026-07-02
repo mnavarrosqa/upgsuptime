@@ -66,7 +66,7 @@ const templates = {
       html: buildUptimeAlertHtml(
         fixtureMonitor,
         false,
-        { ok: false, statusCode: 503, responseTimeMs: 1240, message: "Service Unavailable" },
+        { monitorId: fixtureMonitor.id, ok: false, statusCode: 503, responseTimeMs: 1240, message: "Service Unavailable" },
         new Date().toUTCString(),
         messages,
         "en",
@@ -81,7 +81,7 @@ const templates = {
       html: buildUptimeAlertHtml(
         fixtureMonitor,
         true,
-        { ok: true, statusCode: 200, responseTimeMs: 142 },
+        { monitorId: fixtureMonitor.id, ok: true, statusCode: 200, responseTimeMs: 142 },
         new Date().toUTCString(),
         messages,
         "en",

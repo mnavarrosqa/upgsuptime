@@ -1,4 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getUrlNotAllowedReason } from "@/lib/url-allowed";
+
+/**
+ * A favicon "domain" must be a bare hostname (optionally with a port) — no path,
+ * userinfo, scheme, whitespace or other characters that could be smuggled into a
+ * fetch target. Rejecting these early prevents request smuggling into the direct
+ * origin fetch below.
+ */
+function isPlausibleDomain(domain: string): boolean {
+  if (domain.length > 253) return false;
+  return /^[a-z0-9.-]+(:\d{1,5})?$/.test(domain);
+}
 
 /** 1×1 transparent PNG — returned when no favicon can be fetched (avoids img 404 noise in the console). */
 const PLACEHOLDER_PNG = Buffer.from(
@@ -42,12 +54,21 @@ async function tryFetchIcon(
 
 export async function GET(request: NextRequest) {
   const domain = request.nextUrl.searchParams.get("domain")?.trim().toLowerCase();
-  if (!domain) return new NextResponse(null, { status: 400 });
+  if (!domain || !isPlausibleDomain(domain)) {
+    return new NextResponse(null, { status: 400 });
+  }
+
+  // The first two sources are fixed, trusted third-party icon services (the
+  // user-supplied domain is only a query param). The third fetches the origin
+  // directly, so it is guarded against SSRF (private/loopback/link-local IPs,
+  // reserved hostnames) before being attempted.
+  const directOriginAllowed =
+    (await getUrlNotAllowedReason(`https://${domain}/favicon.ico`)) === null;
 
   const sources = [
     `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`,
     `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`,
-    `https://${domain}/favicon.ico`,
+    ...(directOriginAllowed ? [`https://${domain}/favicon.ico`] : []),
   ];
 
   for (const url of sources) {

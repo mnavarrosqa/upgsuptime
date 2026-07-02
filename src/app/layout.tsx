@@ -5,6 +5,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { pwaSplashStartupImages } from "@/lib/pwa-splash-startup.generated";
 import { getLocale, getMessages, getTimeZone } from "next-intl/server";
+import { headers } from "next/headers";
 import { cn } from "@/lib/utils";
 
 const themeScript = `
@@ -63,6 +64,8 @@ export default async function RootLayout({
   const locale = await getLocale();
   const messages = await getMessages();
   const timeZone = await getTimeZone();
+  // Nonce set by the middleware CSP so the inline theme script is allowed.
+  const nonce = (await headers()).get("x-nonce") ?? undefined;
 
   return (
     <html
@@ -71,7 +74,7 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">
-        <Script id="theme-init" strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <Script id="theme-init" nonce={nonce} strategy="beforeInteractive" dangerouslySetInnerHTML={{ __html: themeScript }} />
         <Providers locale={locale} messages={messages} timeZone={timeZone}>
           {children}
         </Providers>

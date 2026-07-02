@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import { db } from "@/db";
 import { checkResult, monitor, user } from "@/db/schema";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { randomUUID } from "crypto";
 import { checkBodySizeLimit } from "@/lib/validate-monitor";
 import {
@@ -246,6 +246,21 @@ export async function POST(request: Request) {
           error: `At most ${MAX_CHECK_RESULTS_PER_IMPORT} check results per import`,
         },
         { status: 400 }
+      );
+    }
+
+    // Restore preserves monitor ids from the file. Reject ids that already belong
+    // to a *different* user — the insert would otherwise fail on the primary-key
+    // constraint mid-transaction and surface as an opaque 500.
+    const importIds = parsedMonitors.map((m) => m.id);
+    const collisions = await db
+      .select({ id: monitor.id })
+      .from(monitor)
+      .where(and(inArray(monitor.id, importIds), ne(monitor.userId, userId)));
+    if (collisions.length > 0) {
+      return NextResponse.json(
+        { error: "Import contains monitor IDs that belong to another account" },
+        { status: 409 }
       );
     }
 

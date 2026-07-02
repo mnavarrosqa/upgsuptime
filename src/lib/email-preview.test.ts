@@ -72,6 +72,7 @@ describe("email preview generator", () => {
         fixtureMonitor,
         false,
         {
+          monitorId: fixtureMonitor.id,
           ok: false,
           statusCode: 503,
           responseTimeMs: 1240,
@@ -89,7 +90,7 @@ describe("email preview generator", () => {
       "email-preview-uptime-up.html": buildUptimeAlertHtml(
         fixtureMonitor,
         true,
-        { ok: true, statusCode: 200, responseTimeMs: 142 },
+        { monitorId: fixtureMonitor.id, ok: true, statusCode: 200, responseTimeMs: 142 },
         checkedAt,
         messages,
         "en",

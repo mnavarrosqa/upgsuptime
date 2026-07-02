@@ -35,6 +35,9 @@ const nextConfig: NextConfig = {
   env: process.env.NODE_ENV !== "production" ? { AUTH_TRUST_HOST: "true" } : {},
   async headers() {
     const isDev = process.env.NODE_ENV !== "production";
+    // Content-Security-Policy is set per-request in src/proxy.ts (middleware) so it
+    // can carry a per-request nonce for script-src. The static headers below apply
+    // to every route, including static assets.
     const securityHeaders: { key: string; value: string }[] = [
       { key: "X-Frame-Options", value: "DENY" },
       { key: "X-Content-Type-Options", value: "nosniff" },
@@ -42,36 +45,6 @@ const nextConfig: NextConfig = {
       {
         key: "Permissions-Policy",
         value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
-      },
-      {
-        key: "Content-Security-Policy",
-        value: isDev
-          ? [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https:",
-              "font-src 'self'",
-              "connect-src 'self' ws: wss:",
-              "worker-src 'self'",
-              "object-src 'none'",
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join("; ")
-          : [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline'",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https:",
-              "font-src 'self'",
-              "connect-src 'self'",
-              "worker-src 'self'",
-              "object-src 'none'",
-              "frame-ancestors 'none'",
-              "base-uri 'self'",
-              "form-action 'self'",
-            ].join("; "),
       },
     ];
     if (!isDev) {
