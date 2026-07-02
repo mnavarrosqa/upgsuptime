@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { HeartPulse, WifiOff } from "lucide-react";
+import { WifiOff } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 
 export const metadata: Metadata = {
   title: "You're offline — UPG Monitor",
@@ -12,7 +13,7 @@ export default function OfflinePage() {
       <div className="w-full max-w-sm text-center">
         <div className="mb-8 flex flex-col items-center gap-4">
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--bg-page)]">
-            <HeartPulse size={26} strokeWidth={2.5} aria-hidden />
+            <BrandMark size={26} strokeWidth={2.5} />
           </div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] font-display">
             UPG Monitor

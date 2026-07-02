@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { HeartPulse } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { UserMenu } from "@/components/user-menu";
@@ -43,7 +43,7 @@ export default async function AppLayout({
               className="flex shrink-0 items-center gap-2 text-sm font-semibold text-text-primary hover:text-text-muted"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              <HeartPulse className="size-4 shrink-0" />
+              <BrandMark className="size-4 shrink-0" />
               {t("appTitle")}
             </Link>
 

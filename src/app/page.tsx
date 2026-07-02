@@ -6,7 +6,7 @@ import { user } from "@/db/schema";
 import { count } from "drizzle-orm";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
-import { HeartPulse } from "lucide-react";
+import { BrandMark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LandingHeroCarousel } from "@/components/landing-hero-carousel";
 
@@ -80,7 +80,7 @@ export default async function HomePage() {
           className="flex items-center gap-2 text-sm font-semibold text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          <HeartPulse className="size-4 shrink-0" />
+          <BrandMark className="size-4 shrink-0" />
           <span className="tracking-tight">UPG Monitor</span>
         </div>
         <div className="flex items-center gap-3">
@@ -467,7 +467,7 @@ export default async function HomePage() {
         </div>
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <span className="inline-flex items-center gap-2 text-xs text-text-muted">
-            <HeartPulse className="size-3.5 shrink-0" />
+            <BrandMark className="size-3.5 shrink-0" />
             <span>UPG Monitor</span>
           </span>
           <Link
