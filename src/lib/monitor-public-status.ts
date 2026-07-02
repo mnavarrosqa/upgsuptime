@@ -1,4 +1,4 @@
-import { and, gte, inArray, sql } from "drizzle-orm";
+import { and, gte, inArray, isNull, or, eq, sql } from "drizzle-orm";
 import { checkResult, monitor } from "@/db/schema";
 
 export const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
@@ -77,6 +77,10 @@ export async function getUptimeStats90d(
   if (monitorIds.length === 0) return map;
 
   const { db } = await import("@/db");
+  const notMaintenance = or(
+    isNull(checkResult.duringMaintenance),
+    eq(checkResult.duringMaintenance, false)
+  );
   const rows = await db
     .select({
       monitorId: checkResult.monitorId,
@@ -86,7 +90,7 @@ export async function getUptimeStats90d(
       ),
     })
     .from(checkResult)
-    .where(and(inArray(checkResult.monitorId, monitorIds), gte(checkResult.createdAt, since)))
+    .where(and(inArray(checkResult.monitorId, monitorIds), gte(checkResult.createdAt, since), notMaintenance))
     .groupBy(checkResult.monitorId);
 
   for (const row of rows) {

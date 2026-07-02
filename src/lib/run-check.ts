@@ -14,11 +14,19 @@ import { checkSSL } from "@/lib/check-ssl";
 import { isMaintenanceActive, parseStoredRequestHeaders } from "@/lib/monitor-config";
 import type { MonitorOwner } from "@/lib/monitor-owner";
 
+export type PhaseTimings = {
+  dnsMs?: number;
+  connectMs?: number;
+  tlsMs?: number;
+  ttfbMs?: number;
+};
+
 export type RunCheckResult = {
   monitorId: string;
   ok: boolean;
   statusCode?: number;
   responseTimeMs: number;
+  timings?: PhaseTimings;
   message?: string;
 };
 
@@ -31,28 +39,46 @@ export type RunCheckOptions = {
 const CONFIRMATION_COUNT = 2;
 
 /**
- * Undici agent that re-validates resolved IPs at connect time, eliminating the
- * TOCTOU race between the pre-check in getUrlNotAllowedReason and the actual fetch.
+ * Undici connector that re-validates resolved IPs at connect time (SSRF guard)
+ * and captures per-request DNS/connect timing via a shared PhaseTimings object.
  */
 const defaultConnector = buildConnector({});
-const ssrfGuardAgent = new Agent({
-  connect: (options, callback) => {
-    const hostname = (options as { hostname?: string }).hostname ?? "";
-    dnsLookup(hostname, { all: true })
-      .then((addresses) => {
-        for (const { address } of addresses) {
-          if (isBlockedIP(address)) {
-            callback(new Error(`Resolved IP ${address} is not allowed (SSRF protection)`), null);
-            return;
+
+function createInstrumentedAgent(timings: PhaseTimings): Agent {
+  return new Agent({
+    connect: (options, callback) => {
+      const hostname = (options as { hostname?: string }).hostname ?? "";
+      const dnsStart = performance.now();
+      dnsLookup(hostname, { all: true })
+        .then((addresses) => {
+          timings.dnsMs = Math.round(performance.now() - dnsStart);
+          for (const { address } of addresses) {
+            if (isBlockedIP(address)) {
+              callback(new Error(`Resolved IP ${address} is not allowed (SSRF protection)`), null);
+              return;
+            }
           }
-        }
-        defaultConnector(options, callback);
-      })
-      .catch((err: unknown) => {
-        callback(err instanceof Error ? err : new Error(String(err)), null);
-      });
-  },
-});
+          const connectStart = performance.now();
+          defaultConnector(options, (err, socket) => {
+            if (!err && socket) {
+              const connectEnd = performance.now();
+              timings.connectMs = Math.round(connectEnd - connectStart);
+              const tlsSocket = socket as import("tls").TLSSocket;
+              if (typeof tlsSocket.encrypted !== "undefined") {
+                timings.tlsMs = Math.round(connectEnd - connectStart);
+              }
+            }
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (callback as any)(err, socket);
+          });
+        })
+        .catch((err: unknown) => {
+          timings.dnsMs = Math.round(performance.now() - dnsStart);
+          callback(err instanceof Error ? err : new Error(String(err)), null);
+        });
+    },
+  });
+}
 
 /** Total fetch attempts per check (1 initial + 2 retries). */
 const TOTAL_ATTEMPTS = 3;
@@ -122,7 +148,8 @@ async function applyCheckResult(
   message: string | undefined,
   sslPromise: Promise<import("@/lib/check-ssl").SslCheckResult | null>,
   owner: MonitorOwner,
-  opts: RunCheckOptions = {}
+  opts: RunCheckOptions = {},
+  timings?: PhaseTimings
 ): Promise<RunCheckResult> {
   const now = new Date();
   const maintenanceActive = opts.maintenanceActive ?? isMaintenanceActive(m, now);
@@ -140,8 +167,13 @@ async function applyCheckResult(
     monitorId: m.id,
     statusCode: statusCode ?? null,
     responseTimeMs,
+    dnsMs: timings?.dnsMs ?? null,
+    connectMs: timings?.connectMs ?? null,
+    tlsMs: timings?.tlsMs ?? null,
+    ttfbMs: timings?.ttfbMs ?? null,
     ok,
     message: effectiveMessage ?? null,
+    duringMaintenance: maintenanceActive || null,
     createdAt: now,
   });
 
@@ -240,6 +272,7 @@ async function applyCheckResult(
     ok,
     statusCode,
     responseTimeMs,
+    timings,
     message: effectiveMessage,
   };
 
@@ -319,6 +352,7 @@ async function runCheckHttp(
   let statusCode: number | undefined;
   let message: string | undefined;
   let responseTimeMs = 0;
+  let timings: PhaseTimings = {};
 
   const notAllowedReason = await getUrlNotAllowedReason(m.url);
   if (notAllowedReason) {
@@ -327,10 +361,12 @@ async function runCheckHttp(
     for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
       if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
 
-      const attemptStart = Date.now();
+      const attemptStart = performance.now();
       ok = false;
       statusCode = undefined;
       message = undefined;
+      timings = {};
+      const agent = createInstrumentedAgent(timings);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -342,20 +378,21 @@ async function runCheckHttp(
           body: requestOptions.body,
           redirect: requestOptions.redirect,
           maxRedirections: requestOptions.maxRedirections,
-          dispatcher: ssrfGuardAgent,
+          dispatcher: agent,
         } as unknown as Parameters<typeof undiciFetch>[1];
         const res = await undiciFetch(m.url, fetchOptions);
+        timings.ttfbMs = Math.round(performance.now() - attemptStart);
         statusCode = res.status;
         ok = isSuccess(res.status);
-        // Drain body so undici can reuse the connection
         await res.body?.cancel();
       } catch (err) {
         message = err instanceof Error ? err.message : String(err);
       } finally {
         clearTimeout(timeout);
+        await agent.close();
       }
 
-      responseTimeMs = Date.now() - attemptStart;
+      responseTimeMs = Math.round(performance.now() - attemptStart);
       if (ok) break;
     }
   }
@@ -370,7 +407,7 @@ async function runCheckHttp(
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
-  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts);
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts, timings);
 }
 
 // ─── Keyword check ────────────────────────────────────────────────────────────
@@ -389,6 +426,7 @@ async function runCheckKeyword(
   let statusCode: number | undefined;
   let message: string | undefined;
   let responseTimeMs = 0;
+  let timings: PhaseTimings = {};
 
   const notAllowedReason = await getUrlNotAllowedReason(m.url);
   if (notAllowedReason) {
@@ -397,20 +435,23 @@ async function runCheckKeyword(
     for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
       if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
 
-      const attemptStart = Date.now();
+      const attemptStart = performance.now();
       ok = false;
       statusCode = undefined;
       message = undefined;
+      timings = {};
+      const agent = createInstrumentedAgent(timings);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
       try {
         const res = await undiciFetch(m.url, {
-          method: "GET", // keyword monitors always use GET
+          method: "GET",
           signal: controller.signal,
           headers: { "User-Agent": "UPGMonitor/1.0" },
-          dispatcher: ssrfGuardAgent,
+          dispatcher: agent,
         });
+        timings.ttfbMs = Math.round(performance.now() - attemptStart);
         statusCode = res.status;
         const statusOk = isSuccess(res.status);
 
@@ -463,9 +504,10 @@ async function runCheckKeyword(
         message = err instanceof Error ? err.message : String(err);
       } finally {
         clearTimeout(timeout);
+        await agent.close();
       }
 
-      responseTimeMs = Date.now() - attemptStart;
+      responseTimeMs = Math.round(performance.now() - attemptStart);
       if (ok) break;
     }
   }
@@ -476,7 +518,7 @@ async function runCheckKeyword(
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
-  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts);
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts, timings);
 }
 
 // ─── DNS check ────────────────────────────────────────────────────────────────
@@ -492,12 +534,12 @@ async function runCheckDns(
 
   let ok = false;
   let message: string | undefined;
-  const start = Date.now();
+  const start = performance.now();
 
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const records = await (dnsResolve as any)(hostname, recordType);
-    const responseTimeMs = Date.now() - start;
+    const responseTimeMs = Math.round(performance.now() - start);
 
     // Normalise records to strings for comparison
     let resolved: string[] = [];
@@ -527,11 +569,11 @@ async function runCheckDns(
     }
 
     // DNS monitors never run SSL checks
-    return applyCheckResult(m, ok, undefined, responseTimeMs, message, Promise.resolve(null), owner, opts);
+    return applyCheckResult(m, ok, undefined, responseTimeMs, message, Promise.resolve(null), owner, opts, { dnsMs: responseTimeMs });
   } catch (err) {
-    const responseTimeMs = Date.now() - start;
+    const responseTimeMs = Math.round(performance.now() - start);
     message = err instanceof Error ? err.message : String(err);
-    return applyCheckResult(m, false, undefined, responseTimeMs, message, Promise.resolve(null), owner, opts);
+    return applyCheckResult(m, false, undefined, responseTimeMs, message, Promise.resolve(null), owner, opts, { dnsMs: responseTimeMs });
   }
 }
 
@@ -545,17 +587,21 @@ async function runCheckTcp(
   const host = (m.tcpHost ?? m.url).trim();
   const port = m.tcpPort ?? 0;
   const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
-  const start = Date.now();
+  const start = performance.now();
   let ok = false;
   let message: string | undefined;
+  const timings: PhaseTimings = {};
 
   try {
+    const dnsStart = performance.now();
     const addresses = await dnsLookup(host, { all: true });
+    timings.dnsMs = Math.round(performance.now() - dnsStart);
     if (!addresses.length) {
       message = "Could not resolve TCP host";
     } else if (addresses.some(({ address }) => isBlockedIP(address))) {
       message = "TCP host resolves to a disallowed address";
     } else {
+      const connectStart = performance.now();
       await new Promise<void>((resolve, reject) => {
         const socket = netConnect({ host: addresses[0].address, port });
         const timeout = setTimeout(() => {
@@ -565,6 +611,7 @@ async function runCheckTcp(
 
         socket.once("connect", () => {
           clearTimeout(timeout);
+          timings.connectMs = Math.round(performance.now() - connectStart);
           ok = true;
           socket.end();
           resolve();
@@ -583,11 +630,12 @@ async function runCheckTcp(
     m,
     ok,
     undefined,
-    Date.now() - start,
+    Math.round(performance.now() - start),
     message,
     Promise.resolve(null),
     owner,
-    opts
+    opts,
+    timings
   );
 }
 

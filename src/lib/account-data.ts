@@ -94,8 +94,13 @@ export type AccountExportCheckResult = {
   monitorId: string;
   statusCode: number | null;
   responseTimeMs: number | null;
+  dnsMs?: number | null;
+  connectMs?: number | null;
+  tlsMs?: number | null;
+  ttfbMs?: number | null;
   ok: boolean;
   message: string | null;
+  duringMaintenance?: boolean | null;
   createdAt: string;
 };
 

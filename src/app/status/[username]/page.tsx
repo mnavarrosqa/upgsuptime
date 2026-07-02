@@ -3,7 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
 import { monitor, user, checkResult } from "@/db/schema";
-import { eq, and, gte, desc } from "drizzle-orm";
+import { eq, and, gte, desc, or, isNull } from "drizzle-orm";
 import { StatusPageShell } from "@/components/status-page-shell";
 import { daysAgoUtc, unixNowMs } from "@/lib/server-relative-time";
 import { isMaintenanceActive } from "@/lib/monitor-config";
@@ -80,7 +80,8 @@ export default async function StatusPage({
         .where(
           and(
             eq(checkResult.monitorId, m.id),
-            gte(checkResult.createdAt, ninetyDaysAgo)
+            gte(checkResult.createdAt, ninetyDaysAgo),
+            or(isNull(checkResult.duringMaintenance), eq(checkResult.duringMaintenance, false))
           )
         );
 

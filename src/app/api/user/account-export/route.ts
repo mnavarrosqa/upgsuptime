@@ -104,8 +104,13 @@ export async function GET(request: Request) {
       monitorId: r.monitorId,
       statusCode: r.statusCode ?? null,
       responseTimeMs: r.responseTimeMs ?? null,
+      dnsMs: r.dnsMs ?? null,
+      connectMs: r.connectMs ?? null,
+      tlsMs: r.tlsMs ?? null,
+      ttfbMs: r.ttfbMs ?? null,
       ok: r.ok,
       message: r.message ?? null,
+      duringMaintenance: r.duringMaintenance ?? null,
       createdAt: toIsoTimestamp(r.createdAt) ?? new Date().toISOString(),
     })),
   };

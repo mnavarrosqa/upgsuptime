@@ -80,6 +80,10 @@ export default async function MonitorDetailPage({
     ok: r.ok,
     statusCode: r.statusCode,
     responseTimeMs: r.responseTimeMs,
+    dnsMs: r.dnsMs ?? null,
+    connectMs: r.connectMs ?? null,
+    tlsMs: r.tlsMs ?? null,
+    ttfbMs: r.ttfbMs ?? null,
     message: r.message,
   }));
 

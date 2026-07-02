@@ -80,8 +80,13 @@ export const checkResult = sqliteTable("check_result", {
     .references(() => monitor.id, { onDelete: "cascade" }),
   statusCode: integer("status_code"),
   responseTimeMs: integer("response_time_ms"),
+  dnsMs: integer("dns_ms"),
+  connectMs: integer("connect_ms"),
+  tlsMs: integer("tls_ms"),
+  ttfbMs: integer("ttfb_ms"),
   ok: integer("ok", { mode: "boolean" }).notNull(),
   message: text("message"),
+  duringMaintenance: integer("during_maintenance", { mode: "boolean" }),
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
