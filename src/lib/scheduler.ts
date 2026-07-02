@@ -10,7 +10,7 @@ import type { MonitorOwner } from "@/lib/monitor-owner";
  * Run all monitors that are due for a check.
  * Called by the in-process scheduler (instrumentation.ts) and the HTTP cron endpoint.
  */
-export async function runDueChecks(): Promise<{ ran: number }> {
+export async function runDueChecks(opts?: { jitter?: boolean }): Promise<{ ran: number }> {
   const now = new Date();
   const nowUnixSeconds = Math.floor(now.getTime() / 1000);
 
@@ -40,6 +40,7 @@ export async function runDueChecks(): Promise<{ ran: number }> {
   );
 
   const MAX_CONCURRENCY = 10;
+  const MAX_JITTER_MS = 15_000;
   let active = 0;
   const queue: Array<() => void> = [];
 
@@ -54,6 +55,9 @@ export async function runDueChecks(): Promise<{ ran: number }> {
 
   let ran = 0;
   const tasks = due.map((m) => async () => {
+    const useJitter = (opts?.jitter ?? true) && due.length > 1;
+    const jitter = useJitter ? Math.floor(Math.random() * MAX_JITTER_MS) : 0;
+    if (jitter > 0) await new Promise((r) => setTimeout(r, jitter));
     await acquire();
     const owner = ownerById.get(m.userId) ?? {
       email: "",

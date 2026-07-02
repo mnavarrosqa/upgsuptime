@@ -98,6 +98,7 @@ export type AccountExportCheckResult = {
   connectMs?: number | null;
   tlsMs?: number | null;
   ttfbMs?: number | null;
+  attempts?: number | null;
   ok: boolean;
   message: string | null;
   duringMaintenance?: boolean | null;

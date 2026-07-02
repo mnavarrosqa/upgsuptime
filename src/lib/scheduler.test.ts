@@ -92,7 +92,7 @@ describe("scheduler", () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const { runDueChecks } = await import("@/lib/scheduler");
 
-    await expect(runDueChecks()).resolves.toEqual({ ran: 1 });
+    await expect(runDueChecks({ jitter: false })).resolves.toEqual({ ran: 1 });
     expect(mocks.runCheck).toHaveBeenCalledTimes(2);
     expect(mocks.runCheck).toHaveBeenNthCalledWith(
       1,

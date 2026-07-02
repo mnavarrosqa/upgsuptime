@@ -84,6 +84,7 @@ export default async function MonitorDetailPage({
     connectMs: r.connectMs ?? null,
     tlsMs: r.tlsMs ?? null,
     ttfbMs: r.ttfbMs ?? null,
+    attempts: r.attempts ?? null,
     message: r.message,
   }));
 

@@ -27,6 +27,7 @@ export type RunCheckResult = {
   statusCode?: number;
   responseTimeMs: number;
   timings?: PhaseTimings;
+  attempts?: number;
   message?: string;
 };
 
@@ -149,7 +150,8 @@ async function applyCheckResult(
   sslPromise: Promise<import("@/lib/check-ssl").SslCheckResult | null>,
   owner: MonitorOwner,
   opts: RunCheckOptions = {},
-  timings?: PhaseTimings
+  timings?: PhaseTimings,
+  attempts?: number
 ): Promise<RunCheckResult> {
   const now = new Date();
   const maintenanceActive = opts.maintenanceActive ?? isMaintenanceActive(m, now);
@@ -171,6 +173,7 @@ async function applyCheckResult(
     connectMs: timings?.connectMs ?? null,
     tlsMs: timings?.tlsMs ?? null,
     ttfbMs: timings?.ttfbMs ?? null,
+    attempts: attempts ?? null,
     ok,
     message: effectiveMessage ?? null,
     duringMaintenance: maintenanceActive || null,
@@ -273,6 +276,7 @@ async function applyCheckResult(
     statusCode,
     responseTimeMs,
     timings,
+    attempts,
     message: effectiveMessage,
   };
 
@@ -353,6 +357,7 @@ async function runCheckHttp(
   let message: string | undefined;
   let responseTimeMs = 0;
   let timings: PhaseTimings = {};
+  let finalAttempt = 1;
 
   const notAllowedReason = await getUrlNotAllowedReason(m.url);
   if (notAllowedReason) {
@@ -360,6 +365,7 @@ async function runCheckHttp(
   } else {
     for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
       if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      finalAttempt = attempt;
 
       const attemptStart = performance.now();
       ok = false;
@@ -407,7 +413,7 @@ async function runCheckHttp(
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
-  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts, timings);
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts, timings, finalAttempt);
 }
 
 // ─── Keyword check ────────────────────────────────────────────────────────────
@@ -427,6 +433,7 @@ async function runCheckKeyword(
   let message: string | undefined;
   let responseTimeMs = 0;
   let timings: PhaseTimings = {};
+  let finalAttempt = 1;
 
   const notAllowedReason = await getUrlNotAllowedReason(m.url);
   if (notAllowedReason) {
@@ -434,6 +441,7 @@ async function runCheckKeyword(
   } else {
     for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
       if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      finalAttempt = attempt;
 
       const attemptStart = performance.now();
       ok = false;
@@ -518,7 +526,7 @@ async function runCheckKeyword(
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
-  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts, timings);
+  return applyCheckResult(m, ok, statusCode, responseTimeMs, message, sslPromise, owner, opts, timings, finalAttempt);
 }
 
 // ─── DNS check ────────────────────────────────────────────────────────────────

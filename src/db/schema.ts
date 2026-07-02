@@ -84,6 +84,7 @@ export const checkResult = sqliteTable("check_result", {
   connectMs: integer("connect_ms"),
   tlsMs: integer("tls_ms"),
   ttfbMs: integer("ttfb_ms"),
+  attempts: integer("attempts"),
   ok: integer("ok", { mode: "boolean" }).notNull(),
   message: text("message"),
   duringMaintenance: integer("during_maintenance", { mode: "boolean" }),

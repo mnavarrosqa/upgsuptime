@@ -108,6 +108,7 @@ export async function GET(request: Request) {
       connectMs: r.connectMs ?? null,
       tlsMs: r.tlsMs ?? null,
       ttfbMs: r.ttfbMs ?? null,
+      attempts: r.attempts ?? null,
       ok: r.ok,
       message: r.message ?? null,
       duringMaintenance: r.duringMaintenance ?? null,
