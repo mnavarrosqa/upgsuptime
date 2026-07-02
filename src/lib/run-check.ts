@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { monitor, checkResult, degradationAlertEvent } from "@/db/schema";
 import { sql } from "drizzle-orm";
 import type { Monitor } from "@/db/schema";
-import { getUrlNotAllowedReason, isBlockedIP } from "@/lib/url-allowed";
+import { checkUrlAllowed, isBlockedIP } from "@/lib/url-allowed";
 import { sendNotifications, sendSslNotifications } from "@/lib/notify";
 import type { SslAlertType } from "@/lib/notify";
 import { evaluateDegradation, sendDegradationAlert } from "@/lib/degradation";
@@ -45,38 +45,54 @@ const CONFIRMATION_COUNT = 2;
  */
 const defaultConnector = buildConnector({});
 
-function createInstrumentedAgent(timings: PhaseTimings): Agent {
+function createInstrumentedAgent(timings: PhaseTimings, resolvedHost?: string): Agent {
   return new Agent({
     connect: (options, callback) => {
-      const hostname = (options as { hostname?: string }).hostname ?? "";
-      const dnsStart = performance.now();
-      dnsLookup(hostname, { all: true })
-        .then((addresses) => {
-          timings.dnsMs = Math.round(performance.now() - dnsStart);
-          for (const { address } of addresses) {
-            if (isBlockedIP(address)) {
-              callback(new Error(`Resolved IP ${address} is not allowed (SSRF protection)`), null);
-              return;
+      const connectWithIp = (resolvedIp?: string) => {
+        const connectOpts = resolvedIp
+          ? { ...options, hostname: resolvedIp, servername: (options as { hostname?: string }).hostname }
+          : options;
+        const connectStart = performance.now();
+        defaultConnector(connectOpts as typeof options, (err, socket) => {
+          if (!err && socket) {
+            const connectEnd = performance.now();
+            timings.connectMs = Math.round(connectEnd - connectStart);
+            const tlsSocket = socket as import("tls").TLSSocket;
+            if (typeof tlsSocket.encrypted !== "undefined") {
+              timings.tlsMs = Math.round(connectEnd - connectStart);
             }
           }
-          const connectStart = performance.now();
-          defaultConnector(options, (err, socket) => {
-            if (!err && socket) {
-              const connectEnd = performance.now();
-              timings.connectMs = Math.round(connectEnd - connectStart);
-              const tlsSocket = socket as import("tls").TLSSocket;
-              if (typeof tlsSocket.encrypted !== "undefined") {
-                timings.tlsMs = Math.round(connectEnd - connectStart);
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (callback as any)(err, socket);
+        });
+      };
+
+      if (resolvedHost) {
+        timings.dnsMs = 0;
+        if (isBlockedIP(resolvedHost)) {
+          callback(new Error(`Resolved IP ${resolvedHost} is not allowed (SSRF protection)`), null);
+          return;
+        }
+        connectWithIp(resolvedHost);
+      } else {
+        const hostname = (options as { hostname?: string }).hostname ?? "";
+        const dnsStart = performance.now();
+        dnsLookup(hostname, { all: true })
+          .then((addresses) => {
+            timings.dnsMs = Math.round(performance.now() - dnsStart);
+            for (const { address } of addresses) {
+              if (isBlockedIP(address)) {
+                callback(new Error(`Resolved IP ${address} is not allowed (SSRF protection)`), null);
+                return;
               }
             }
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            (callback as any)(err, socket);
+            connectWithIp();
+          })
+          .catch((err: unknown) => {
+            timings.dnsMs = Math.round(performance.now() - dnsStart);
+            callback(err instanceof Error ? err : new Error(String(err)), null);
           });
-        })
-        .catch((err: unknown) => {
-          timings.dnsMs = Math.round(performance.now() - dnsStart);
-          callback(err instanceof Error ? err : new Error(String(err)), null);
-        });
+      }
     },
   });
 }
@@ -359,9 +375,9 @@ async function runCheckHttp(
   let timings: PhaseTimings = {};
   let finalAttempt = 1;
 
-  const notAllowedReason = await getUrlNotAllowedReason(m.url);
-  if (notAllowedReason) {
-    message = notAllowedReason;
+  const urlCheck = await checkUrlAllowed(m.url);
+  if (!urlCheck.allowed) {
+    message = urlCheck.reason;
   } else {
     for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
       if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
@@ -372,7 +388,7 @@ async function runCheckHttp(
       statusCode = undefined;
       message = undefined;
       timings = {};
-      const agent = createInstrumentedAgent(timings);
+      const agent = createInstrumentedAgent(timings, urlCheck.resolvedHost);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -407,9 +423,9 @@ async function runCheckHttp(
     message = httpStatusText(statusCode);
   }
 
-  // SSL check runs in parallel (only when URL is allowed and type is not dns)
+  const urlAllowed = urlCheck.allowed;
   const sslPromise =
-    m.sslMonitoring && !notAllowedReason
+    m.sslMonitoring && urlAllowed
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 
@@ -435,9 +451,9 @@ async function runCheckKeyword(
   let timings: PhaseTimings = {};
   let finalAttempt = 1;
 
-  const notAllowedReason = await getUrlNotAllowedReason(m.url);
-  if (notAllowedReason) {
-    message = notAllowedReason;
+  const urlCheck = await checkUrlAllowed(m.url);
+  if (!urlCheck.allowed) {
+    message = urlCheck.reason;
   } else {
     for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
       if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
@@ -448,7 +464,7 @@ async function runCheckKeyword(
       statusCode = undefined;
       message = undefined;
       timings = {};
-      const agent = createInstrumentedAgent(timings);
+      const agent = createInstrumentedAgent(timings, urlCheck.resolvedHost);
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -521,8 +537,9 @@ async function runCheckKeyword(
   }
 
   // SSL check in parallel (keyword monitors can be HTTPS)
+  const kwUrlAllowed = urlCheck.allowed;
   const sslPromise =
-    m.sslMonitoring && !notAllowedReason
+    m.sslMonitoring && kwUrlAllowed
       ? checkSSL(m.url, 10_000)
       : Promise.resolve(null);
 

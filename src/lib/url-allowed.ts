@@ -84,27 +84,39 @@ export async function resolveSafeTlsConnectTarget(hostname: string): Promise<Saf
   return { ok: true, connectHost: addresses[0].address, servername: h };
 }
 
+export type UrlCheckResult =
+  | { allowed: true; resolvedHost: string }
+  | { allowed: false; reason: string };
+
 /**
- * Returns an error message if the URL must not be fetched (SSRF), or null if allowed.
+ * Validates a URL for SSRF safety and returns the pre-resolved host IP.
  * Allows only http/https; blocks private/loopback/link-local IPs and reserved hostnames.
  */
-export async function getUrlNotAllowedReason(urlString: string): Promise<string | null> {
+export async function checkUrlAllowed(urlString: string): Promise<UrlCheckResult> {
   let url: URL;
   try {
     url = new URL(urlString);
   } catch {
-    return "Invalid URL";
+    return { allowed: false, reason: "Invalid URL" };
   }
 
   const protocol = url.protocol.toLowerCase();
   if (protocol !== "http:" && protocol !== "https:") {
-    return "Only HTTP and HTTPS URLs are allowed";
+    return { allowed: false, reason: "Only HTTP and HTTPS URLs are allowed" };
   }
 
   const target = await resolveSafeTlsConnectTarget(url.hostname);
   if (!target.ok) {
-    return target.error;
+    return { allowed: false, reason: target.error };
   }
 
-  return null;
+  return { allowed: true, resolvedHost: target.connectHost };
+}
+
+/**
+ * Returns an error message if the URL must not be fetched (SSRF), or null if allowed.
+ */
+export async function getUrlNotAllowedReason(urlString: string): Promise<string | null> {
+  const result = await checkUrlAllowed(urlString);
+  return result.allowed ? null : result.reason;
 }
