@@ -58,7 +58,7 @@ export function MonitorCardTrend({ results }: { results: TrendPoint[] }) {
             style={{
               height: `${heightPct}%`,
               minWidth: "2px",
-              backgroundColor: r.ok ? "#10b981" : "#ef4444",
+              backgroundColor: r.ok ? "var(--status-up)" : "var(--status-down)",
               animationDelay: useNewCheckFall ? "0ms" : `${i * 10}ms`,
             }}
             title={label}

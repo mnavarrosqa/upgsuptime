@@ -128,7 +128,7 @@ export function MonitorCard({
     >
       <div
         className={cn(
-          "relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-bg-card p-4 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:border-border-muted hover:shadow active:translate-y-0 active:scale-[0.99]",
+          "relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-bg-card p-3.5 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:border-border-muted hover:shadow active:translate-y-0 active:scale-[0.99] sm:p-4",
           paused ? "opacity-60" : ""
         )}
       >
@@ -194,7 +194,7 @@ export function MonitorCard({
             )}
             {latest && !latest.ok && latest.message && (
               <p
-                className="mt-0.5 truncate text-xs text-red-500 dark:text-red-400"
+                className="mt-0.5 truncate text-xs text-status-down"
                 title={latest.message}
               >
                 {latest.message}
@@ -211,16 +211,16 @@ export function MonitorCard({
         )}
 
         {/* Footer: uptime % · response time · SSL + last checked */}
-        <div className="mt-2.5 flex items-center justify-between gap-2 text-xs text-text-muted">
+        <div className="mt-3 flex items-center justify-between gap-2 text-xs text-text-muted">
           <div className="flex items-center gap-1.5">
             {uptimePct !== null && (
               <span
                 className={
                   uptimePct === 100
-                    ? "text-emerald-600 dark:text-emerald-400"
+                    ? "text-status-up"
                     : uptimePct >= 90
-                      ? "text-yellow-600 dark:text-yellow-400"
-                      : "text-red-600 dark:text-red-400"
+                      ? "text-status-warn"
+                      : "text-status-down"
                 }
               >
                 {uptimePct}%

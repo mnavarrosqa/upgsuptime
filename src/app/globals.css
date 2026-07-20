@@ -40,6 +40,16 @@
   --motion-ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   /* Charts: histogram mid bucket + shared warning tone (Recharts fills use these) */
   --chart-hist-warn: #d97706;
+  /* Semantic status — up aligned with primary emerald family; not generic Tailwind green */
+  --status-up: oklch(0.52 0.12 158);
+  --status-up-fg: oklch(0.99 0.01 158);
+  --status-up-soft: oklch(0.52 0.12 158 / 0.08);
+  --status-down: oklch(0.55 0.2 25);
+  --status-down-fg: oklch(0.99 0.01 25);
+  --status-down-soft: oklch(0.55 0.2 25 / 0.08);
+  --status-warn: oklch(0.65 0.14 75);
+  --status-warn-fg: oklch(0.22 0.04 75);
+  --status-warn-soft: oklch(0.65 0.14 75 / 0.12);
 }
 
 .dark {
@@ -72,6 +82,15 @@
   --input: oklch(1 0 0 / 15%);
   --ring: oklch(0.556 0 0);
   --chart-hist-warn: #fbbf24;
+  --status-up: oklch(0.78 0.11 158);
+  --status-up-fg: oklch(0.16 0.04 158);
+  --status-up-soft: oklch(0.78 0.11 158 / 0.12);
+  --status-down: oklch(0.7 0.17 22);
+  --status-down-fg: oklch(0.2 0.04 22);
+  --status-down-soft: oklch(0.7 0.17 22 / 0.14);
+  --status-warn: oklch(0.82 0.14 85);
+  --status-warn-fg: oklch(0.22 0.05 85);
+  --status-warn-soft: oklch(0.82 0.14 85 / 0.14);
 }
 
 @theme inline {
@@ -94,6 +113,15 @@
   --color-input: var(--input);
   --color-destructive: var(--destructive);
   --color-chart-hist-warn: var(--chart-hist-warn);
+  --color-status-up: var(--status-up);
+  --color-status-up-fg: var(--status-up-fg);
+  --color-status-up-soft: var(--status-up-soft);
+  --color-status-down: var(--status-down);
+  --color-status-down-fg: var(--status-down-fg);
+  --color-status-down-soft: var(--status-down-soft);
+  --color-status-warn: var(--status-warn);
+  --color-status-warn-fg: var(--status-warn-fg);
+  --color-status-warn-soft: var(--status-warn-soft);
   --color-accent-foreground: var(--accent-foreground);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
