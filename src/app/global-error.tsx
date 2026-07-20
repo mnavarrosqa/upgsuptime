@@ -21,11 +21,11 @@ export default function GlobalError({
   }, []);
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="es" suppressHydrationWarning>
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-        <title>Something went wrong — UPG Monitor</title>
+        <title>Algo salió mal — UPG Monitor</title>
         <style>{`
           *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
           :root {
@@ -116,7 +116,7 @@ export default function GlobalError({
               marginBottom: "0.75rem",
               color: "var(--text-primary)",
             }}>
-              Something went wrong
+              Algo salió mal
             </h1>
             <p style={{
               fontSize: "0.875rem",
@@ -124,7 +124,7 @@ export default function GlobalError({
               color: "var(--text-muted)",
               marginBottom: "2rem",
             }}>
-              An unexpected error occurred. You can try reloading or return to the dashboard.
+              Ocurrió un error inesperado. Puedes intentar recargar o volver al panel.
             </p>
 
             {/* Card */}
@@ -167,7 +167,7 @@ export default function GlobalError({
                   cursor: "pointer",
                 }}
               >
-                Try again
+                Intentar de nuevo
               </button>
               <a
                 href="/dashboard"
@@ -179,7 +179,7 @@ export default function GlobalError({
                   textDecoration: "none",
                 }}
               >
-                Go to dashboard
+                Ir al panel
               </a>
             </div>
 

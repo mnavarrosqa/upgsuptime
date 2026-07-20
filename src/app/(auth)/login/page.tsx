@@ -36,7 +36,7 @@ function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null);
-  const [language, setLanguage] = useState<"en" | "es">((locale === "es" ? "es" : "en"));
+  const [language, setLanguage] = useState<"en" | "es">(locale === "en" ? "en" : "es");
 
   const expired = searchParams.get("expired") === "1";
   const rateLimited = searchParams.get("error") === "rate_limit";

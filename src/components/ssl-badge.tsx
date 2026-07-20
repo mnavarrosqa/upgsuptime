@@ -1,4 +1,7 @@
+"use client";
+
 import { ShieldCheck, ShieldAlert, ShieldX, ShieldOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type SslBadgeProps = {
   monitoring: boolean;
@@ -16,6 +19,7 @@ function getDaysUntilExpiry(expiresAt: Date | string | null): number | null {
 }
 
 export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslBadgeProps) {
+  const t = useTranslations("monitorDetail");
   if (!monitoring) {
     if (compact) return null;
     return (
@@ -44,7 +48,7 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
       return (
         <span
           className="inline-flex items-center gap-1 text-xs font-medium text-status-down"
-          title="SSL certificate invalid"
+          title={t("sslInvalid")}
         >
           <ShieldX className="h-3.5 w-3.5" aria-hidden />
           SSL ✗
@@ -54,7 +58,7 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-status-down px-2 py-0.5 text-xs font-medium text-status-down-fg dark:bg-status-down-soft dark:text-status-down">
         <ShieldX className="h-3 w-3" aria-hidden />
-        SSL Invalid
+        SSL {t("sslInvalid")}
       </span>
     );
   }
@@ -65,7 +69,7 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
       return (
         <span
           className="inline-flex items-center gap-1 text-xs font-medium text-status-down"
-          title={`SSL expires in ${days} day${days !== 1 ? "s" : ""}`}
+          title={t("sslDaysUntilExpiry", { n: days })}
         >
           <ShieldAlert className="h-3.5 w-3.5" aria-hidden />
           {days}d
@@ -75,7 +79,7 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-status-down px-2 py-0.5 text-xs font-medium text-status-down-fg dark:bg-status-down-soft dark:text-status-down">
         <ShieldAlert className="h-3 w-3" aria-hidden />
-        SSL {days}d left
+        SSL {t("sslDaysUntilExpiry", { n: days })}
       </span>
     );
   }
@@ -86,7 +90,7 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
       return (
         <span
           className="inline-flex items-center gap-1 text-xs font-medium text-status-warn"
-          title={`SSL expires in ${days} days`}
+          title={t("sslDaysUntilExpiry", { n: days })}
         >
           <ShieldAlert className="h-3.5 w-3.5" aria-hidden />
           {days}d
@@ -96,7 +100,7 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
     return (
       <span className="inline-flex items-center gap-1 rounded-full bg-status-warn px-2 py-0.5 text-xs font-medium text-status-warn-fg dark:bg-status-warn-soft dark:text-status-warn">
         <ShieldAlert className="h-3 w-3" aria-hidden />
-        SSL {days}d left
+        SSL {t("sslDaysUntilExpiry", { n: days })}
       </span>
     );
   }
@@ -106,7 +110,7 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
     return (
       <span
         className="inline-flex items-center gap-1 text-xs font-medium text-status-up"
-        title={days !== null ? `SSL valid — ${days} days left` : "SSL valid"}
+        title={days !== null ? t("sslDaysUntilExpiry", { n: days }) : t("sslValid")}
       >
         <ShieldCheck className="h-3.5 w-3.5" aria-hidden />
         {days !== null ? `${days}d` : "✓"}
@@ -116,7 +120,7 @@ export function SslBadge({ monitoring, valid, expiresAt, compact = false }: SslB
   return (
     <span className="inline-flex items-center gap-1 rounded-full bg-status-up px-2 py-0.5 text-xs font-medium text-status-up-fg dark:bg-status-up-soft dark:text-status-up">
       <ShieldCheck className="h-3 w-3" aria-hidden />
-      SSL {days !== null ? `${days}d` : "Valid"}
+      SSL {days !== null ? t("sslDaysUntilExpiry", { n: days }) : t("sslValid")}
     </span>
   );
 }

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { useTranslations } from "next-intl";
+import { useLocale } from "next-intl";
 import type { AdminUser } from "./page";
 
 export function AdminUsersClient({
@@ -13,6 +15,8 @@ export function AdminUsersClient({
   users: AdminUser[];
   currentUserId: string;
 }) {
+  const t = useTranslations("admin.users");
+  const locale = useLocale();
   const [users, setUsers] = useState(initialUsers);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState<AdminUser | null>(null);
@@ -29,15 +33,15 @@ export function AdminUsersClient({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed to update role");
+        toast.error(data.error ?? t("failedUpdateRole"));
         return;
       }
       setUsers((prev) =>
         prev.map((x) => (x.id === u.id ? { ...x, role: newRole } : x))
       );
-      toast.success(`Role updated to ${newRole}`);
+      toast.success(t("roleUpdated", { role: newRole }));
     } catch {
-      toast.error("Failed to update role");
+      toast.error(t("failedUpdateRole"));
     } finally {
       setBusyId(null);
     }
@@ -51,13 +55,13 @@ export function AdminUsersClient({
       const res = await fetch(`/api/admin/users/${u.id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed to delete user");
+        toast.error(data.error ?? t("failedDelete"));
         return;
       }
       setUsers((prev) => prev.filter((x) => x.id !== u.id));
-      toast.success(`${u.email} deleted`);
+      toast.success(t("deleteSuccess", { email: u.email }));
     } catch {
-      toast.error("Failed to delete user");
+      toast.error(t("failedDelete"));
     } finally {
       setBusyId(null);
       setConfirmDelete(null);
@@ -68,13 +72,13 @@ export function AdminUsersClient({
     <div className="space-y-3">
       <ConfirmDialog
         open={confirmDelete !== null}
-        title="Delete user"
+        title={t("deleteUserTitle")}
         message={
           confirmDelete
-            ? `Delete ${confirmDelete.email}? This will also delete all their monitors.`
+            ? t("deleteUserMessage", { email: confirmDelete.email })
             : ""
         }
-        confirmLabel="Delete"
+        confirmLabel={t("deleteUser")}
         destructive
         busy={busyId === confirmDelete?.id}
         onConfirm={handleDeleteConfirm}
@@ -82,20 +86,20 @@ export function AdminUsersClient({
       />
       <div className="flex justify-end">
         <div className="rounded-full border border-border bg-bg-card px-3 py-1 text-xs font-medium text-text-muted">
-          {users.length} total · {adminCount} admin{adminCount !== 1 ? "s" : ""}
+          {t("totalSummary", { total: users.length, admins: adminCount })}
         </div>
       </div>
       <div className="overflow-x-auto rounded-2xl border border-border bg-bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-bg-page/60 text-left text-xs uppercase tracking-[0.12em] text-text-muted">
-              <th className="px-4 py-3 font-medium">Email</th>
-              <th className="px-4 py-3 font-medium">Username</th>
-              <th className="px-4 py-3 font-medium">Role</th>
-              <th className="px-4 py-3 font-medium">Monitors</th>
-              <th className="px-4 py-3 font-medium">Joined</th>
+              <th className="px-4 py-3 font-medium">{t("colEmail")}</th>
+              <th className="px-4 py-3 font-medium">{t("colUsername")}</th>
+              <th className="px-4 py-3 font-medium">{t("colRole")}</th>
+              <th className="px-4 py-3 font-medium">{t("colMonitors")}</th>
+              <th className="px-4 py-3 font-medium">{t("colJoined")}</th>
               <th className="px-4 py-3 font-medium">
-                <span className="sr-only">Actions</span>
+                <span className="sr-only">{t("colActionsLabel")}</span>
               </th>
             </tr>
           </thead>
@@ -111,11 +115,11 @@ export function AdminUsersClient({
                   <td className="px-4 py-3">
                     <div className="font-medium">{u.email}</div>
                     {isSelf && (
-                      <div className="mt-0.5 text-xs text-text-muted">Current session</div>
+                      <div className="mt-0.5 text-xs text-text-muted">{t("currentSession")}</div>
                     )}
                   </td>
                   <td className="px-4 py-3 text-text-muted">
-                    {u.username ?? <span className="italic opacity-50">none</span>}
+                    {u.username ?? <span className="italic opacity-50">{t("noUsername")}</span>}
                   </td>
                   <td className="px-4 py-3">
                     <span
@@ -132,7 +136,7 @@ export function AdminUsersClient({
                     {u.monitorCount}
                   </td>
                   <td className="px-4 py-3 text-text-muted">
-                    {new Date(u.createdAt).toLocaleDateString("en-CA")}
+                    {new Date(u.createdAt).toLocaleDateString(locale)}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center gap-2 justify-end">
@@ -143,9 +147,9 @@ export function AdminUsersClient({
                         onClick={() => toggleRole(u)}
                         disabled={isSelf || isBusy}
                         className="rounded-lg text-text-muted hover:bg-bg-page disabled:cursor-not-allowed disabled:opacity-40"
-                        title={isSelf ? "Cannot change your own role" : `Make ${u.role === "admin" ? "user" : "admin"}`}
+                        title={isSelf ? t("cannotChangeSelf") : t("makeRole", { role: u.role === "admin" ? "user" : "admin" })}
                       >
-                        {isBusy ? "…" : u.role === "admin" ? "Demote" : "Make admin"}
+                        {isBusy ? "…" : u.role === "admin" ? t("demote") : t("makeAdmin")}
                       </Button>
                       <Button
                         type="button"
@@ -154,9 +158,9 @@ export function AdminUsersClient({
                         onClick={() => setConfirmDelete(u)}
                         disabled={isSelf || isBusy}
                         className="rounded-lg text-red-600 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400"
-                        title={isSelf ? "Cannot delete your own account" : "Delete user"}
+                        title={isSelf ? t("cannotDeleteSelf") : t("deleteUser")}
                       >
-                        Delete
+                        {t("deleteUser")}
                       </Button>
                     </div>
                   </td>
@@ -166,9 +170,9 @@ export function AdminUsersClient({
             {users.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center">
-                  <div className="font-medium">No users found</div>
+                  <div className="font-medium">{t("emptyTitle")}</div>
                   <div className="mt-1 text-sm text-text-muted">
-                    Registered accounts will appear here.
+                    {t("emptyBody")}
                   </div>
                 </td>
               </tr>

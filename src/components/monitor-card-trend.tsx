@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, startTransition } from "react";
+import { useTranslations } from "next-intl";
 
 export type TrendPoint = { id?: string; ok: boolean; responseTimeMs?: number | null };
 
 const TREND_BARS = 24;
 
 export function MonitorCardTrend({ results }: { results: TrendPoint[] }) {
+  const t = useTranslations("monitorsPage");
   const prevNewestIdRef = useRef<string | null>(null);
   const [pulseGen, setPulseGen] = useState(0);
 
@@ -32,7 +34,7 @@ export function MonitorCardTrend({ results }: { results: TrendPoint[] }) {
   const newestIndex = bars.length - 1;
 
   return (
-    <div className="-mt-2 overflow-visible pt-2" aria-label="Uptime trend">
+    <div className="-mt-2 overflow-visible pt-2" aria-label={t("uptimeTrend")}>
       <div className="flex h-6 items-end gap-px overflow-visible">
       {bars.map((r, i) => {
         const heightPct =

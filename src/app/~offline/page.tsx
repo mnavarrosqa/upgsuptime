@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
 import { WifiOff } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "You're offline — UPG Monitor",
   robots: { index: false, follow: false },
 };
 
-export default function OfflinePage() {
+export default async function OfflinePage() {
+  const t = await getTranslations("offline");
+
   return (
     <div className="min-h-screen bg-[var(--bg-page)] text-[var(--text-primary)] flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm text-center">
@@ -25,21 +28,19 @@ export default function OfflinePage() {
         </div>
 
         <h1 className="mb-3 text-2xl font-semibold tracking-tight font-display">
-          You&apos;re offline
+          {t("title")}
         </h1>
         <p className="mb-8 text-sm leading-relaxed text-[var(--text-muted)]">
-          UPG Monitor needs a live connection to show uptime data.
-          <br />
-          Check your network and try again.
+          {t("body")}
         </p>
 
         <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] px-6 py-5 text-left">
           <div className="flex items-start gap-3">
             <span className="relative mt-1.5 flex h-2 w-2 shrink-0 rounded-full bg-[var(--text-muted)]" />
             <div>
-              <p className="text-sm font-medium">No network connection</p>
+              <p className="text-sm font-medium">{t("statusTitle")}</p>
               <p className="mt-0.5 text-xs text-[var(--text-muted)]">
-                Monitor data cannot be fetched while offline.
+                {t("statusBody")}
               </p>
             </div>
           </div>
@@ -50,7 +51,7 @@ export default function OfflinePage() {
             href="/dashboard"
             className="font-medium text-[var(--text-primary)] underline-offset-4 hover:underline transition-colors"
           >
-            Try again
+            {t("tryAgain")}
           </a>
         </p>
       </div>

@@ -40,15 +40,18 @@ function getFaviconUrl(url: string, monitorType?: "http" | "keyword" | "dns" | "
   }
 }
 
-function formatLastChecked(date: Date | null): string {
-  if (!date) return "Never";
+function formatLastChecked(
+  date: Date | null,
+  tTime: (key: string, values?: Record<string, number>) => string
+): string {
+  if (!date) return tTime("never");
   const diffMs = Date.now() - new Date(date).getTime();
   const diffMin = Math.floor(diffMs / 60000);
-  if (diffMin < 1) return "Just now";
-  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffMin < 1) return tTime("justNow");
+  if (diffMin < 60) return tTime("minutesAgo", { count: diffMin });
   const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h ago`;
-  return `${Math.floor(diffHr / 24)}d ago`;
+  if (diffHr < 24) return tTime("hoursAgo", { count: diffHr });
+  return tTime("daysAgo", { count: Math.floor(diffHr / 24) });
 }
 
 export function MonitorCard({
@@ -69,6 +72,7 @@ export function MonitorCard({
   const router = useRouter();
   const t = useTranslations("monitorsPage");
   const tCommon = useTranslations("common");
+  const tTime = useTranslations("time");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
 
@@ -244,7 +248,7 @@ export function MonitorCard({
               </>
             )}
           </div>
-          <span>{formatLastChecked(lastCheckAt)}</span>
+          <span>{formatLastChecked(lastCheckAt, tTime)}</span>
         </div>
         </div>
       </div>

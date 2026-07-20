@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, startTransition } from "react";
 import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 interface SortOption {
   value: string;
@@ -14,7 +15,7 @@ interface SortDropdownProps {
   value: string;
   direction: "asc" | "desc";
   onChange: (value: string, direction: "asc" | "desc") => void;
-  label?: string;
+  label?: string | undefined;
 }
 
 export function SortDropdown({
@@ -22,15 +23,17 @@ export function SortDropdown({
   value,
   direction,
   onChange,
-  label = "Sort",
+  label,
 }: SortDropdownProps) {
+  const tSort = useTranslations("sort");
+  const resolvedLabel = label ?? tSort("label");
   const [open, setOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const ref = useRef<HTMLDivElement>(null);
   const optionRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const currentOption = options.find((opt) => opt.value === value);
-  const displayLabel = currentOption?.label || label;
+  const displayLabel = currentOption?.label || resolvedLabel;
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -112,9 +115,9 @@ export function SortDropdown({
         className="h-auto gap-1.5 rounded-md border-border px-3 py-2 text-sm font-normal text-text-muted hover:bg-bg-page hover:text-text-primary"
         aria-expanded={open}
         aria-haspopup="true"
-        aria-label={`${label} by ${displayLabel}, ${direction === "asc" ? "ascending" : "descending"}`}
+        aria-label={`${resolvedLabel} by ${displayLabel}, ${direction === "asc" ? tSort("ascending") : tSort("descending")}`}
       >
-        <span>{label}:</span>
+        <span>{resolvedLabel}:</span>
         <span className="font-medium text-text-primary">{displayLabel}</span>
         <ChevronDown
           className="h-3.5 w-3.5 shrink-0 transition-transform"
@@ -132,7 +135,7 @@ export function SortDropdown({
         <div
           className="absolute right-0 top-full z-50 mt-1 min-w-[10rem] rounded-lg border border-border bg-bg-card py-1 shadow-lg"
           role="menu"
-          aria-label="Sort options"
+          aria-label={resolvedLabel}
         >
           {options.map((option, index) => {
             const isActive = option.value === value;
@@ -178,12 +181,12 @@ export function SortDropdown({
             {direction === "asc" ? (
               <>
                 <ChevronUp className="h-3.5 w-3.5" aria-hidden />
-                <span>Ascending</span>
+                <span>{tSort("ascending")}</span>
               </>
             ) : (
               <>
                 <ChevronDown className="h-3.5 w-3.5" aria-hidden />
-                <span>Descending</span>
+                <span>{tSort("descending")}</span>
               </>
             )}
           </Button>

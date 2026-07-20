@@ -5,6 +5,7 @@ import { OnboardingOverlay } from "@/components/onboarding-overlay";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 interface AccountOnboardingSectionProps {
   onboardingCompleted?: boolean | null;
@@ -17,6 +18,7 @@ export function AccountOnboardingSection({
   userId,
   className,
 }: AccountOnboardingSectionProps) {
+  const t = useTranslations("account");
   const router = useRouter();
   const [showOnboarding, setShowOnboarding] = useState(false);
 
@@ -27,12 +29,12 @@ export function AccountOnboardingSection({
           className="text-base font-semibold text-text-primary"
           style={{ fontFamily: "var(--font-display)" }}
         >
-          Onboarding
+          {t("onboardingTitle")}
         </h2>
         <p className="mt-0.5 text-sm text-text-muted">
           {!onboardingCompleted
-            ? "Complete the setup guide to learn the basics."
-            : "You've completed the onboarding guide."}
+            ? t("onboardingIncomplete")
+            : t("onboardingComplete")}
         </p>
         <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
           <Button
@@ -41,7 +43,7 @@ export function AccountOnboardingSection({
             onClick={() => setShowOnboarding(true)}
             className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
           >
-            {onboardingCompleted ? "View onboarding guide" : "Continue onboarding"}
+            {onboardingCompleted ? t("onboardingViewGuide") : t("onboardingContinue")}
           </Button>
         </div>
       </div>

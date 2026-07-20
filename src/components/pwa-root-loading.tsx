@@ -3,6 +3,7 @@
 import { useSyncExternalStore } from "react";
 import Image from "next/image";
 import { Spinner } from "@/components/spinner";
+import { useTranslations } from "next-intl";
 
 function subscribeStandalone(onChange: () => void) {
   const mq = window.matchMedia("(display-mode: standalone)");
@@ -15,13 +16,13 @@ function getStandaloneSnapshot() {
 }
 
 export function PwaRootLoading() {
+  const tCommon = useTranslations("common");
+  const tNav = useTranslations("nav");
   const standalone = useSyncExternalStore(
     subscribeStandalone,
     getStandaloneSnapshot,
     () => false
   );
-
-  const message = "Loading…";
 
   return (
     <div
@@ -40,14 +41,14 @@ export function PwaRootLoading() {
             priority
             className="h-24 w-24 rounded-2xl"
           />
-          <p className="text-lg font-semibold text-text">UPG Monitor</p>
+          <p className="text-lg font-semibold text-text">{tNav("appTitle")}</p>
           <Spinner />
-          <p className="text-sm font-medium text-text-muted">{message}</p>
+          <p className="text-sm font-medium text-text-muted">{tCommon("loading")}</p>
         </div>
       ) : (
         <div className="flex flex-col items-center gap-3">
           <Spinner />
-          <p className="text-sm font-medium text-text-muted">{message}</p>
+          <p className="text-sm font-medium text-text-muted">{tCommon("loading")}</p>
         </div>
       )}
     </div>

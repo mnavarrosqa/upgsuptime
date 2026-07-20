@@ -200,7 +200,7 @@ export default async function MonitorDetailPage({
                 </span>
               )}
               {m.maintenanceStartsAt && m.maintenanceEndsAt && (
-                <span className={monitorMetaChipClass}>Maintenance scheduled</span>
+                <span className={monitorMetaChipClass}>{t("maintenanceScheduled")}</span>
               )}
             </div>
             <NextCheckCountdown

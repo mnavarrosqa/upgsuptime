@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, startTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowDown, RefreshCw } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const THRESHOLD = 80;
 const MAX_PULL = 120;
@@ -18,6 +19,7 @@ function isPwa(): boolean {
 }
 
 export function PullToRefresh() {
+  const t = useTranslations("pullToRefresh");
   const router = useRouter();
   const [pullDistance, setPullDistance] = useState(0);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -132,7 +134,7 @@ export function PullToRefresh() {
               )}
             </div>
             <span className="whitespace-nowrap rounded-full bg-bg-card px-2 py-0.5 text-center text-[10px] text-text-muted shadow-sm">
-              {isRefreshing ? "Refreshing…" : pastThreshold ? "Release to refresh" : "Pull to refresh"}
+              {isRefreshing ? t("refreshing") : pastThreshold ? t("release") : t("pull")}
             </span>
           </div>
         </div>
@@ -144,7 +146,7 @@ export function PullToRefresh() {
         className="pointer-events-none flex justify-center py-1 text-[11px] text-text-muted transition-opacity duration-700"
         style={{ opacity: showHint ? 1 : 0 }}
       >
-        ↓ Pull down to refresh
+        {t("hint")}
       </div>
     </>
   );

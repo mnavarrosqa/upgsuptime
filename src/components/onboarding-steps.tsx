@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CheckCircle, Globe, Mail, ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +22,7 @@ export interface OnboardingStepProps {
 }
 
 export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
+  const t = useTranslations("onboarding");
   return (
     <div className="flex flex-col gap-6">
       <div className="text-center">
@@ -28,11 +30,10 @@ export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
           <Globe className="h-8 w-8" />
         </div>
         <h2 className="text-2xl font-semibold text-text-primary">
-          Welcome to UPG Monitor
+          {t("welcomeHeading")}
         </h2>
         <p className="mt-2 text-sm text-text-muted">
-          Keep your websites and services online. Get notified the moment they go
-          down.
+          {t("welcomeSubheading")}
         </p>
       </div>
 
@@ -40,28 +41,22 @@ export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
         <div className="flex items-start gap-3">
           <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
           <div className="text-sm">
-            <p className="font-medium text-text-primary">Monitor your sites</p>
-            <p className="text-text-muted">
-              Add URLs and we&apos;ll check them every few minutes
-            </p>
+            <p className="font-medium text-text-primary">{t("welcomeFeature1Title")}</p>
+            <p className="text-text-muted">{t("welcomeFeature1Body")}</p>
           </div>
         </div>
         <div className="flex items-start gap-3">
           <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
           <div className="text-sm">
-            <p className="font-medium text-text-primary">Get instant alerts</p>
-            <p className="text-text-muted">
-              Receive email notifications when status changes
-            </p>
+            <p className="font-medium text-text-primary">{t("welcomeFeature2Title")}</p>
+            <p className="text-text-muted">{t("welcomeFeature2Body")}</p>
           </div>
         </div>
         <div className="flex items-start gap-3">
           <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
           <div className="text-sm">
-            <p className="font-medium text-text-primary">Share status pages</p>
-            <p className="text-text-muted">
-              Public pages showing your services&apos; uptime
-            </p>
+            <p className="font-medium text-text-primary">{t("welcomeFeature3Title")}</p>
+            <p className="text-text-muted">{t("welcomeFeature3Body")}</p>
           </div>
         </div>
       </div>
@@ -73,7 +68,7 @@ export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
           onClick={onSkip}
           className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
-          Skip for now
+          {t("skipForNow")}
         </Button>
         <Button
           type="button"
@@ -81,7 +76,7 @@ export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
-          Get Started
+          {t("getStarted")}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
@@ -94,7 +89,9 @@ export function AddMonitorStep({
   onBack,
   onSkip,
 }: OnboardingStepProps) {
-  const [name, setName] = useState("My Website");
+  const t = useTranslations("onboarding");
+  const tForm = useTranslations("monitorForm");
+  const [name, setName] = useState(t("addMonitorDefaultName"));
   const [url, setUrl] = useState("https://example.com");
   const [intervalMinutes, setIntervalMinutes] = useState(5);
   const [submitting, setSubmitting] = useState(false);
@@ -121,12 +118,12 @@ export function AddMonitorStep({
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error ?? "Failed to add monitor");
+        setError(data.error ?? t("addMonitorFailed"));
         return;
       }
       onNext();
     } catch {
-      setError("Something went wrong");
+      setError(t("addMonitorFailed"));
     } finally {
       setSubmitting(false);
     }
@@ -136,11 +133,10 @@ export function AddMonitorStep({
     <form onSubmit={handleSubmit} className="flex flex-col gap-5">
       <div>
         <h2 className="text-xl font-semibold text-text-primary">
-          Add Your First Monitor
+          {t("titleAddMonitor")}
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Enter the URL you want to monitor and we&apos;ll check it every few
-          minutes.
+          {t("addMonitorSubheading")}
         </p>
       </div>
 
@@ -155,14 +151,14 @@ export function AddMonitorStep({
 
       <div>
         <Label htmlFor="onboarding-name" className={labelClass}>
-          Name
+          {tForm("name")}
         </Label>
         <Input
           id="onboarding-name"
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="My Website"
+          placeholder={t("addMonitorDefaultName")}
           required
           className={inputClass}
         />
@@ -170,7 +166,7 @@ export function AddMonitorStep({
 
       <div>
         <Label htmlFor="onboarding-url" className={labelClass}>
-          URL
+          {tForm("url")}
         </Label>
         <Input
           id="onboarding-url"
@@ -182,13 +178,13 @@ export function AddMonitorStep({
           className={inputClass}
         />
         <p className={hintClass}>
-          Must be a valid HTTP or HTTPS URL.
+          {tForm("urlHint")}
         </p>
       </div>
 
       <div>
         <Label htmlFor="onboarding-interval" className={labelClass}>
-          Check interval (minutes)
+          {t("addMonitorIntervalLabel")}
         </Label>
         <Input
           id="onboarding-interval"
@@ -200,8 +196,7 @@ export function AddMonitorStep({
           className={inputClass}
         />
         <p className={hintClass}>
-          We&apos;ll check this URL every {intervalMinutes} minute
-          {intervalMinutes !== 1 ? "s" : ""}.
+          {t("addMonitorIntervalHint", { count: intervalMinutes })}
         </p>
       </div>
 
@@ -213,7 +208,7 @@ export function AddMonitorStep({
           disabled={submitting}
           className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
-          Back
+          {tForm("back")}
         </Button>
         <Button
           type="button"
@@ -222,7 +217,7 @@ export function AddMonitorStep({
           disabled={submitting}
           className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
-          Skip this step
+          {t("addMonitorSkip")}
         </Button>
         <Button
           type="submit"
@@ -231,7 +226,7 @@ export function AddMonitorStep({
           className="inline-flex items-center justify-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover disabled:opacity-60"
         >
           {submitting && <Spinner size="sm" />}
-          {submitting ? "Adding…" : "Add Monitor"}
+          {submitting ? tForm("adding") : t("addMonitorSubmit")}
         </Button>
       </div>
     </form>
@@ -239,6 +234,8 @@ export function AddMonitorStep({
 }
 
 export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
+  const t = useTranslations("onboarding");
+  const tForm = useTranslations("monitorForm");
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -246,31 +243,31 @@ export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
           <Mail className="h-6 w-6" />
         </div>
         <h2 className="text-xl font-semibold text-text-primary">
-          Get Notified by Email
+          {t("alertsHeading")}
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Receive instant email alerts when your services go down or come back up.
+          {t("alertsSubheading")}
         </p>
       </div>
 
       <div className="space-y-3 rounded-xl border border-border bg-muted/50 p-4 dark:bg-muted/20">
-        <p className="text-sm font-medium text-text-primary">How it works</p>
+        <p className="text-sm font-medium text-text-primary">{t("alertsHowItWorks")}</p>
         <div className="flex items-start gap-3">
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">1</span>
           <p className="pt-0.5 text-sm text-text-muted">
-            Enable email alerts when creating or editing a monitor
+            {t("alertsStep1")}
           </p>
         </div>
         <div className="flex items-start gap-3">
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">2</span>
           <p className="pt-0.5 text-sm text-text-muted">
-            You&apos;ll receive emails at your account address or a custom email
+            {t("alertsStep2")}
           </p>
         </div>
         <div className="flex items-start gap-3">
           <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-muted text-xs font-medium text-muted-foreground">3</span>
           <p className="pt-0.5 text-sm text-text-muted">
-            Alerts fire only when status changes, avoiding spam
+            {t("alertsStep3")}
           </p>
         </div>
       </div>
@@ -282,7 +279,7 @@ export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
           onClick={onBack}
           className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
-          Back
+          {tForm("back")}
         </Button>
         <Button
           type="button"
@@ -290,7 +287,7 @@ export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
           onClick={onSkip}
           className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
-          Skip this step
+          {t("alertsSkip")}
         </Button>
         <Button
           type="button"
@@ -298,7 +295,7 @@ export function AlertsStep({ onNext, onBack, onSkip }: OnboardingStepProps) {
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
-          I understand
+          {t("alertsUnderstand")}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
@@ -312,6 +309,8 @@ export function StatusPageStep({
   onSkip,
   username,
 }: OnboardingStepProps & { username?: string | null }) {
+  const t = useTranslations("onboarding");
+  const tForm = useTranslations("monitorForm");
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -319,11 +318,10 @@ export function StatusPageStep({
           <Globe className="h-6 w-6" />
         </div>
         <h2 className="text-xl font-semibold text-text-primary">
-          Public Status Pages
+          {t("titleStatusPage")}
         </h2>
         <p className="mt-1 text-sm text-text-muted">
-          Share a public page showing your services&apos; uptime history and
-          current status.
+          {t("statusPageSubheading")}
         </p>
       </div>
 
@@ -331,7 +329,7 @@ export function StatusPageStep({
         {username ? (
           <div>
             <p className="mb-2 text-sm font-medium text-text-primary">
-              Your status page
+              {t("statusPageYourPage")}
             </p>
             <div className="rounded-md border border-border bg-bg-card p-3">
               <code className="text-sm text-accent">
@@ -339,17 +337,20 @@ export function StatusPageStep({
               </code>
             </div>
             <p className="mt-2 text-xs text-text-muted">
-              Monitors marked to appear on status page will show here
+              {t("statusPageMonitorsNote")}
             </p>
           </div>
         ) : (
           <div>
             <p className="mb-2 text-sm font-medium text-text-primary">
-              Set your username first
+              {t("statusPageSetUsername")}
             </p>
             <p className="text-sm text-text-muted">
-              Go to Account settings to set a username, then your status page
-              will be available at <code className="text-accent">/status/[username]</code>
+              {t.rich("statusPageSetUsernameBody", {
+                code: (chunks) => (
+                  <code className="text-accent">{chunks}</code>
+                ),
+              })}
             </p>
           </div>
         )}
@@ -362,7 +363,7 @@ export function StatusPageStep({
           onClick={onBack}
           className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
-          Back
+          {tForm("back")}
         </Button>
         <Button
           type="button"
@@ -370,7 +371,7 @@ export function StatusPageStep({
           onClick={onSkip}
           className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
-          Skip this step
+          {t("statusPageSkip")}
         </Button>
         <Button
           type="button"
@@ -378,7 +379,7 @@ export function StatusPageStep({
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
-          Done
+          {t("statusPageDone")}
           <ArrowRight className="h-4 w-4" />
         </Button>
       </div>
@@ -390,6 +391,7 @@ export function CompleteStep({
   onNext,
   onSkip,
 }: OnboardingStepProps) {
+  const t = useTranslations("onboarding");
   return (
     <div className="flex flex-col gap-6 text-center">
       <div>
@@ -397,37 +399,37 @@ export function CompleteStep({
           <CheckCircle className="h-9 w-9" />
         </div>
         <h2 className="text-2xl font-semibold text-text-primary">
-          You&apos;re All Set!
+          {t("titleComplete")}
         </h2>
         <p className="mt-2 text-sm text-text-muted">
-          You&apos;ve learned the basics of uptime monitoring.
+          {t("completeSubheading")}
         </p>
       </div>
 
       <div className="space-y-2 rounded-lg bg-bg-page p-4 text-left">
-        <p className="text-sm font-medium text-text-primary">Next steps</p>
+        <p className="text-sm font-medium text-text-primary">{t("completeNextSteps")}</p>
         <div className="flex items-start gap-3">
           <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
           <p className="text-sm text-text-muted">
-            Add more monitors to track all your services
+            {t("completeNextStep1")}
           </p>
         </div>
         <div className="flex items-start gap-3">
           <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
           <p className="text-sm text-text-muted">
-            Enable email alerts to get notified of changes
+            {t("completeNextStep2")}
           </p>
         </div>
         <div className="flex items-start gap-3">
           <div className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
           <p className="text-sm text-text-muted">
-            Check the Activity page to see status history
+            {t("completeNextStep3")}
           </p>
         </div>
       </div>
 
       <p className="text-xs text-text-muted">
-        You can access this guide anytime from Account settings.
+        {t("completeAccessGuide")}
       </p>
 
       <div className="flex flex-wrap items-center justify-end gap-2">
@@ -437,7 +439,7 @@ export function CompleteStep({
           onClick={onSkip}
           className="rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
         >
-          Close
+          {t("completeClose")}
         </Button>
         <Button
           type="button"
@@ -445,7 +447,7 @@ export function CompleteStep({
           onClick={onNext}
           className="inline-flex items-center gap-2 rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
         >
-          Go to Dashboard
+          {t("completeDashboard")}
         </Button>
       </div>
     </div>

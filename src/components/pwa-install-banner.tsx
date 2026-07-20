@@ -110,9 +110,9 @@ export function PwaInstallBanner() {
         <p className="mt-0.5 text-xs text-text-muted">
           {platform === "ios" ? (
             <>
-              {t("bodyIos").split('"Add to Home Screen"')[0]}
+              {t("bodyIosBefore")}
               <Share className="mx-1 inline-block size-3 align-[-1px]" />
-              {'"Add to Home Screen"'}
+              {t("bodyIosAfter")}
             </>
           ) : (
             t("bodyAndroid")

@@ -5,12 +5,14 @@ import { toast } from "sonner";
 import type { AdminSettings } from "./page";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, CircleDashed } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export function AdminSettingsClient({
   settings: initial,
 }: {
   settings: AdminSettings;
 }) {
+  const t = useTranslations("admin.settings");
   const [registrationEnabled, setRegistrationEnabled] = useState(
     initial.registrationEnabled
   );
@@ -31,14 +33,14 @@ export function AdminSettingsClient({
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? "Failed to save");
+        toast.error(data.error ?? t("failedToSave"));
         return;
       }
 
       setRegistrationEnabled(next);
-      toast.success("Settings saved");
+      toast.success(t("settingsSaved"));
     } catch {
-      toast.error("Failed to save");
+      toast.error(t("failedToSave"));
     } finally {
       setSaving(false);
     }
@@ -49,10 +51,9 @@ export function AdminSettingsClient({
       <div className="rounded-2xl border border-border bg-bg-card p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div className="space-y-1">
-            <h2 className="font-medium">User registration</h2>
+            <h2 className="font-medium">{t("registrationTitle")}</h2>
             <p className="text-sm text-text-muted">
-              Control whether new users can create accounts from the public sign-up
-              page.
+              {t("registrationDesc")}
             </p>
           </div>
           <Button
@@ -62,7 +63,7 @@ export function AdminSettingsClient({
             disabled={saving}
             role="switch"
             aria-checked={registrationEnabled}
-            aria-label="Toggle user registration"
+            aria-label={t("toggleAriaLabel")}
             className={`relative inline-flex h-7 w-12 shrink-0 cursor-pointer items-center rounded-full border border-transparent p-0 transition-colors hover:bg-transparent focus-visible:ring-2 disabled:opacity-60 ${
               registrationEnabled ? "bg-primary" : "bg-border-muted"
             }`}
@@ -78,15 +79,15 @@ export function AdminSettingsClient({
           <div className="flex items-center justify-between gap-3">
             <div className="font-medium">
               {registrationEnabled
-                ? "New sign-ups are allowed"
-                : "New sign-ups are blocked"}
+                ? t("signupsAllowed")
+                : t("signupsBlocked")}
             </div>
             <span className="rounded-full border border-border bg-bg-card px-2 py-0.5 text-xs font-medium text-text-muted">
-              {registrationEnabled ? "Open" : "Closed"}
+              {registrationEnabled ? t("statusOpen") : t("statusClosed")}
             </span>
           </div>
           <div className="mt-1 text-text-muted">
-            When disabled, the register page rejects new account creation.
+            {t("registrationDisabledHint")}
           </div>
         </div>
       </div>
@@ -94,9 +95,9 @@ export function AdminSettingsClient({
       <div className="rounded-2xl border border-border bg-bg-card p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="font-medium">SMTP / Email</h2>
+            <h2 className="font-medium">{t("smtpTitle")}</h2>
             <p className="mt-1 text-sm text-text-muted">
-              Email alerts are configured through deployment environment variables.
+              {t("smtpDesc")}
             </p>
           </div>
           <span
@@ -115,7 +116,7 @@ export function AdminSettingsClient({
           </span>
         </div>
         <p className="text-sm text-text-muted">
-          Set every required variable to enable outbound notifications.
+          {t("smtpSetHint")}
         </p>
         <div className="mt-4 space-y-2 rounded-xl border border-border bg-muted/30 p-3 dark:bg-muted/20">
           {Object.entries(initial.smtpVarsSet).map(([key, set]) => (
@@ -135,7 +136,7 @@ export function AdminSettingsClient({
                   className={`size-1.5 rounded-full ${set ? "bg-green-500" : "bg-border-muted"}`}
                   aria-hidden
                 />
-                {set ? "Set" : "Missing"}
+                {set ? t("smtpVarSet") : t("smtpVarMissing")}
               </span>
             </div>
           ))}

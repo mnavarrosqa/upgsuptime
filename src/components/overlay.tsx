@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from "react";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export function Overlay({
   open,
@@ -67,6 +68,8 @@ export function Overlay({
     return () => document.removeEventListener("focusin", handleFocusIn);
   }, [open, focusFirstFocusable]);
 
+  const t = useTranslations("common");
+
   if (!open) return null;
 
   return (
@@ -79,7 +82,7 @@ export function Overlay({
         variant="ghost"
         onClick={onClose}
         className="absolute inset-0 h-full min-h-0 w-full rounded-none border-0 bg-black/50 p-0 hover:bg-black/50 focus-visible:ring-0"
-        aria-label="Close"
+        aria-label={t("close")}
         tabIndex={-1}
       />
       <div

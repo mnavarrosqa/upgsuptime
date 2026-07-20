@@ -3,6 +3,7 @@ import { settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AdminSettingsClient } from "./settings-client";
 import { AdminSubNav } from "@/components/admin-sub-nav";
+import { getTranslations } from "next-intl/server";
 
 export interface AdminSettings {
   registrationEnabled: boolean;
@@ -13,6 +14,8 @@ export interface AdminSettings {
 const SMTP_VARS = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM"];
 
 export default async function AdminSettingsPage() {
+  const t = await getTranslations("admin.settings");
+
   const [row] = await db
     .select()
     .from(settings)
@@ -29,13 +32,13 @@ export default async function AdminSettingsPage() {
     <div className="space-y-7">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-          Configuration
+          {t("eyebrow")}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("heading")}</h1>
             <p className="mt-1 max-w-2xl text-sm text-text-muted">
-              Control sign-ups and verify deployment-level notification settings.
+              {t("subtitle")}
             </p>
           </div>
         </div>

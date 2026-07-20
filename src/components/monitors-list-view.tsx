@@ -156,7 +156,7 @@ function RowActionsMenu({
               setOpen(false);
               onDelete(monitor.id, monitor.name);
             }}
-            className="h-auto w-full justify-start rounded-none border-0 px-3.5 py-2 text-sm font-normal text-red-600 shadow-none hover:bg-red-50 active:scale-[0.98] dark:text-red-400 dark:hover:bg-red-900/20"
+            className="h-auto w-full justify-start rounded-none border-0 px-3.5 py-2 text-sm font-normal text-status-down shadow-none hover:bg-status-down-soft active:scale-[0.98]"
           >
             {t("delete")}
           </Button>
@@ -468,10 +468,10 @@ export function MonitorsListView(props: MonitorsListViewProps) {
   const t = useTranslations("monitorsPage");
 
   return (
-    <div className="mt-6 w-full min-w-0 overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-      <div className="border-b border-border/80 bg-gradient-to-b from-muted/40 to-transparent px-4 py-2.5 dark:from-muted/25 sm:px-5 sm:py-3">
+    <div className="mt-4 w-full min-w-0 overflow-hidden rounded-xl border border-border bg-bg-card">
+      <div className="border-b border-border/80 px-4 py-2.5 sm:px-5 sm:py-3">
         <h2
-          className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
+          className="text-xs font-semibold uppercase tracking-wider text-text-muted"
           style={{ fontFamily: "var(--font-display)" }}
         >
           {t("tableSectionHeading")}

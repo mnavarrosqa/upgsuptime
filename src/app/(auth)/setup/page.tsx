@@ -32,7 +32,7 @@ export default function SetupPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
-  const [language, setLanguage] = useState<"en" | "es">((locale === "es" ? "es" : "en"));
+  const [language, setLanguage] = useState<"en" | "es">(locale === "en" ? "en" : "es");
 
   useEffect(() => {
     fetch("/api/setup/status")

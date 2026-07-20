@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { Download, Loader2, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -21,6 +22,7 @@ const TARGET_CHUNK_BYTES = 450 * 1024;
 export function AccountDataPortability({ className }: { className?: string }) {
   const { update } = useSession();
   const router = useRouter();
+  const t = useTranslations("account");
   const fileRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -66,7 +68,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
     let checkResultsImported = 0;
     let profileUpdated = false;
 
-    setImportStatus("Preparing restore...");
+    setImportStatus(t("dataPreparingRestore"));
     setChunkProgressPct(5);
     const initRes = await fetch("/api/user/account-import/chunked", {
       method: "POST",
@@ -86,14 +88,14 @@ export function AccountDataPortability({ className }: { className?: string }) {
       monitorErrors?: { index: number; error: string }[];
       profileUpdated?: boolean;
     };
-    if (!initRes.ok) throw new Error(initData.error ?? "Chunked import init failed");
+    if (!initRes.ok) throw new Error(initData.error ?? t("dataChunkedInitFailed"));
     monitorsImported = initData.monitorsImported ?? 0;
     if (initData.monitorErrors?.length) monitorErrors.push(...initData.monitorErrors);
     profileUpdated = initData.profileUpdated === true;
 
     for (let i = 0; i < chunks.length; i++) {
       const pct = 10 + Math.round(((i + 1) / Math.max(chunks.length, 1)) * 80);
-      setImportStatus(`Importing history chunk ${i + 1}/${chunks.length}...`);
+      setImportStatus(t("dataImportingChunk", { current: i + 1, total: chunks.length }));
       setChunkProgressPct(pct);
       const checksRes = await fetch("/api/user/account-import/chunked", {
         method: "POST",
@@ -110,12 +112,12 @@ export function AccountDataPortability({ className }: { className?: string }) {
         checkResultsImported?: number;
         checkErrors?: { index: number; error: string }[];
       };
-      if (!checksRes.ok) throw new Error(checksData.error ?? "Chunked check import failed");
+      if (!checksRes.ok) throw new Error(checksData.error ?? t("dataChunkedChecksFailed"));
       checkResultsImported += checksData.checkResultsImported ?? 0;
       if (checksData.checkErrors?.length) checkErrors.push(...checksData.checkErrors);
     }
 
-    setImportStatus("Finalizing and running checks...");
+    setImportStatus(t("dataFinalizing"));
     setChunkProgressPct(95);
     const finalizeRes = await fetch("/api/user/account-import/chunked", {
       method: "POST",
@@ -130,7 +132,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
       error?: string;
     };
     if (!finalizeRes.ok) {
-      throw new Error(finalizeData.error ?? "Chunked import finalize failed");
+      throw new Error(finalizeData.error ?? t("dataChunkedFinalizeFailed"));
     }
     setChunkProgressPct(100);
     return {
@@ -149,7 +151,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
       const res = await fetch(`/api/user/account-export${q}`);
       if (!res.ok) {
         const data = (await res.json().catch(() => ({}))) as { error?: string };
-        throw new Error(data.error ?? "Export failed");
+        throw new Error(data.error ?? t("dataExportFailed"));
       }
       const blob = await res.blob();
       const cd = res.headers.get("Content-Disposition");
@@ -161,9 +163,9 @@ export function AccountDataPortability({ className }: { className?: string }) {
       a.download = filename;
       a.click();
       URL.revokeObjectURL(url);
-      toast.success("Download started");
+      toast.success(t("dataDownloadStarted"));
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Export failed");
+      toast.error(e instanceof Error ? e.message : t("dataExportFailed"));
     } finally {
       setExporting(false);
     }
@@ -171,7 +173,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
 
   async function handleImportFile(file: File) {
     setImporting(true);
-    setImportStatus("Reading import file...");
+    setImportStatus(t("dataReadingFile"));
     setChunkProgressPct(null);
     try {
       const text = await file.text();
@@ -179,10 +181,10 @@ export function AccountDataPortability({ className }: { className?: string }) {
       try {
         json = JSON.parse(text) as unknown;
       } catch {
-        throw new Error("File is not valid JSON");
+        throw new Error(t("dataInvalidJson"));
       }
       if (json === null || typeof json !== "object") {
-        throw new Error("Invalid export file");
+        throw new Error(t("dataInvalidExport"));
       }
       const body = {
         ...(json as Record<string, unknown>),
@@ -205,27 +207,25 @@ export function AccountDataPortability({ className }: { className?: string }) {
       });
       data = (await res.json().catch(() => ({}))) as typeof data;
       if (!res.ok && res.status === 413 && restoreMode) {
-        toast.info("Large backup detected. Retrying with chunked import...");
+        toast.info(t("dataLargeBackup"));
         data = await importChunkedRestore(json as Record<string, unknown>);
       } else if (!res.ok) {
-        throw new Error(data.error ?? "Import failed");
+        throw new Error(data.error ?? t("dataImportFailed"));
       }
       const parts: string[] = [];
       if (typeof data.monitorsImported === "number") {
-        parts.push(`${data.monitorsImported} monitor(s)`);
+        parts.push(t("dataMonitorCount", { count: data.monitorsImported }));
       }
       if (typeof data.checkResultsImported === "number" && data.checkResultsImported > 0) {
-        parts.push(`${data.checkResultsImported} check record(s)`);
+        parts.push(t("dataCheckCount", { count: data.checkResultsImported }));
       }
-      toast.success(`Imported ${parts.join(", ")}`);
+      toast.success(t("dataImportedParts", { parts: parts.join(", ") }));
       if (data.note) toast.info(data.note);
       if (data.monitorErrors?.length) {
-        toast.info(
-          `${data.monitorErrors.length} monitor row(s) skipped (see server response for details)`
-        );
+        toast.info(t("dataMonitorRowsSkipped", { count: data.monitorErrors.length }));
       }
       if (data.checkErrors?.length) {
-        toast.info(`${data.checkErrors.length} check result row(s) skipped`);
+        toast.info(t("dataCheckRowsSkipped", { count: data.checkErrors.length }));
       }
       if (data.profileUpdated) {
         await update();
@@ -233,7 +233,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
       router.refresh();
       if (fileRef.current) fileRef.current.value = "";
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Import failed");
+      toast.error(e instanceof Error ? e.message : t("dataImportFailed"));
     } finally {
       setImportStatus(null);
       setChunkProgressPct(null);
@@ -247,19 +247,16 @@ export function AccountDataPortability({ className }: { className?: string }) {
         className="text-base font-semibold text-text-primary"
         style={{ fontFamily: "var(--font-display)" }}
       >
-        Your data
+        {t("dataTitle")}
       </h2>
       <p className="mt-0.5 text-sm text-text-muted">
-        Download everything tied to your account (profile, monitors, and
-        optional check history), including monitor type-specific settings and
-        degradation alert configuration. Restore from a backup file to recover
-        the same setup. Passwords are never included in exports.
+        {t("dataSubtitle")}
       </p>
 
       <div className="mt-4 space-y-4 rounded-lg border border-border bg-bg-card px-6 py-5">
         <div>
           <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
-            Export
+            {t("dataExportSection")}
           </p>
           <label className={`${labelClass} mt-3`}>
             <input
@@ -269,8 +266,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
               className="mt-0.5 size-4 rounded border-border text-accent focus:ring-input-focus"
             />
             <span className="text-text-muted">
-              Include check history (larger file; uncheck for settings-only
-              backup)
+              {t("dataIncludeHistory")}
             </span>
           </label>
           <Button
@@ -281,7 +277,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
             disabled={exporting}
           >
             <Download className="size-4 shrink-0" aria-hidden />
-            {exporting ? "Preparing…" : "Download JSON"}
+            {exporting ? t("dataPreparing") : t("dataDownloadJson")}
           </Button>
         </div>
 
@@ -293,17 +289,16 @@ export function AccountDataPortability({ className }: { className?: string }) {
               <div className="w-full max-w-sm rounded-md border border-border bg-bg-card p-4 shadow-sm">
                 <p className="flex items-center gap-2 text-sm font-semibold text-text-primary">
                   <Loader2 className="size-4 animate-spin" aria-hidden />
-                  Importing backup...
+                  {t("dataImportingBackup")}
                 </p>
                 <p className="mt-1 text-xs text-text-muted">
-                  {importStatus ??
-                    "Uploading and applying your data. Keep this tab open until it finishes."}
+                  {importStatus ?? t("dataImportingBackupDesc")}
                 </p>
                 <div
                   className="mt-3 h-2 w-full overflow-hidden rounded-full bg-bg-muted"
                   role="status"
                   aria-live="polite"
-                  aria-label="Import in progress"
+                  aria-label={t("dataImportInProgress")}
                 >
                   <div
                     className="h-full animate-pulse rounded-full bg-accent transition-[width] duration-300"
@@ -314,13 +309,10 @@ export function AccountDataPortability({ className }: { className?: string }) {
             </div>
           ) : null}
           <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
-            Import
+            {t("dataImportSection")}
           </p>
           <p className="mt-2 text-sm text-text-muted">
-            Use a file from this app&apos;s account export. Restore replaces
-            all your monitors and their history while keeping monitor settings
-            (HTTP/keyword/DNS options and degradation alert config). Append
-            adds monitors only and ignores history in the file.
+            {t("dataImportDescription")}
           </p>
           <label className={`${labelClass} mt-3`}>
             <input
@@ -330,10 +322,9 @@ export function AccountDataPortability({ className }: { className?: string }) {
               className="mt-0.5 size-4 rounded border-border text-accent focus:ring-input-focus"
             />
             <span>
-              <span className="text-text-primary">Restore mode</span>
+              <span className="text-text-primary">{t("dataRestoreMode")}</span>
               <span className="text-text-muted">
-                {" "}
-                — replace all monitors and import check history from the file
+                {" "}{t("dataRestoreModeDesc")}
               </span>
             </span>
           </label>
@@ -345,9 +336,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
               className="mt-0.5 size-4 rounded border-border text-accent focus:ring-input-focus"
             />
             <span className="text-text-muted">
-              Also apply profile fields from the file: username, language,
-              onboarding, activity feed clear/dismiss state, and public status
-              page copy. Email in the file is ignored.
+              {t("dataApplyProfile")}
             </span>
           </label>
           <input
@@ -363,7 +352,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
           />
           <p className="mt-2 flex items-center gap-1.5 text-xs text-text-muted">
             <Upload className="size-3.5 shrink-0" aria-hidden />
-            Choosing a file starts the import immediately (max {MAX_ACCOUNT_IMPORT_BODY_MB}MB).
+            {t("dataFileStartsImport", { max: MAX_ACCOUNT_IMPORT_BODY_MB })}
           </p>
         </div>
       </div>

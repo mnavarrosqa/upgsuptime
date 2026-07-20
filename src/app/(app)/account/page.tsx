@@ -154,7 +154,7 @@ export default async function AccountPage() {
                 {tAccount("profileSubtitle")}
               </p>
               <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
-                <ProfileForm username={name} language={userRow?.language ?? "en"} />
+                <ProfileForm username={name} language={userRow?.language ?? "es"} />
               </div>
             </div>
 

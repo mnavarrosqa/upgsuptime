@@ -2,21 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const links = [
-  { href: "/admin", label: "Overview" },
-  { href: "/admin/users", label: "Users" },
-  { href: "/admin/monitors", label: "Monitors" },
-  { href: "/admin/settings", label: "Settings" },
-] as const;
+import { useTranslations } from "next-intl";
 
 export function AdminSubNav() {
   const pathname = usePathname();
+  const t = useTranslations("admin.nav");
+
+  const links = [
+    { href: "/admin", label: t("overview") },
+    { href: "/admin/users", label: t("users") },
+    { href: "/admin/monitors", label: t("monitors") },
+    { href: "/admin/settings", label: t("settings") },
+  ] as const;
 
   return (
     <nav
       className="overflow-x-auto rounded-xl border border-border bg-bg-card/70 p-1"
-      aria-label="Admin navigation"
+      aria-label={t("ariaLabel")}
     >
       <div className="flex min-w-max gap-1">
         {links.map(({ href, label }) => {

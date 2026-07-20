@@ -33,6 +33,7 @@ export function DowntimeAckControls({
 }) {
   const router = useRouter();
   const t = useTranslations("monitorDetail");
+  const tErrors = useTranslations("errors");
   const [loading, setLoading] = useState(false);
 
   if (!show) return null;
@@ -47,7 +48,7 @@ export function DowntimeAckControls({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        toast.error(typeof data.error === "string" ? data.error : "Request failed");
+        toast.error(typeof data.error === "string" ? data.error : tErrors("fallback"));
         return;
       }
       router.refresh();

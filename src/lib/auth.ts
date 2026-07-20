@@ -68,7 +68,7 @@ export const authOptions: NextAuthOptions = {
           email: u.email,
           name: u.username ?? undefined,
           role: u.role,
-          language: normalizeLocale(u.language ?? "en"),
+          language: normalizeLocale(u.language ?? "es"),
         };
       },
     }),
@@ -88,7 +88,7 @@ export const authOptions: NextAuthOptions = {
           .where(eq(userTable.id, token.id as string));
         if (row) {
           token.name = row.username ?? undefined;
-          token.language = normalizeLocale(row.language ?? "en");
+          token.language = normalizeLocale(row.language ?? "es");
         }
       }
       return token;

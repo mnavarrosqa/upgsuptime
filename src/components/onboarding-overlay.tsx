@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, startTransition } from "react";
+import { useTranslations } from "next-intl";
 import { Overlay } from "@/components/overlay";
 import {
   WelcomeStep,
@@ -38,6 +39,7 @@ export function OnboardingOverlay({
   username,
   onComplete,
 }: OnboardingOverlayProps) {
+  const t = useTranslations("onboarding");
   const [currentStep, setCurrentStep] = useState<StepIdType>(
     initialStep ?? "welcome"
   );
@@ -130,11 +132,11 @@ export function OnboardingOverlay({
   }
 
   const stepTitles: Record<StepIdType, string> = {
-    welcome: "Welcome",
-    "add-monitor": "Add Your First Monitor",
-    alerts: "Email Alerts",
-    "status-page": "Public Status Pages",
-    complete: "You're All Set!",
+    welcome: t("titleWelcome"),
+    "add-monitor": t("titleAddMonitor"),
+    alerts: t("titleAlerts"),
+    "status-page": t("titleStatusPage"),
+    complete: t("titleComplete"),
   };
 
   return (
@@ -152,10 +154,10 @@ export function OnboardingOverlay({
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="max-w-md rounded-lg border border-border bg-bg-card p-6 shadow-xl">
             <h3 className="mb-2 text-lg font-semibold text-text-primary">
-              Skip onboarding?
+              {t("skipConfirmTitle")}
             </h3>
             <p className="mb-4 text-sm text-text-muted">
-              You can access the onboarding guide anytime from Account settings.
+              {t("skipConfirmBody")}
             </p>
             <div className="flex justify-end gap-2">
               <Button
@@ -164,7 +166,7 @@ export function OnboardingOverlay({
                 onClick={handleCancelSkip}
                 className="rounded-md px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
               >
-                Cancel
+                {t("skipConfirmCancel")}
               </Button>
               <Button
                 type="button"
@@ -172,7 +174,7 @@ export function OnboardingOverlay({
                 onClick={handleConfirmSkip}
                 className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-bg-page hover:bg-accent-hover"
               >
-                Skip
+                {t("skipConfirmSkip")}
               </Button>
             </div>
           </div>

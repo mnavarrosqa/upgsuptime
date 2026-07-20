@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export function CheckNowButton({
   monitorId,
@@ -13,6 +14,7 @@ export function CheckNowButton({
   monitorId: string;
   variant?: "primary" | "secondary";
 }) {
+  const t = useTranslations("monitorsPage");
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -24,13 +26,13 @@ export function CheckNowButton({
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast.error(data.error ?? data.message ?? "Check failed");
+        toast.error(data.error ?? data.message ?? t("checkNowFailed"));
         return;
       }
       await router.refresh();
-      toast.success("Check complete");
+      toast.success(t("checkComplete"));
     } catch {
-      toast.error("Check failed");
+      toast.error(t("checkNowFailed"));
     } finally {
       setLoading(false);
     }
@@ -50,7 +52,7 @@ export function CheckNowButton({
       className={`inline-flex items-center justify-center gap-2 ${buttonClass}`}
     >
       {loading && <Spinner size="sm" />}
-      {loading ? "Checking…" : "Check now"}
+      {loading ? t("checking") : t("checkNow")}
     </Button>
   );
 }

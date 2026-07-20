@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, startTransition } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { useTranslations } from "next-intl";
 
 export type MonitorSearchItem = { id: string; name: string; url: string };
 
@@ -11,8 +12,8 @@ type SearchWithTypeaheadProps = {
   monitors: MonitorSearchItem[];
   value: string;
   onChange: (value: string) => void;
-  placeholder?: string;
-  "aria-label"?: string;
+  placeholder?: string | undefined;
+  "aria-label"?: string | undefined;
 };
 
 function matchMonitor(m: MonitorSearchItem, query: string): boolean {
@@ -27,9 +28,12 @@ export function SearchWithTypeahead({
   monitors,
   value,
   onChange,
-  placeholder = "Search monitors…",
-  "aria-label": ariaLabel = "Search monitors by name or URL",
+  placeholder,
+  "aria-label": ariaLabel,
 }: SearchWithTypeaheadProps) {
+  const t = useTranslations("monitorsPage");
+  const resolvedPlaceholder = placeholder ?? t("searchPlaceholder");
+  const resolvedAriaLabel = ariaLabel ?? t("searchPlaceholder");
   const [focused, setFocused] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const listRef = useRef<HTMLUListElement>(null);
@@ -97,8 +101,8 @@ export function SearchWithTypeahead({
           setTimeout(() => setFocused(false), 150)
         }
         onKeyDown={handleKeyDown}
-        placeholder={placeholder}
-        aria-label={ariaLabel}
+        placeholder={resolvedPlaceholder}
+        aria-label={resolvedAriaLabel}
         aria-expanded={showDropdown}
         aria-autocomplete="list"
         aria-controls="search-typeahead-list"
@@ -145,7 +149,7 @@ export function SearchWithTypeahead({
                   className="shrink-0 text-xs text-text-muted hover:text-text-primary"
                   onMouseDown={(e) => e.preventDefault()}
                 >
-                  View
+                  {t("searchView")}
                 </Link>
               </div>
             </li>

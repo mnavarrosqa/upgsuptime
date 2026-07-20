@@ -1,27 +1,35 @@
 "use client";
 
-const STEPS = [
-  { id: "welcome", title: "Welcome" },
-  { id: "add-monitor", title: "Add Monitor" },
-  { id: "alerts", title: "Alerts" },
-  { id: "status-page", title: "Status Page" },
-  { id: "complete", title: "Complete" },
-] as const;
+import { useTranslations } from "next-intl";
 
-type StepId = (typeof STEPS)[number]["id"];
+const STEP_IDS = ["welcome", "add-monitor", "alerts", "status-page", "complete"] as const;
+
+type StepId = (typeof STEP_IDS)[number];
+
+const STEP_KEY_MAP: Record<StepId, string> = {
+  welcome: "stepWelcome",
+  "add-monitor": "stepAddMonitor",
+  alerts: "stepAlerts",
+  "status-page": "stepStatusPage",
+  complete: "stepComplete",
+};
 
 interface OnboardingIndicatorProps {
   currentStep: StepId;
 }
 
 export function OnboardingIndicator({ currentStep }: OnboardingIndicatorProps) {
-  const currentIndex = STEPS.findIndex((s) => s.id === currentStep);
+  const t = useTranslations("onboarding");
+  const currentIndex = STEP_IDS.indexOf(currentStep);
 
   return (
-    <div className="flex items-center justify-center gap-2" aria-label="Onboarding progress">
-      {STEPS.map((step, index) => (
+    <div
+      className="flex items-center justify-center gap-2"
+      aria-label={t("progressAriaLabel")}
+    >
+      {STEP_IDS.map((stepId, index) => (
         <div
-          key={step.id}
+          key={stepId}
           className="flex items-center"
           role="presentation"
         >
@@ -35,9 +43,15 @@ export function OnboardingIndicator({ currentStep }: OnboardingIndicatorProps) {
                   : "bg-border"
               }
             `}
-            aria-label={`${step.title} ${index === currentIndex ? "- current step" : index < currentIndex ? "- completed" : "- not started"}`}
+            aria-label={`${t(STEP_KEY_MAP[stepId])} — ${
+              index === currentIndex
+                ? t("stepCurrent")
+                : index < currentIndex
+                  ? t("stepCompleted")
+                  : t("stepNotStarted")
+            }`}
           />
-          {index < STEPS.length - 1 && (
+          {index < STEP_IDS.length - 1 && (
             <div
               className={`h-0.5 w-4 transition-colors ${
                 index < currentIndex ? "bg-accent" : "bg-border"

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Activity } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export const metadata: Metadata = {
   title: "Maintenance — UPG Monitor",
@@ -10,7 +11,9 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default function MaintenancePage() {
+export default async function MaintenancePage() {
+  const t = await getTranslations("maintenance");
+
   return (
     <div className="min-h-screen bg-bg-page text-text-primary flex items-center justify-center px-4 py-12">
       <div className="w-full max-w-sm text-center">
@@ -25,12 +28,10 @@ export default function MaintenancePage() {
         </div>
 
         <h1 className="mb-3 text-2xl font-semibold tracking-tight text-text-primary font-display">
-          Down for maintenance
+          {t("title")}
         </h1>
         <p className="mb-8 text-sm leading-relaxed text-text-muted">
-          We&rsquo;re performing scheduled maintenance and will be back shortly.
-          <br />
-          Thank you for your patience.
+          {t("body")}
         </p>
 
         {/* Status card */}
@@ -41,9 +42,9 @@ export default function MaintenancePage() {
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-400" />
             </span>
             <div>
-              <p className="text-sm font-medium text-text-primary">Maintenance in progress</p>
+              <p className="text-sm font-medium text-text-primary">{t("statusTitle")}</p>
               <p className="mt-0.5 text-xs text-text-muted">
-                Monitor checks are paused. Your uptime data is safe.
+                {t("statusBody")}
               </p>
             </div>
           </div>
@@ -54,7 +55,7 @@ export default function MaintenancePage() {
             href="/"
             className="font-medium text-text-primary underline-offset-4 hover:underline transition-colors"
           >
-            Try again
+            {t("tryAgain")}
           </Link>
         </p>
       </div>

@@ -5,8 +5,10 @@ import { count, eq, gte } from "drizzle-orm";
 import { AdminSubNav } from "@/components/admin-sub-nav";
 import { hoursAgoUtc } from "@/lib/server-relative-time";
 import { Activity, ArrowRight, CheckCircle2, Monitor, Users, XCircle } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminPage() {
+  const t = await getTranslations("admin");
   const since = hoursAgoUtc(24);
 
   const [[{ totalUsers }], [{ totalMonitors }], [{ checksLast24h }], [{ monitorsUp }], [{ monitorsDown }]] =
@@ -23,40 +25,46 @@ export default async function AdminPage() {
     knownStatusCount > 0 ? Math.round((monitorsUp / knownStatusCount) * 100) : null;
 
   const cards = [
-    { label: "Users", value: totalUsers, detail: "registered accounts", icon: Users },
-    { label: "Monitors", value: totalMonitors, detail: "configured checks", icon: Monitor },
-    { label: "Checks", value: checksLast24h, detail: "completed in 24h", icon: Activity },
+    { label: t("overview.cardUsers"), value: totalUsers, detail: t("overview.cardUsersDetail"), icon: Users },
+    { label: t("overview.cardMonitors"), value: totalMonitors, detail: t("overview.cardMonitorsDetail"), icon: Monitor },
+    { label: t("overview.cardChecks"), value: checksLast24h, detail: t("overview.cardChecksDetail"), icon: Activity },
     {
-      label: "Up",
+      label: t("overview.cardUp"),
       value: monitorsUp,
-      detail: upRate === null ? "no checked monitors" : `${upRate}% of known statuses`,
+      detail: upRate === null ? t("overview.cardUpDetailNoStatus") : t("overview.cardUpDetailRate", { upRate }),
       icon: CheckCircle2,
       tone: "text-green-600 dark:text-green-400",
     },
     {
-      label: "Down",
+      label: t("overview.cardDown"),
       value: monitorsDown,
-      detail: monitorsDown === 0 ? "no active outages" : "needs attention",
+      detail: monitorsDown === 0 ? t("overview.cardDownDetailGood") : t("overview.cardDownDetailBad"),
       icon: XCircle,
       tone: monitorsDown > 0 ? "text-red-600 dark:text-red-400" : "text-text-muted",
     },
+  ];
+
+  const quickLinks = [
+    { href: "/admin/users", label: t("overview.usersLabel"), desc: t("overview.usersDesc") },
+    { href: "/admin/monitors", label: t("overview.monitorsLabel"), desc: t("overview.monitorsDesc") },
+    { href: "/admin/settings", label: t("overview.settingsLabel"), desc: t("overview.settingsDesc") },
   ];
 
   return (
     <div className="space-y-7">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-          Control room
+          {t("overview.eyebrow")}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Admin</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("overview.heading")}</h1>
             <p className="mt-1 max-w-2xl text-sm text-text-muted">
-              System-wide visibility for accounts, checks, and operational settings.
+              {t("overview.subtitle")}
             </p>
           </div>
           <div className="rounded-full border border-border bg-bg-card px-3 py-1 text-xs font-medium text-text-muted">
-            Last 24 hours
+            {t("overview.last24h")}
           </div>
         </div>
       </div>
@@ -81,11 +89,7 @@ export default async function AdminPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
-        {[
-          { href: "/admin/users", label: "Users", desc: "Manage user accounts and roles" },
-          { href: "/admin/monitors", label: "Monitors", desc: "View all monitors across all users" },
-          { href: "/admin/settings", label: "Settings", desc: "Configure app-wide settings" },
-        ].map(({ href, label, desc }) => (
+        {quickLinks.map(({ href, label, desc }) => (
           <Link
             key={href}
             href={href}

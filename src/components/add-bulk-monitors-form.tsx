@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useId, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { useTranslations } from "next-intl";
 import { NotificationsPanel } from "@/components/notifications-panel";
 import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
@@ -60,6 +61,9 @@ export function AddBulkMonitorsForm({
 }) {
   const router = useRouter();
   const fileInputId = useId();
+  const tBulk = useTranslations("bulkEdit");
+  const tForm = useTranslations("monitorForm");
+  const tCommon = useTranslations("common");
 
   const [rows, setRows] = useState<PreviewRow[]>([]);
   const [pasteText, setPasteText] = useState("");
@@ -147,10 +151,12 @@ export function AddBulkMonitorsForm({
       const url = r.url.trim();
       const name = r.name.trim() || deriveMonitorNameFromUrl(url);
       return {
-        urlError: url ? validateMonitorUrl(url) : "URL is required",
+        urlError: url ? validateMonitorUrl(url) : tBulk("urlRequired"),
         nameError: validateMonitorName(name),
       };
     });
+  // tBulk is stable, no need to include in deps
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rows]);
 
   const allValid =
@@ -159,14 +165,12 @@ export function AddBulkMonitorsForm({
 
   const setRowsFromParsed = useCallback((parsed: { name: string; url: string }[]) => {
     if (parsed.length === 0) {
-      setError("No sites found in that file or list.");
+      setError(tBulk("noSitesFound"));
       setRows([]);
       return;
     }
     if (parsed.length > MAX_SITES) {
-      setError(
-        `Found ${parsed.length} sites; only the first ${MAX_SITES} are loaded.`
-      );
+      setError(tBulk("tooManySites", { found: parsed.length, max: MAX_SITES }));
     } else {
       setError(null);
     }
@@ -177,6 +181,8 @@ export function AddBulkMonitorsForm({
         url: p.url,
       }))
     );
+  // tBulk is stable
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   async function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -190,7 +196,7 @@ export function AddBulkMonitorsForm({
       setRowsFromParsed(parsed);
     } catch (err) {
       setRows([]);
-      setError(err instanceof Error ? err.message : "Could not read file");
+      setError(err instanceof Error ? err.message : tBulk("couldNotReadFile"));
     } finally {
       setParsingFile(false);
     }
@@ -217,7 +223,7 @@ export function AddBulkMonitorsForm({
     setError(null);
 
     if (!allValid) {
-      setError("Fix or remove rows with errors before saving.");
+      setError(tBulk("fixRowErrors"));
       return;
     }
 
@@ -251,23 +257,23 @@ export function AddBulkMonitorsForm({
             data.details
               .map(
                 (d: { index: number; url: string; error: string }) =>
-                  `Row ${d.index}: ${d.error}`
+                  tBulk("rowError", { index: d.index, error: d.error })
               )
               .join("\n")
           );
         } else {
-          setError(data.error ?? "Failed to add monitors");
+          setError(data.error ?? tBulk("failedToAddMonitors"));
         }
         return;
       }
       const count = data.created ?? items.length;
-      toast.success(`${count} monitor${count !== 1 ? "s" : ""} added`);
+      toast.success(tBulk("monitorsAdded", { count }));
       setRows([]);
       setPasteText("");
       router.refresh();
       onSuccess?.();
     } catch {
-      setError("Something went wrong");
+      setError(tCommon("somethingWentWrong"));
     } finally {
       setSubmitting(false);
     }
@@ -293,16 +299,13 @@ export function AddBulkMonitorsForm({
       )}
 
       <div className="rounded-md border border-border bg-bg-elevated/30 p-4">
-        <p className={labelClass}>Import from file</p>
+        <p className={labelClass}>{tBulk("importFromFile")}</p>
         <p className={hintClass}>
-          .txt (one URL per line), .csv, or .xlsx with columns{" "}
-          <span className="font-mono">name</span> and{" "}
-          <span className="font-mono">url</span>, or URL only. Up to{" "}
-          {MAX_SITES} sites.
+          {tBulk("importFileHint", { max: MAX_SITES })}
         </p>
         <div className="mt-3">
           <p className="text-xs font-medium text-text-muted">
-            Sample format (recommended)
+            {tBulk("sampleFormat")}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <Button
@@ -312,7 +315,7 @@ export function AddBulkMonitorsForm({
               disabled={parsingFile || submitting}
               className="rounded-md border-border bg-bg-page px-3 py-2 text-xs font-medium text-text-primary hover:bg-bg-elevated"
             >
-              Download CSV sample
+              {tBulk("downloadCsvSample")}
             </Button>
             <Button
               type="button"
@@ -321,7 +324,7 @@ export function AddBulkMonitorsForm({
               disabled={parsingFile || submitting}
               className="rounded-md border-border bg-bg-page px-3 py-2 text-xs font-medium text-text-primary hover:bg-bg-elevated"
             >
-              Download XLSX sample
+              {tBulk("downloadXlsxSample")}
             </Button>
           </div>
           <pre className="mt-2 whitespace-pre-wrap rounded-md border border-border bg-bg-page px-3 py-2 text-xs text-text-primary font-mono">
@@ -351,21 +354,21 @@ export function AddBulkMonitorsForm({
             {parsingFile ? (
               <>
                 <Spinner size="sm" className="mr-2" />
-                Reading…
+                {tBulk("readingFile")}
               </>
             ) : (
-              "Choose file"
+              tBulk("chooseFile")
             )}
           </Label>
           <span className="text-xs text-text-muted">
-            {parsingFile ? "" : "txt, csv, xlsx"}
+            {parsingFile ? "" : tBulk("fileTypes")}
           </span>
         </div>
       </div>
 
       <div>
         <Label htmlFor="bulk-paste" className={labelClass}>
-          Or paste a list
+          {tBulk("pasteListLabel")}
         </Label>
         <textarea
           id="bulk-paste"
@@ -377,8 +380,7 @@ export function AddBulkMonitorsForm({
           aria-describedby="bulk-paste-hint"
         />
         <p id="bulk-paste-hint" className={hintClass}>
-          One URL per line, or CSV / spreadsheet-style rows. Load into the
-          preview below.
+          {tBulk("pasteListHint")}
         </p>
         <Button
           type="button"
@@ -389,15 +391,16 @@ export function AddBulkMonitorsForm({
           }
           className="mt-2 rounded-md border-border bg-bg-page px-3 py-2 text-sm font-medium text-text-primary hover:bg-bg-elevated"
         >
-          Load into preview
+          {tBulk("loadIntoPreview")}
         </Button>
       </div>
 
       {rows.length > 0 && (
         <div>
           <p className={labelClass}>
-            Sites to add ({rows.length}
-            {allValid ? "" : " — fix errors before saving"})
+            {allValid
+              ? tBulk("sitesToAdd", { count: rows.length })
+              : tBulk("sitesToAddWithErrors", { count: rows.length })}
           </p>
           <div className="max-h-64 overflow-auto rounded-md border border-border">
             <table className="w-full min-w-[520px] border-collapse text-left text-sm">
@@ -405,13 +408,13 @@ export function AddBulkMonitorsForm({
                 <tr className="border-b border-border">
                   <th className="px-3 py-2 font-medium text-text-primary">#</th>
                   <th className="px-3 py-2 font-medium text-text-primary">
-                    Name
+                    {tForm("name")}
                   </th>
                   <th className="px-3 py-2 font-medium text-text-primary">
-                    URL
+                    {tForm("url")}
                   </th>
                   <th className="px-3 py-2 font-medium text-text-primary w-24">
-                    <span className="sr-only">Remove</span>
+                    <span className="sr-only">{tBulk("colRemove")}</span>
                   </th>
                 </tr>
               </thead>
@@ -476,7 +479,7 @@ export function AddBulkMonitorsForm({
                           disabled={submitting}
                           className="rounded-md px-2 text-sm text-text-muted hover:bg-transparent hover:text-red-600 dark:hover:text-red-400"
                         >
-                          Remove
+                          {tBulk("colRemove")}
                         </Button>
                       </td>
                     </tr>
@@ -491,7 +494,7 @@ export function AddBulkMonitorsForm({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div>
           <Label htmlFor="bulk-interval" className={labelClass}>
-            Interval (min)
+            {tForm("intervalMinutes")}
           </Label>
           <Input
             id="bulk-interval"
@@ -505,7 +508,7 @@ export function AddBulkMonitorsForm({
         </div>
         <div>
           <Label htmlFor="bulk-method" className={labelClass}>
-            Method
+            {tForm("method")}
           </Label>
           <select
             id="bulk-method"
@@ -519,7 +522,7 @@ export function AddBulkMonitorsForm({
         </div>
         <div>
           <Label htmlFor="bulk-timeout" className={labelClass}>
-            Timeout (sec)
+            {tForm("timeoutSeconds")}
           </Label>
           <Input
             id="bulk-timeout"
@@ -533,7 +536,7 @@ export function AddBulkMonitorsForm({
         </div>
         <div>
           <Label htmlFor="bulk-expectedCodes" className={labelClass}>
-            Status codes
+            {tForm("statusCodes")}
           </Label>
           <Input
             id="bulk-expectedCodes"
@@ -548,7 +551,7 @@ export function AddBulkMonitorsForm({
 
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">
-          Notifications
+          {tForm("notifications")}
         </p>
         <NotificationsPanel>
         <label className="flex cursor-pointer items-center gap-2.5">
@@ -558,14 +561,14 @@ export function AddBulkMonitorsForm({
             onChange={(e) => setAlertEmail(e.target.checked)}
             className="ui-checkbox"
           />
-          <span className="text-sm text-text-primary">Send email alerts</span>
+          <span className="text-sm text-text-primary">{tForm("sendEmailAlerts")}</span>
         </label>
         {alertEmail && (
           <div>
             <Label htmlFor="bulk-alertEmailTo" className={labelClass}>
-              Alert email{" "}
+              {tForm("alertEmail")}{" "}
               <span className="font-normal text-text-muted">
-                (leave blank to use account email)
+                {tForm("useAccountEmailHint")}
               </span>
             </Label>
             <Input
@@ -583,7 +586,7 @@ export function AddBulkMonitorsForm({
 
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">
-          SSL monitoring
+          {tForm("sslMonitoring")}
         </p>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
@@ -593,18 +596,17 @@ export function AddBulkMonitorsForm({
             className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">
-            Monitor SSL certificate
+            {tForm("monitorSslCertificate")}
           </span>
         </label>
         <p className="mt-2 text-xs text-text-muted">
-          Applied to HTTPS URLs. Checks cert validity and expiry on every run. Email
-          reminders at ~7 days and ~2 days before expiry when alerts are enabled.
+          {tBulk("sslHint")}
         </p>
       </div>
 
       <div className="border-t border-border pt-4">
         <p className="mb-3 text-sm font-medium text-text-primary">
-          Status page
+          {tForm("statusPage")}
         </p>
         <label className="flex cursor-pointer items-center gap-2.5">
           <input
@@ -614,11 +616,11 @@ export function AddBulkMonitorsForm({
             className="ui-checkbox"
           />
           <span className="text-sm text-text-primary">
-            Show on public status page
+            {tForm("showOnPublicStatusPage")}
           </span>
         </label>
         <p className="mt-2 text-xs text-text-muted">
-          When enabled, these monitors appear at{" "}
+          {tBulk("statusPageAtHint")}{" "}
           <span className="font-mono">/status/[your-username]</span>
         </p>
       </div>
@@ -632,7 +634,7 @@ export function AddBulkMonitorsForm({
             disabled={submitting}
             className="mr-auto rounded-md px-0 text-sm font-medium text-text-muted hover:bg-transparent hover:text-text-primary"
           >
-            Back
+            {tForm("back")}
           </Button>
         )}
         {onCancel && (
@@ -643,7 +645,7 @@ export function AddBulkMonitorsForm({
             disabled={submitting}
             className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary hover:bg-bg-page"
           >
-            Cancel
+            {tForm("cancel")}
           </Button>
         )}
         <Button
@@ -654,10 +656,10 @@ export function AddBulkMonitorsForm({
         >
           {submitting && <Spinner size="sm" />}
           {submitting
-            ? "Saving…"
+            ? tForm("saving")
             : rows.length > 0
-              ? `Save ${rows.length} monitor${rows.length !== 1 ? "s" : ""}`
-              : "Save monitors"}
+              ? tBulk("saveCount", { count: rows.length })
+              : tBulk("saveMonitors")}
         </Button>
       </div>
     </form>

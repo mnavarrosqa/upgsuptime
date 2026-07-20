@@ -8,6 +8,7 @@ import {
   Activity,
   CheckCircle2,
   Layers,
+  SearchX,
   XCircle,
 } from "lucide-react";
 import type { Monitor } from "@/db/schema";
@@ -417,6 +418,9 @@ export function MonitorsPageClient({
     closeAddOverlay();
   }
 
+  const sectionLabelClass =
+    "text-xs font-semibold uppercase tracking-wider text-text-muted";
+
   return (
     <>
       <div className="motion-safe:motion-enter">
@@ -430,11 +434,12 @@ export function MonitorsPageClient({
         </h1>
         {monitors.length > 0 && (
           <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
               allUp
-                ? "bg-emerald-600 text-white dark:bg-emerald-900/30 dark:text-emerald-400"
-                : "bg-red-600 text-white dark:bg-red-900/30 dark:text-red-400"
-            }`}
+                ? "bg-status-up text-status-up-fg dark:bg-status-up-soft dark:text-status-up"
+                : "bg-status-down text-status-down-fg dark:bg-status-down-soft dark:text-status-down"
+            )}
           >
             <span
               className="relative flex h-1.5 w-1.5 shrink-0 items-center justify-center"
@@ -442,8 +447,10 @@ export function MonitorsPageClient({
             >
               <span
                 className={cn(
-                  "h-1.5 w-1.5 rounded-full bg-white/80 dark:bg-current",
-                  allUp && "animate-operational-badge-dot"
+                  "h-1.5 w-1.5 rounded-full dark:bg-current",
+                  allUp
+                    ? "bg-status-up-fg/80 animate-operational-badge-dot"
+                    : "bg-status-down-fg/80"
                 )}
               />
             </span>
@@ -453,68 +460,59 @@ export function MonitorsPageClient({
       </div>
 
       {monitors.length > 0 && (
-        <div className="mt-4 overflow-hidden rounded-xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-          <div className="border-b border-border/80 bg-gradient-to-b from-muted/40 to-transparent px-2.5 py-2 dark:from-muted/25 sm:px-3 sm:py-2">
-            <p
-              className="text-[0.6rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
-              style={{ fontFamily: "var(--font-display)" }}
+        <div className="mt-4 rounded-xl border border-border bg-bg-card p-3 sm:p-4">
+          <p
+            className={sectionLabelClass}
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {t("overviewHeading")}
+          </p>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <div className="flex min-w-0 flex-col rounded-lg bg-muted/30 px-2.5 py-2.5 dark:bg-muted/20">
+              <span className={cn(sectionLabelClass, "flex items-center gap-1")}>
+                <Layers className="size-3 shrink-0 opacity-80" aria-hidden />
+                {tDash("statLabelTotal")}
+              </span>
+              <p
+                className="mt-1.5 text-lg font-semibold tabular-nums text-text-primary sm:text-xl"
+                style={{ fontFamily: "var(--font-display)" }}
+              >
+                {monitors.length}
+              </p>
+            </div>
+            <div className="flex min-w-0 flex-col rounded-lg bg-status-up-soft px-2.5 py-2.5">
+              <span className={cn(sectionLabelClass, "flex items-center gap-1 text-status-up")}>
+                <CheckCircle2 className="size-3 shrink-0 opacity-90" aria-hidden />
+                {tDash("statLabelUp")}
+              </span>
+              <p className="mt-1.5 text-lg font-semibold tabular-nums text-status-up sm:text-xl">
+                {upCount}
+              </p>
+            </div>
+            <div
+              className={cn(
+                "flex min-w-0 flex-col rounded-lg px-2.5 py-2.5",
+                downCount > 0 ? "bg-status-down-soft" : "bg-muted/30 dark:bg-muted/20"
+              )}
             >
-              {t("overviewHeading")}
-            </p>
-          </div>
-          <div className="p-2.5 sm:p-3">
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-              <div className="flex min-w-0 flex-col rounded-lg border border-border/80 bg-muted/35 px-2 py-2 dark:bg-muted/20 sm:px-2.5 sm:py-2.5">
-                <span className="flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider text-text-muted">
-                  <Layers className="size-3 shrink-0 opacity-80" aria-hidden />
-                  {tDash("statLabelTotal")}
-                </span>
-                <p
-                  className="mt-1.5 text-lg font-semibold tabular-nums text-text-primary sm:text-xl"
-                  style={{ fontFamily: "var(--font-display)" }}
-                >
-                  {monitors.length}
-                </p>
-              </div>
-              <div className="flex min-w-0 flex-col rounded-lg border border-border/80 bg-emerald-500/[0.06] px-2 py-2 dark:bg-emerald-500/10 sm:px-2.5 sm:py-2.5">
-                <span className="flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-400/90">
-                  <CheckCircle2 className="size-3 shrink-0 opacity-90" aria-hidden />
-                  {tDash("statLabelUp")}
-                </span>
-                <p className="mt-1.5 text-lg font-semibold tabular-nums text-emerald-700 dark:text-emerald-400 sm:text-xl">
-                  {upCount}
-                </p>
-              </div>
-              <div
+              <span
                 className={cn(
-                  "flex min-w-0 flex-col rounded-lg border px-2 py-2 sm:px-2.5 sm:py-2.5",
-                  downCount > 0
-                    ? "border-red-500/35 bg-red-500/[0.06] dark:bg-red-500/10"
-                    : "border-border/80 bg-muted/35 dark:bg-muted/20"
+                  sectionLabelClass,
+                  "flex items-center gap-1",
+                  downCount > 0 ? "text-status-down" : "text-text-muted"
                 )}
               >
-                <span
-                  className={cn(
-                    "flex items-center gap-1 text-[0.6rem] font-semibold uppercase tracking-wider",
-                    downCount > 0
-                      ? "text-red-700 dark:text-red-400/90"
-                      : "text-text-muted"
-                  )}
-                >
-                  <XCircle className="size-3 shrink-0 opacity-90" aria-hidden />
-                  {tDash("statLabelDown")}
-                </span>
-                <p
-                  className={cn(
-                    "mt-1.5 text-lg font-semibold tabular-nums sm:text-xl",
-                    downCount > 0
-                      ? "text-red-700 dark:text-red-400"
-                      : "text-text-muted"
-                  )}
-                >
-                  {downCount}
-                </p>
-              </div>
+                <XCircle className="size-3 shrink-0 opacity-90" aria-hidden />
+                {tDash("statLabelDown")}
+              </span>
+              <p
+                className={cn(
+                  "mt-1.5 text-lg font-semibold tabular-nums sm:text-xl",
+                  downCount > 0 ? "text-status-down" : "text-text-muted"
+                )}
+              >
+                {downCount}
+              </p>
             </div>
           </div>
         </div>
@@ -523,12 +521,12 @@ export function MonitorsPageClient({
       {/* Toolbar: search + export + import + add */}
       <div
         className={cn(
-          "overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]",
-          monitors.length > 0 ? "mt-5" : "mt-6"
+          "rounded-xl border border-border bg-bg-card p-3 sm:p-4",
+          monitors.length > 0 ? "mt-4" : "mt-6",
+          "[--enter-delay:90ms] motion-safe:motion-soft-pop"
         )}
       >
-        <div className="p-3 sm:p-4 [--enter-delay:90ms] motion-safe:motion-soft-pop">
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:gap-3">
         {monitors.length > 0 && (
           <div className="min-w-0 w-full sm:flex-1">
             <SearchWithTypeahead
@@ -579,13 +577,12 @@ export function MonitorsPageClient({
           {t("addMonitor")}
         </Button>
         </div>
-          </div>
         </div>
       </div>
 
       {selectedCount > 0 && monitors.length > 0 && (
         <div
-          className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-bg-elevated/80 px-3 py-2.5 shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+          className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-border bg-bg-elevated/80 px-3 py-2.5"
           role="region"
           aria-label={t("bulkActions")}
         >
@@ -634,7 +631,7 @@ export function MonitorsPageClient({
                   ids: [...selectedIds],
                 })
               }
-              className="rounded-md border-red-200 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:border-red-900/40 dark:text-red-400 dark:hover:bg-red-900/20"
+              className="rounded-md border-status-down/35 px-3 py-1.5 text-sm font-medium text-status-down hover:bg-status-down-soft"
             >
               {t("delete")}
             </Button>
@@ -747,13 +744,13 @@ export function MonitorsPageClient({
       >
         <div className="space-y-4">
           {importParseError ? (
-            <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+            <p className="rounded-md bg-status-down-soft px-4 py-3 text-sm text-status-down">
               {importParseError}
             </p>
           ) : importResult ? (
             <div className="space-y-3">
               {importResult.error ? (
-                <p className="rounded-md bg-red-50 px-4 py-3 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400">
+                <p className="rounded-md bg-status-down-soft px-4 py-3 text-sm text-status-down">
                   {importResult.error}
                 </p>
               ) : (
@@ -836,8 +833,8 @@ export function MonitorsPageClient({
       {monitors.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-border-muted bg-bg-card/50 p-8 text-center sm:p-12">
           <div className="mx-auto flex max-w-sm flex-col items-center">
-            <span className="flex size-12 items-center justify-center rounded-full bg-muted text-text-muted">
-              <Activity className="size-6" aria-hidden />
+            <span className="flex size-11 items-center justify-center rounded-full bg-muted text-text-muted">
+              <Activity className="size-5" aria-hidden />
             </span>
             <h2
               className="mt-4 text-lg font-semibold tracking-tight text-text-primary"
@@ -858,21 +855,26 @@ export function MonitorsPageClient({
         </div>
       ) : filteredMonitors.length === 0 ? (
         <div className="mt-8 rounded-xl border border-dashed border-border-muted bg-bg-card/50 p-8 text-center sm:p-12">
-          <h2
-            className="text-lg font-semibold tracking-tight text-text-primary"
-            style={{ fontFamily: "var(--font-display)" }}
-          >
-            {tDash("noSearchTitle")}
-          </h2>
-          <p className="mt-2 text-sm text-text-muted">{tDash("noSearchMatch")}</p>
-          <Button
-            type="button"
-            variant="link"
-            onClick={() => setSearchQuery("")}
-            className="mt-4 h-auto p-0 text-sm font-medium text-primary underline-offset-4 hover:text-primary/80"
-          >
-            {tDash("clearSearch")}
-          </Button>
+          <div className="mx-auto flex max-w-sm flex-col items-center">
+            <span className="flex size-11 items-center justify-center rounded-full bg-muted text-text-muted">
+              <SearchX className="size-5" aria-hidden />
+            </span>
+            <h2
+              className="mt-4 text-lg font-semibold tracking-tight text-text-primary"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {tDash("noSearchTitle")}
+            </h2>
+            <p className="mt-2 text-sm text-text-muted">{tDash("noSearchMatch")}</p>
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => setSearchQuery("")}
+              className="mt-4 h-auto p-0 text-sm font-medium text-primary underline-offset-4 hover:text-primary/80"
+            >
+              {tDash("clearSearch")}
+            </Button>
+          </div>
         </div>
       ) : (
         <MonitorsListView

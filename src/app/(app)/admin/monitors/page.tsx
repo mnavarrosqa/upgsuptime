@@ -2,8 +2,11 @@ import { db } from "@/db";
 import { monitor, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AdminSubNav } from "@/components/admin-sub-nav";
+import { getTranslations } from "next-intl/server";
 
 export default async function AdminMonitorsPage() {
+  const t = await getTranslations("admin.monitors");
+
   const monitors = await db
     .select({
       id: monitor.id,
@@ -25,17 +28,17 @@ export default async function AdminMonitorsPage() {
     <div className="space-y-7">
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-          Fleet inventory
+          {t("eyebrow")}
         </p>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h1 className="text-2xl font-semibold tracking-tight">Monitors</h1>
+            <h1 className="text-2xl font-semibold tracking-tight">{t("heading")}</h1>
             <p className="mt-1 max-w-2xl text-sm text-text-muted">
-              Inspect every configured check across user accounts.
+              {t("subtitle")}
             </p>
           </div>
           <div className="rounded-full border border-border bg-bg-card px-3 py-1 text-xs font-medium text-text-muted">
-            {monitors.length} total · {monitorsDown} down · {unchecked} unchecked
+            {t("totalSummary", { total: monitors.length, down: monitorsDown, unchecked })}
           </div>
         </div>
       </div>
@@ -45,12 +48,12 @@ export default async function AdminMonitorsPage() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-bg-page/60 text-left text-xs uppercase tracking-[0.12em] text-text-muted">
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">URL</th>
-              <th className="px-4 py-3 font-medium">Owner</th>
-              <th className="px-4 py-3 font-medium">Status</th>
-              <th className="px-4 py-3 font-medium">Last checked</th>
-              <th className="px-4 py-3 font-medium">Interval</th>
+              <th className="px-4 py-3 font-medium">{t("colName")}</th>
+              <th className="px-4 py-3 font-medium">{t("colUrl")}</th>
+              <th className="px-4 py-3 font-medium">{t("colOwner")}</th>
+              <th className="px-4 py-3 font-medium">{t("colStatus")}</th>
+              <th className="px-4 py-3 font-medium">{t("colLastChecked")}</th>
+              <th className="px-4 py-3 font-medium">{t("colInterval")}</th>
             </tr>
           </thead>
           <tbody>
@@ -69,15 +72,15 @@ export default async function AdminMonitorsPage() {
                 <td className="px-4 py-3">
                   {m.currentStatus === null ? (
                     <span className="inline-flex items-center rounded-full bg-bg-page px-2 py-0.5 text-xs font-medium text-text-muted">
-                      Unchecked
+                      {t("statusUnchecked")}
                     </span>
                   ) : m.currentStatus ? (
                     <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">
-                      Up
+                      {t("statusUp")}
                     </span>
                   ) : (
                     <span className="inline-flex items-center rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-300">
-                      Down
+                      {t("statusDown")}
                     </span>
                   )}
                 </td>
@@ -94,9 +97,9 @@ export default async function AdminMonitorsPage() {
             {monitors.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-4 py-10 text-center">
-                  <div className="font-medium">No monitors yet</div>
+                  <div className="font-medium">{t("emptyTitle")}</div>
                   <div className="mt-1 text-sm text-text-muted">
-                    User-created monitors will appear here for admin review.
+                    {t("emptyBody")}
                   </div>
                 </td>
               </tr>
