@@ -2,7 +2,6 @@ import { db } from "@/db";
 import { settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AdminSettingsClient } from "./settings-client";
-import { AdminSubNav } from "@/components/admin-sub-nav";
 import { getTranslations } from "next-intl/server";
 
 export interface AdminSettings {
@@ -29,21 +28,18 @@ export default async function AdminSettingsPage() {
   const smtpConfigured = Object.values(smtpVarsSet).every(Boolean);
 
   return (
-    <div className="space-y-7">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-          {t("eyebrow")}
+    <div className="space-y-6">
+      <div>
+        <h2
+          className="text-lg font-semibold tracking-tight text-text-primary"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
+          {t("heading")}
+        </h2>
+        <p className="mt-0.5 text-sm text-text-muted">
+          {t("subtitle")}
         </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{t("heading")}</h1>
-            <p className="mt-1 max-w-2xl text-sm text-text-muted">
-              {t("subtitle")}
-            </p>
-          </div>
-        </div>
       </div>
-      <AdminSubNav />
       <AdminSettingsClient
         settings={{ registrationEnabled, smtpConfigured, smtpVarsSet }}
       />

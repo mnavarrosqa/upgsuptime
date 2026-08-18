@@ -1,7 +1,6 @@
 import { db } from "@/db";
 import { monitor, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { AdminSubNav } from "@/components/admin-sub-nav";
 import { getTranslations } from "next-intl/server";
 import { monitorStatusDownPillClass, monitorStatusUpPillClass } from "@/lib/monitor-ui";
 
@@ -26,26 +25,25 @@ export default async function AdminMonitorsPage() {
   const unchecked = monitors.filter((m) => m.currentStatus === null).length;
 
   return (
-    <div className="space-y-7">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
-          {t("eyebrow")}
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{t("heading")}</h1>
-            <p className="mt-1 max-w-2xl text-sm text-text-muted">
-              {t("subtitle")}
-            </p>
-          </div>
-          <div className="rounded-full border border-border bg-bg-card px-3 py-1 text-xs font-medium text-text-muted">
-            {t("totalSummary", { total: monitors.length, down: monitorsDown, unchecked })}
-          </div>
+    <div className="space-y-6">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h2
+            className="text-lg font-semibold tracking-tight text-text-primary"
+            style={{ fontFamily: "var(--font-display)" }}
+          >
+            {t("heading")}
+          </h2>
+          <p className="mt-0.5 text-sm text-text-muted">
+            {t("subtitle")}
+          </p>
         </div>
+        <span className="shrink-0 rounded-full border border-border bg-bg-card px-3 py-1 text-xs font-medium text-text-muted">
+          {t("totalSummary", { total: monitors.length, down: monitorsDown, unchecked })}
+        </span>
       </div>
-      <AdminSubNav />
 
-      <div className="overflow-x-auto rounded-2xl border border-border bg-bg-card shadow-sm">
+      <div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-border bg-bg-page/60 text-left text-xs uppercase tracking-[0.12em] text-text-muted">

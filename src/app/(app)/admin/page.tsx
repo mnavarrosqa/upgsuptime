@@ -2,7 +2,6 @@ import Link from "next/link";
 import { db } from "@/db";
 import { user, monitor, checkResult } from "@/db/schema";
 import { count, eq, gte } from "drizzle-orm";
-import { AdminSubNav } from "@/components/admin-sub-nav";
 import { hoursAgoUtc } from "@/lib/server-relative-time";
 import { Activity, ArrowRight, CheckCircle2, Monitor, Users, XCircle } from "lucide-react";
 import { getTranslations } from "next-intl/server";
@@ -51,36 +50,30 @@ export default async function AdminPage() {
   ];
 
   return (
-    <div className="space-y-7">
-      <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-muted">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2
+          className="text-lg font-semibold tracking-tight text-text-primary"
+          style={{ fontFamily: "var(--font-display)" }}
+        >
           {t("overview.eyebrow")}
-        </p>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">{t("overview.heading")}</h1>
-            <p className="mt-1 max-w-2xl text-sm text-text-muted">
-              {t("overview.subtitle")}
-            </p>
-          </div>
-          <div className="rounded-full border border-border bg-bg-card px-3 py-1 text-xs font-medium text-text-muted">
-            {t("overview.last24h")}
-          </div>
-        </div>
+        </h2>
+        <span className="rounded-full border border-border bg-bg-card px-3 py-1 text-xs font-medium text-text-muted">
+          {t("overview.last24h")}
+        </span>
       </div>
-      <AdminSubNav />
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {cards.map(({ label, value, detail, icon: Icon, tone }) => (
           <div
             key={label}
-            className="rounded-2xl border border-border bg-bg-card p-4 shadow-sm"
+            className="rounded-xl border border-border bg-bg-card p-4 shadow-sm"
           >
             <div className="flex items-center justify-between gap-3">
               <div className="text-sm font-medium text-text-muted">{label}</div>
               <Icon className={`size-4 ${tone ?? "text-text-muted"}`} aria-hidden />
             </div>
-            <div className="mt-4 text-3xl font-semibold tracking-tight tabular-nums">
+            <div className="mt-3 text-3xl font-semibold tracking-tight tabular-nums">
               {value}
             </div>
             <div className="mt-1 text-xs text-text-muted">{detail}</div>
@@ -93,9 +86,9 @@ export default async function AdminPage() {
           <Link
             key={href}
             href={href}
-            className="group rounded-2xl border border-border bg-bg-card p-4 transition-[border-color,background-color,transform] duration-200 hover:border-accent hover:bg-bg-card motion-safe:hover:-translate-y-0.5"
+            className="group rounded-xl border border-border bg-bg-card p-4 transition-colors hover:border-accent"
           >
-            <div className="flex items-center justify-between gap-3 font-medium">
+            <div className="flex items-center justify-between gap-3 font-medium text-sm">
               {label}
               <ArrowRight
                 className="size-4 text-text-muted transition-transform group-hover:translate-x-0.5"
