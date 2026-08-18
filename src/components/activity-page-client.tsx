@@ -18,6 +18,7 @@ import {
   ArrowDownCircle,
   CheckCircle2,
   Loader2,
+  Trash2,
   X,
 } from "lucide-react";
 
@@ -42,7 +43,6 @@ export type ActivityItem =
       at: string;
     };
 
-/** UTC avoids SSR vs browser default timezone mismatch (hydration errors). */
 function formatFullTimestamp(iso: string, locale: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
@@ -57,6 +57,20 @@ function formatFullTimestamp(iso: string, locale: string): string {
     timeZone: "UTC",
     timeZoneName: "short",
   }).format(d);
+}
+
+function formatRelativeTime(iso: string): string {
+  const now = Date.now();
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return iso;
+  const diffSec = Math.max(0, Math.floor((now - then) / 1000));
+  if (diffSec < 60) return "<1m";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m`;
+  const diffHours = Math.floor(diffMin / 60);
+  if (diffHours < 24) return `${diffHours}h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return `${diffDays}d`;
 }
 
 type ActivityPageClientProps = {
@@ -111,7 +125,8 @@ export function ActivityPageClient({
 
   return (
     <>
-      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between sm:gap-x-3">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
             <h1
@@ -121,12 +136,12 @@ export function ActivityPageClient({
               {t("title")}
             </h1>
             {totalCount > 0 && (
-              <span className="text-sm text-text-muted">
-                {t("eventCount", { count: totalCount })}
+              <span className="rounded-full bg-text-primary/10 px-2 py-0.5 text-xs font-medium tabular-nums text-text-muted">
+                {totalCount}
               </span>
             )}
           </div>
-          <p className="mt-1.5 max-w-2xl text-sm leading-relaxed text-text-muted">
+          <p className="mt-1 max-w-xl text-sm text-text-muted">
             {t("subtitle", { pageSize })}
           </p>
         </div>
@@ -134,200 +149,253 @@ export function ActivityPageClient({
           <Button
             type="button"
             variant="ghost"
+            size="sm"
             onClick={handleClear}
             disabled={clearing}
-            className="h-auto shrink-0 self-start p-0 text-sm font-normal text-text-muted hover:bg-transparent hover:text-text-primary sm:pt-0.5"
+            className="shrink-0 gap-1.5 text-text-muted hover:text-text-primary"
           >
-            {clearing ? t("clearing") : t("clearAll")}
+            {clearing ? (
+              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+            ) : (
+              <Trash2 className="size-3.5" aria-hidden />
+            )}
+            {t("clearAll")}
           </Button>
         )}
       </div>
 
-      <div className="mt-8">
+      {/* Content */}
+      <div className="mt-6">
         {totalCount === 0 ? (
-          <div className="rounded-xl border border-dashed border-border-muted bg-bg-page/80 px-6 py-14 text-center">
-            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted/80 text-text-muted">
-              <Activity className="size-6 opacity-80" aria-hidden />
+          <div className="rounded-xl border border-dashed border-border-muted px-6 py-16 text-center">
+            <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted/60">
+              <Activity className="size-5 text-text-muted" aria-hidden />
             </div>
-            <p className="mt-4 text-sm text-text-muted">{t("empty")}</p>
+            <p className="mt-4 text-sm font-medium text-text-primary">
+              {t("empty")}
+            </p>
           </div>
         ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-bg-card shadow-sm">
-            <ul className="divide-y divide-border">
-              {items.map((item) => {
-                const key =
-                  item.kind === "status" ? `s-${item.id}` : `d-${item.id}`;
-                if (item.kind === "degradation") {
-                  const ratio =
-                    item.baselineP75Ms > 0
-                      ? (item.recentAvgMs / item.baselineP75Ms).toFixed(1)
-                      : "—";
-                  return (
-                    <li key={key}>
-                      <div className="flex items-center gap-2 px-4 py-4 sm:gap-3 sm:px-5">
-                        <div className="flex min-w-0 flex-1 gap-3 sm:gap-4">
-                          <div
-                            className={`flex size-10 shrink-0 items-center justify-center rounded-full ${statusSoftWarnClass}`}
-                            aria-hidden
-                          >
-                            <AlertTriangle className="size-5" strokeWidth={2} />
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${statusSoftWarnClass}`}>
-                                {t("degradationBadge")}
-                              </span>
-                              <Link
-                                href={`/monitors/${item.monitorId}`}
-                                className="font-medium text-text-primary hover:underline"
-                              >
-                                {item.name}
-                              </Link>
-                            </div>
-                            <p className="mt-1 text-sm text-text-muted">
-                              {t("degradationDetail", {
-                                recent: item.recentAvgMs,
-                                baseline: item.baselineP75Ms,
-                                ratio,
-                              })}
-                            </p>
-                            <p className="mt-1 truncate text-xs text-text-muted/90">
-                              {item.url}
-                            </p>
-                            <p className="mt-2 text-xs tabular-nums text-text-muted">
-                              {formatFullTimestamp(item.at, locale)}
-                            </p>
-                          </div>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-sm"
-                          className="shrink-0 text-text-muted hover:bg-transparent hover:text-text-primary"
-                          disabled={dismissingId === item.id}
-                          aria-label={t("dismissAriaLabel")}
-                          title={t("dismiss")}
-                          onClick={() => handleDismiss(item)}
-                        >
-                          {dismissingId === item.id ? (
-                            <Loader2 className="size-4 animate-spin" aria-hidden />
-                          ) : (
-                            <X className="size-4" aria-hidden />
-                          )}
-                        </Button>
-                      </div>
-                    </li>
-                  );
-                }
+          <div className="space-y-2">
+            {items.map((item, idx) => {
+              const key =
+                item.kind === "status" ? `s-${item.id}` : `d-${item.id}`;
+              const isLast = idx === items.length - 1;
 
-                const isDown = !item.recovered;
+              if (item.kind === "degradation") {
+                const ratio =
+                  item.baselineP75Ms > 0
+                    ? (item.recentAvgMs / item.baselineP75Ms).toFixed(1)
+                    : "—";
                 return (
-                  <li key={key}>
-                    <div className="flex items-center gap-2 px-4 py-4 sm:gap-3 sm:px-5">
-                      <div className="flex min-w-0 flex-1 gap-3 sm:gap-4">
-                        <div
-                          className={cn(
-                            "flex size-10 shrink-0 items-center justify-center rounded-full",
-                            isDown ? statusSoftDownClass : statusSoftUpClass
-                          )}
-                          aria-hidden
-                        >
-                          {isDown ? (
-                            <ArrowDownCircle className="size-5" strokeWidth={2} />
-                          ) : (
-                            <CheckCircle2 className="size-5" strokeWidth={2} />
-                          )}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                            <span
-                              className={cn(
-                                "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium",
-                                isDown ? statusSoftDownClass : statusSoftUpClass
-                              )}
-                            >
-                              {isDown ? t("wentDown") : t("recovered")}
-                            </span>
-                            <Link
-                              href={`/monitors/${item.monitorId}`}
-                              className="font-medium text-text-primary hover:underline"
-                            >
-                              {item.name}
-                            </Link>
-                          </div>
-                          <p className="mt-1 truncate text-xs text-text-muted/90">
-                            {item.url}
-                          </p>
-                          <p className="mt-2 text-xs tabular-nums text-text-muted">
-                            {formatFullTimestamp(item.at, locale)}
-                          </p>
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon-sm"
-                        className="shrink-0 text-text-muted hover:bg-transparent hover:text-text-primary"
-                        disabled={dismissingId === item.id}
-                        aria-label={t("dismissAriaLabel")}
-                        title={t("dismiss")}
-                        onClick={() => handleDismiss(item)}
+                  <ActivityCard
+                    key={key}
+                    icon={
+                      <div
+                        className={`flex size-9 items-center justify-center rounded-full ${statusSoftWarnClass}`}
+                        aria-hidden
                       >
-                        {dismissingId === item.id ? (
-                          <Loader2 className="size-4 animate-spin" aria-hidden />
-                        ) : (
-                          <X className="size-4" aria-hidden />
-                        )}
-                      </Button>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-            {totalPages > 1 && (
-              <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border px-4 py-3 sm:px-5">
-                <p className="text-sm text-text-muted">
-                  {t("pageOf", { page, totalPages })}
-                  <span className="text-text-muted/80">
-                    {" "}
-                    {t("showingRange", {
-                      from: (page - 1) * pageSize + 1,
-                      to: Math.min(page * pageSize, totalCount),
-                      total: totalCount,
+                        <AlertTriangle className="size-4" strokeWidth={2.25} />
+                      </div>
+                    }
+                    badge={
+                      <span
+                        className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold leading-none ${statusSoftWarnClass}`}
+                      >
+                        {t("degradationBadge")}
+                      </span>
+                    }
+                    monitorName={item.name}
+                    monitorHref={`/monitors/${item.monitorId}`}
+                    detail={t("degradationDetail", {
+                      recent: item.recentAvgMs,
+                      baseline: item.baselineP75Ms,
+                      ratio,
                     })}
-                  </span>
-                </p>
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={page === 2 ? "/activity" : `/activity?page=${page - 1}`}
-                    aria-disabled={page <= 1}
-                    className={cn(
-                      "rounded-md border border-border px-3 py-1.5 text-sm transition-colors",
-                      page <= 1
-                        ? "pointer-events-none opacity-40 text-text-muted"
-                        : "text-text-primary hover:bg-bg-page"
-                    )}
-                  >
-                    {t("previous")}
-                  </Link>
-                  <Link
-                    href={`/activity?page=${page + 1}`}
-                    aria-disabled={page >= totalPages}
-                    className={cn(
-                      "rounded-md border border-border px-3 py-1.5 text-sm transition-colors",
-                      page >= totalPages
-                        ? "pointer-events-none opacity-40 text-text-muted"
-                        : "text-text-primary hover:bg-bg-page"
-                    )}
-                  >
-                    {t("next")}
-                  </Link>
-                </div>
-              </div>
-            )}
+                    relativeTime={formatRelativeTime(item.at)}
+                    fullTime={formatFullTimestamp(item.at, locale)}
+                    dismissing={dismissingId === item.id}
+                    onDismiss={() => handleDismiss(item)}
+                    dismissLabel={t("dismissAriaLabel")}
+                    isLast={isLast}
+                  />
+                );
+              }
+
+              const isDown = !item.recovered;
+              return (
+                <ActivityCard
+                  key={key}
+                  icon={
+                    <div
+                      className={cn(
+                        "flex size-9 items-center justify-center rounded-full",
+                        isDown ? statusSoftDownClass : statusSoftUpClass
+                      )}
+                      aria-hidden
+                    >
+                      {isDown ? (
+                        <ArrowDownCircle
+                          className="size-4"
+                          strokeWidth={2.25}
+                        />
+                      ) : (
+                        <CheckCircle2 className="size-4" strokeWidth={2.25} />
+                      )}
+                    </div>
+                  }
+                  badge={
+                    <span
+                      className={cn(
+                        "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold leading-none",
+                        isDown ? statusSoftDownClass : statusSoftUpClass
+                      )}
+                    >
+                      {isDown ? t("wentDown") : t("recovered")}
+                    </span>
+                  }
+                  monitorName={item.name}
+                  monitorHref={`/monitors/${item.monitorId}`}
+                  relativeTime={formatRelativeTime(item.at)}
+                  fullTime={formatFullTimestamp(item.at, locale)}
+                  dismissing={dismissingId === item.id}
+                  onDismiss={() => handleDismiss(item)}
+                  dismissLabel={t("dismissAriaLabel")}
+                  isLast={isLast}
+                />
+              );
+            })}
+          </div>
+        )}
+
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+            <p className="text-sm tabular-nums text-text-muted">
+              {t("pageOf", { page, totalPages })}
+              <span className="text-text-muted/70">
+                {" "}
+                {t("showingRange", {
+                  from: (page - 1) * pageSize + 1,
+                  to: Math.min(page * pageSize, totalCount),
+                  total: totalCount,
+                })}
+              </span>
+            </p>
+            <div className="flex items-center gap-2">
+              <Link
+                href={
+                  page === 2 ? "/activity" : `/activity?page=${page - 1}`
+                }
+                aria-disabled={page <= 1}
+                className={cn(
+                  "rounded-lg border border-border px-3 py-1.5 text-sm transition-colors",
+                  page <= 1
+                    ? "pointer-events-none opacity-40 text-text-muted"
+                    : "text-text-primary hover:bg-muted/50"
+                )}
+              >
+                {t("previous")}
+              </Link>
+              <Link
+                href={`/activity?page=${page + 1}`}
+                aria-disabled={page >= totalPages}
+                className={cn(
+                  "rounded-lg border border-border px-3 py-1.5 text-sm transition-colors",
+                  page >= totalPages
+                    ? "pointer-events-none opacity-40 text-text-muted"
+                    : "text-text-primary hover:bg-muted/50"
+                )}
+              >
+                {t("next")}
+              </Link>
+            </div>
           </div>
         )}
       </div>
     </>
+  );
+}
+
+function ActivityCard({
+  icon,
+  badge,
+  monitorName,
+  monitorHref,
+  detail,
+  relativeTime,
+  fullTime,
+  dismissing,
+  onDismiss,
+  dismissLabel,
+  isLast,
+}: {
+  icon: React.ReactNode;
+  badge: React.ReactNode;
+  monitorName: string;
+  monitorHref: string;
+  detail?: string;
+  relativeTime: string;
+  fullTime: string;
+  dismissing: boolean;
+  onDismiss: () => void;
+  dismissLabel: string;
+  isLast: boolean;
+}) {
+  return (
+    <div className="group relative flex gap-3 sm:gap-4">
+      {/* Timeline connector */}
+      <div className="flex flex-col items-center">
+        {icon}
+        {!isLast && (
+          <div className="mt-1 w-px flex-1 bg-border" aria-hidden />
+        )}
+      </div>
+
+      {/* Card content */}
+      <div className="min-w-0 flex-1 pb-5">
+        <div className="rounded-lg border border-border bg-bg-card p-3 shadow-sm transition-colors sm:p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                {badge}
+                <Link
+                  href={monitorHref}
+                  className="text-sm font-medium text-text-primary hover:underline"
+                >
+                  {monitorName}
+                </Link>
+                <span
+                  className="text-xs tabular-nums text-text-muted/70"
+                  title={fullTime}
+                >
+                  {relativeTime}
+                </span>
+              </div>
+              {detail && (
+                <p className="mt-1.5 text-[13px] leading-snug text-text-muted">
+                  {detail}
+                </p>
+              )}
+            </div>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="shrink-0 text-text-muted opacity-100 transition-opacity hover:bg-transparent hover:text-text-primary sm:opacity-0 sm:group-hover:opacity-100 sm:data-[state=open]:opacity-100"
+              disabled={dismissing}
+              aria-label={dismissLabel}
+              onClick={onDismiss}
+            >
+              {dismissing ? (
+                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              ) : (
+                <X className="size-3.5" aria-hidden />
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

@@ -467,7 +467,7 @@
     "clearAll": "Clear all",
     "dismiss": "Dismiss",
     "dismissAriaLabel": "Remove this event from the list",
-    "subtitle": "Up to 50 events in the last 7 days — downtime, recovery, and slow-response degradation alerts — {pageSize} per page.",
+    "subtitle": "Last 7 days — downtime, recovery, and degradation alerts.",
     "empty": "No activity in the last 7 days.",
     "wentDown": "Went down",
     "recovered": "Recovered",
@@ -476,7 +476,15 @@
     "pageOf": "Page {page} of {totalPages}",
     "showingRange": "· {from}–{to} of {total}",
     "previous": "Previous",
-    "next": "Next"
+    "next": "Next",
+    "timeAgo": "{value}{unit} ago",
+    "justNow": "Just now",
+    "timeUnits": {
+      "s": "s",
+      "m": "m",
+      "h": "h",
+      "d": "d"
+    }
   },
   "monitorsPage": {
     "searchPlaceholder": "Search by name or URL…",

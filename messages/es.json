@@ -467,7 +467,7 @@
     "clearAll": "Vaciar todo",
     "dismiss": "Quitar",
     "dismissAriaLabel": "Quitar este evento de la lista",
-    "subtitle": "Hasta 50 eventos en los últimos 7 días — caídas, recuperaciones y alertas de respuesta lenta — {pageSize} por página.",
+    "subtitle": "Últimos 7 días — caídas, recuperaciones y alertas de degradación.",
     "empty": "Nada en los últimos 7 días.",
     "wentDown": "Cayó",
     "recovered": "Recuperado",
@@ -476,7 +476,15 @@
     "pageOf": "Pagina {page} de {totalPages}",
     "showingRange": "· {from}–{to} de {total}",
     "previous": "Anterior",
-    "next": "Siguiente"
+    "next": "Siguiente",
+    "timeAgo": "hace {value}{unit}",
+    "justNow": "Ahora",
+    "timeUnits": {
+      "s": "s",
+      "m": "m",
+      "h": "h",
+      "d": "d"
+    }
   },
   "monitorsPage": {
     "searchPlaceholder": "Busca por nombre o URL…",
