@@ -49,3 +49,6 @@ next-env.d.ts
 /public/sw.js.map
 /public/swe-worker*.js
 /public/swe-worker*.js.map
+
+# graft's local graph cache — regenerable, not committed (run `graft build`).
+/graft/
