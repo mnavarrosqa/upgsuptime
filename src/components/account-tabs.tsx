@@ -4,6 +4,13 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Tabs } from "radix-ui";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
+import {
+  User,
+  Globe,
+  Lock,
+  BookOpen,
+  Code2,
+} from "lucide-react";
 
 const TAB_VALUES = ["profile", "security", "status", "guide", "developer"] as const;
 type TabValue = (typeof TAB_VALUES)[number];
@@ -12,14 +19,28 @@ function isTabValue(v: string): v is TabValue {
   return (TAB_VALUES as readonly string[]).includes(v);
 }
 
-const triggerClass = cn(
-  "inline-flex shrink-0 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors",
-  "text-text-muted hover:bg-bg-muted/60 hover:text-text-primary",
-  "data-[state=active]:bg-accent data-[state=active]:text-bg-card",
+const TAB_ICONS: Record<TabValue, typeof User> = {
+  profile: User,
+  status: Globe,
+  security: Lock,
+  guide: BookOpen,
+  developer: Code2,
+};
+
+const mobileTriggerClass = cn(
+  "inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap px-3 py-2 text-sm font-medium transition-colors",
+  "text-text-muted hover:text-text-primary",
+  "data-[state=active]:text-text-primary",
+  "border-b-2 border-transparent data-[state=active]:border-accent",
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
 );
 
-const panelClass = "mt-6 outline-none";
+const sidebarTriggerClass = cn(
+  "flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors text-left",
+  "text-text-muted hover:bg-muted/50 hover:text-text-primary",
+  "data-[state=active]:bg-accent/10 data-[state=active]:text-accent",
+  "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/30"
+);
 
 interface AccountTabsProps {
   profile: ReactNode;
@@ -27,6 +48,7 @@ interface AccountTabsProps {
   status: ReactNode;
   guide: ReactNode;
   developer: ReactNode;
+  userCard?: ReactNode;
 }
 
 export function AccountTabs({
@@ -35,6 +57,7 @@ export function AccountTabs({
   status,
   guide,
   developer,
+  userCard,
 }: AccountTabsProps) {
   const t = useTranslations("account");
   const [tab, setTab] = useState<TabValue>("profile");
@@ -51,31 +74,100 @@ export function AccountTabs({
     return () => window.clearTimeout(id);
   }, []);
 
+  const tabEntries: { value: TabValue; labelKey: string }[] = [
+    { value: "profile", labelKey: "tabProfile" },
+    { value: "status", labelKey: "tabStatusPage" },
+    { value: "security", labelKey: "tabSecurity" },
+    { value: "guide", labelKey: "tabGuide" },
+    { value: "developer", labelKey: "tabDeveloper" },
+  ];
+
   return (
-    <Tabs.Root value={tab} onValueChange={(v) => isTabValue(v) && setTab(v)} className="mt-8">
-      <div className="border-b border-border">
-        <Tabs.List
-          aria-label={t("tabsNavLabel")}
-          className="-mb-px flex flex-wrap gap-1 pb-px"
-        >
-          <Tabs.Trigger value="profile" className={triggerClass}>
-            {t("tabProfile")}
-          </Tabs.Trigger>
-          <Tabs.Trigger value="status" className={triggerClass}>
-            {t("tabStatusPage")}
-          </Tabs.Trigger>
-          <Tabs.Trigger value="security" className={triggerClass}>
-            {t("tabSecurity")}
-          </Tabs.Trigger>
-          <Tabs.Trigger value="guide" className={triggerClass}>
-            {t("tabGuide")}
-          </Tabs.Trigger>
-          <Tabs.Trigger value="developer" className={triggerClass}>
-            {t("tabDeveloper")}
-          </Tabs.Trigger>
-        </Tabs.List>
+    <Tabs.Root
+      value={tab}
+      onValueChange={(v) => isTabValue(v) && setTab(v)}
+      orientation="vertical"
+    >
+      {/* Mobile: horizontal tabs */}
+      <div className="md:hidden">
+        <div className="-mx-4 overflow-x-auto border-b border-border px-4 sm:-mx-6 sm:px-6">
+          <Tabs.List
+            aria-label={t("tabsNavLabel")}
+            className="flex gap-1"
+          >
+            {tabEntries.map(({ value, labelKey }) => {
+              const Icon = TAB_ICONS[value];
+              return (
+                <Tabs.Trigger
+                  key={value}
+                  value={value}
+                  className={mobileTriggerClass}
+                >
+                  <Icon className="size-3.5" aria-hidden />
+                  {t(labelKey)}
+                </Tabs.Trigger>
+              );
+            })}
+          </Tabs.List>
+        </div>
+        <div className="mt-6">
+          <TabPanels
+            profile={profile}
+            security={security}
+            status={status}
+            guide={guide}
+            developer={developer}
+          />
+        </div>
       </div>
 
+      {/* Desktop: sidebar + content */}
+      <div className="hidden md:flex md:gap-8 lg:gap-10">
+        <div className="w-56 shrink-0">
+          {userCard && <div className="mb-4">{userCard}</div>}
+          <Tabs.List
+            aria-label={t("tabsNavLabel")}
+            className="flex flex-col gap-0.5"
+          >
+            {tabEntries.map(({ value, labelKey }) => {
+              const Icon = TAB_ICONS[value];
+              return (
+                <Tabs.Trigger
+                  key={value}
+                  value={value}
+                  className={sidebarTriggerClass}
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden />
+                  {t(labelKey)}
+                </Tabs.Trigger>
+              );
+            })}
+          </Tabs.List>
+        </div>
+        <div className="min-w-0 flex-1">
+          <TabPanels
+            profile={profile}
+            security={security}
+            status={status}
+            guide={guide}
+            developer={developer}
+          />
+        </div>
+      </div>
+    </Tabs.Root>
+  );
+}
+
+function TabPanels({
+  profile,
+  security,
+  status,
+  guide,
+  developer,
+}: Omit<AccountTabsProps, "userCard">) {
+  const panelClass = "outline-none";
+  return (
+    <>
       <Tabs.Content value="profile" className={panelClass}>
         {profile}
       </Tabs.Content>
@@ -91,6 +183,6 @@ export function AccountTabs({
       <Tabs.Content value="developer" className={panelClass}>
         {developer}
       </Tabs.Content>
-    </Tabs.Root>
+    </>
   );
 }
