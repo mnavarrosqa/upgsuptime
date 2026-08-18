@@ -75,7 +75,6 @@ export function MonitorDetailHistoryClient({
   const [rangeResults, setRangeResults] = useState<ChartResultRow[]>(initialResults);
   const [isLoading, setIsLoading] = useState(true);
 
-  /** Bumps when RSC refreshes with new check rows (e.g. after "Check now" or scheduled run). */
   const serverDataRevision =
     initialResults.length > 0 ? initialResults[0]!.id : `empty:${initialResults.length}`;
 
@@ -134,32 +133,32 @@ export function MonitorDetailHistoryClient({
   );
 
   const statTile =
-    "flex min-w-0 flex-col rounded-xl border border-border/80 bg-muted/35 px-2.5 py-3 dark:bg-muted/20 sm:px-3 sm:py-3.5";
+    "flex min-w-0 flex-col rounded-xl border border-border/60 bg-bg-page/50 px-3 py-3 sm:px-4 sm:py-4";
   const statLabel =
-    "flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-wider text-text-muted";
+    "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-text-muted";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {showStatsGrid && (
-      <div className="overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-        <div className="border-b border-border/80 bg-gradient-to-b from-muted/40 to-transparent px-4 py-2.5 dark:from-muted/25 sm:px-5 sm:py-3">
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm">
+        <div className="border-b border-border/60 px-5 py-3.5">
           <p
-            className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
+            className="text-[11px] font-semibold uppercase tracking-widest text-text-muted"
             style={{ fontFamily: "var(--font-display)" }}
           >
             {t("statsHeading")}
           </p>
         </div>
         <div
-          className={`grid grid-cols-2 gap-2 p-3 sm:gap-3 sm:p-4 ${hasSslCard ? "sm:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-4"}`}
+          className={`grid grid-cols-2 gap-3 p-4 sm:gap-4 sm:p-5 ${hasSslCard ? "sm:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-4"}`}
         >
         <div className={statTile}>
           <span className={statLabel}>
-            <Percent className="size-3.5 shrink-0 opacity-80" aria-hidden />
+            <Percent className="size-3.5 shrink-0 opacity-70" aria-hidden />
             {t("statUptime")}
           </span>
           <p
-            className={`mt-2 text-xl font-semibold tabular-nums sm:text-2xl ${
+            className={`mt-2.5 text-2xl font-semibold tabular-nums sm:text-3xl ${
               uptimePct === null
                 ? "text-text-muted"
                 : uptimePct === 100
@@ -172,47 +171,47 @@ export function MonitorDetailHistoryClient({
           >
             {uptimePct != null ? `${uptimePct}%` : "—"}
           </p>
-          <p className="mt-1 text-xs text-text-muted">
+          <p className="mt-1.5 text-xs text-text-muted/70">
             {t("statChecks", { n: rangeResults.length })}
           </p>
         </div>
 
         <div className={statTile}>
           <span className={statLabel}>
-            <Timer className="size-3.5 shrink-0 opacity-80" aria-hidden />
+            <Timer className="size-3.5 shrink-0 opacity-70" aria-hidden />
             {t("statAvgResponse")}
           </span>
-          <p className="mt-2 text-xl font-semibold tabular-nums text-text-primary sm:text-2xl" style={{ fontFamily: "var(--font-display)" }}>
+          <p className="mt-2.5 text-2xl font-semibold tabular-nums text-text-primary sm:text-3xl" style={{ fontFamily: "var(--font-display)" }}>
             {avgResponseTimeMs != null ? `${avgResponseTimeMs}ms` : "—"}
           </p>
-          <p className="mt-1 text-xs text-text-muted">{t("statInSelectedRange")}</p>
+          <p className="mt-1.5 text-xs text-text-muted/70">{t("statInSelectedRange")}</p>
         </div>
 
         <div className={statTile}>
           <span className={statLabel}>
-            <Zap className="size-3.5 shrink-0 opacity-80" aria-hidden />
+            <Zap className="size-3.5 shrink-0 opacity-70" aria-hidden />
             {t("statLatestResponse")}
           </span>
-          <p className="mt-2 text-xl font-semibold tabular-nums text-text-primary sm:text-2xl" style={{ fontFamily: "var(--font-display)" }}>
+          <p className="mt-2.5 text-2xl font-semibold tabular-nums text-text-primary sm:text-3xl" style={{ fontFamily: "var(--font-display)" }}>
             {latestResponseMs != null ? `${latestResponseMs}ms` : "—"}
           </p>
-          <p className="mt-1 text-xs text-text-muted">{t("statMostRecentInRange")}</p>
+          <p className="mt-1.5 text-xs text-text-muted/70">{t("statMostRecentInRange")}</p>
         </div>
 
         <div className={statTile}>
           <span className={statLabel}>
-            <AlertTriangle className="size-3.5 shrink-0 opacity-80" aria-hidden />
+            <AlertTriangle className="size-3.5 shrink-0 opacity-70" aria-hidden />
             {t("statIncidents")}
           </span>
           <p
-            className={`mt-2 text-xl font-semibold tabular-nums sm:text-2xl ${
+            className={`mt-2.5 text-2xl font-semibold tabular-nums sm:text-3xl ${
               incidentCount > 0 ? "text-status-down" : "text-status-up"
             }`}
             style={{ fontFamily: "var(--font-display)" }}
           >
             {incidentCount > 0 ? incidentCount : t("statNone")}
           </p>
-          <p className="mt-1 text-xs text-text-muted">{t("statInSelectedRange")}</p>
+          <p className="mt-1.5 text-xs text-text-muted/70">{t("statInSelectedRange")}</p>
         </div>
 
         {children}
@@ -221,17 +220,17 @@ export function MonitorDetailHistoryClient({
       )}
 
       {aboveCharts ? (
-        <div className="space-y-8">{aboveCharts}</div>
+        <div className="space-y-6">{aboveCharts}</div>
       ) : null}
 
       <section
-        className="overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]"
+        className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm"
         aria-label={t("historyTitle")}
       >
-        <div className="flex flex-col gap-4 border-b border-border/80 bg-gradient-to-b from-muted/35 to-transparent px-4 py-3 dark:from-muted/20 sm:flex-row sm:items-start sm:justify-between sm:px-5 sm:py-4">
+        <div className="flex flex-col gap-4 border-b border-border/60 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h2
-              className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
+              className="text-[11px] font-semibold uppercase tracking-widest text-text-muted"
               style={{ fontFamily: "var(--font-display)" }}
             >
               {t("historyTitle")}
@@ -240,10 +239,10 @@ export function MonitorDetailHistoryClient({
           </div>
           <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-              <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
                 {t("chartRangeLabel")}
               </span>
-              <div className="inline-flex rounded-lg border border-border bg-bg-page p-0.5">
+              <div className="inline-flex rounded-lg border border-border/60 bg-bg-page p-0.5">
                 {rangeOptions.map((opt) => {
                   const active = range === opt.id;
                   return (
@@ -256,7 +255,7 @@ export function MonitorDetailHistoryClient({
                           setRange(opt.id);
                         }
                       }}
-                      className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                         active
                           ? "bg-bg-card text-text-primary shadow-sm"
                           : "text-text-muted hover:text-text-primary"
@@ -273,10 +272,10 @@ export function MonitorDetailHistoryClient({
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-              <span className="text-xs font-medium uppercase tracking-wider text-text-muted">
+              <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
                 {t("chartDetailLabel")}
               </span>
-              <div className="inline-flex rounded-lg border border-border bg-bg-page p-0.5">
+              <div className="inline-flex rounded-lg border border-border/60 bg-bg-page p-0.5">
                 {detailOptions.map((opt) => {
                   const active = chartDetail === opt.id;
                   return (
@@ -284,7 +283,7 @@ export function MonitorDetailHistoryClient({
                       key={opt.id}
                       type="button"
                       onClick={() => setChartDetail(opt.id)}
-                      className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
+                      className={`rounded-md px-2.5 py-1 text-xs font-medium transition-colors ${
                         active
                           ? "bg-bg-card text-text-primary shadow-sm"
                           : "text-text-muted hover:text-text-primary"
@@ -300,7 +299,7 @@ export function MonitorDetailHistoryClient({
           </div>
         </div>
 
-        <div className="p-4 sm:p-5 md:p-6">
+        <div className="p-5 md:p-6">
         <UptimeTrendChartsInner
           results={rangeResults}
           baselineP75Ms={baselineP75Ms}

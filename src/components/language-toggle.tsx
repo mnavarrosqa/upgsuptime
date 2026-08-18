@@ -28,16 +28,15 @@ export function LanguageToggle() {
   }
 
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
       onClick={toggle}
       disabled={switching}
-      className="h-auto gap-1 rounded-md px-2 py-2 text-text-muted hover:bg-bg-page hover:text-text-primary"
+      className="flex items-center gap-1 rounded-lg px-2 py-1.5 text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary disabled:opacity-50"
       aria-label={t("switchLanguage")}
     >
-      <Globe className="h-4 w-4" aria-hidden />
-      <span className="text-xs font-medium uppercase">{locale}</span>
-    </Button>
+      <Globe className="size-3.5" aria-hidden />
+      <span className="text-[11px] font-semibold uppercase tracking-wide">{locale}</span>
+    </button>
   );
 }

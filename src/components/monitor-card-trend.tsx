@@ -35,11 +35,11 @@ export function MonitorCardTrend({ results }: { results: TrendPoint[] }) {
 
   return (
     <div className="-mt-2 overflow-visible pt-2" aria-label={t("uptimeTrend")}>
-      <div className="flex h-6 items-end gap-px overflow-visible">
+      <div className="flex h-8 items-end gap-[2px] overflow-visible">
       {bars.map((r, i) => {
         const heightPct =
           r.responseTimeMs != null
-            ? Math.max(20, Math.round((r.responseTimeMs / maxMs) * 100))
+            ? Math.max(18, Math.round((r.responseTimeMs / maxMs) * 100))
             : 100;
         const label =
           r.responseTimeMs != null
@@ -54,13 +54,14 @@ export function MonitorCardTrend({ results }: { results: TrendPoint[] }) {
         return (
           <span
             key={remountKey}
-            className={`origin-bottom flex-1 rounded-[1px] ${
+            className={`origin-bottom flex-1 rounded-sm ${
               useNewCheckFall ? "animate-monitor-trend-bar-new" : "animate-monitor-trend-bar"
             }`}
             style={{
               height: `${heightPct}%`,
-              minWidth: "2px",
+              minWidth: "3px",
               backgroundColor: r.ok ? "var(--status-up)" : "var(--status-down)",
+              opacity: r.ok ? 0.8 : 1,
               animationDelay: useNewCheckFall ? "0ms" : `${i * 10}ms`,
             }}
             title={label}

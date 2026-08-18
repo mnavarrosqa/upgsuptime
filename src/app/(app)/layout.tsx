@@ -35,26 +35,25 @@ export default async function AppLayout({
       >
         {t("skipToContent")}
       </Link>
-      <header className="safe-top sticky top-0 z-30 border-b border-border bg-bg-card/90 backdrop-blur-[8px]">
+      <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-bg-card/80 backdrop-blur-xl">
         <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <div className="flex h-14 items-stretch gap-2 sm:gap-5">
+          <div className="flex h-14 items-center gap-3 sm:gap-4">
             <Link
               href="/dashboard"
-              className="flex shrink-0 items-center gap-2 text-sm font-semibold text-text-primary hover:text-text-muted"
+              className="flex shrink-0 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-text-primary transition-opacity hover:opacity-80"
               style={{ fontFamily: "var(--font-display)" }}
             >
               <BrandMark className="size-5 shrink-0" />
-              {t("appTitle")}
+              <span className="hidden min-[480px]:inline">{t("appTitle")}</span>
             </Link>
 
             {/* Desktop nav */}
-            <span className="my-3 hidden w-px bg-border sm:block" aria-hidden />
-            <div className="hidden sm:flex sm:flex-1 sm:items-stretch">
+            <div className="hidden sm:flex sm:flex-1 sm:items-center sm:gap-1">
               <AppNavLinks role={session.user.role} />
-              <div className="ml-auto flex items-center gap-1">
+              <div className="ml-auto flex items-center gap-0.5">
                 <LanguageToggle />
                 <ThemeToggle />
-                <span className="h-4 w-px bg-border" aria-hidden />
+                <span className="mx-1 h-5 w-px bg-border/60" aria-hidden />
                 <UserMenu
                   email={session.user.email ?? ""}
                   name={session.user.name ?? null}
@@ -62,8 +61,14 @@ export default async function AppLayout({
               </div>
             </div>
 
-            {/* Mobile hamburger */}
-            <div className="ml-auto flex items-center sm:hidden">
+            {/* Mobile: centered title + hamburger */}
+            <span
+              className="min-w-0 flex-1 truncate text-center text-[13px] font-semibold tracking-tight text-text-primary sm:hidden"
+              style={{ fontFamily: "var(--font-display)" }}
+            >
+              {t("appTitle")}
+            </span>
+            <div className="flex items-center sm:hidden">
               <MobileMenu
                 role={session.user.role}
                 email={session.user.email ?? ""}

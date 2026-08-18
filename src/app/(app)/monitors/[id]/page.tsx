@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { monitor, checkResult } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
 import { MonitorDetailActions } from "@/components/monitor-detail-actions";
 import { CheckResultsTable } from "@/components/check-results-table";
 import { RecentIncidentsList } from "@/components/recent-incidents-list";
@@ -20,7 +20,6 @@ import { DowntimeAckControls } from "@/components/downtime-ack-controls";
 import { MonitorDetailAckFeedback } from "@/components/monitor-detail-ack-feedback";
 import { MonitorFavicon } from "@/components/monitor-favicon";
 import { MonitorStatusBadge } from "@/components/monitor-status-badge";
-import { monitorMetaChipClass } from "@/lib/monitor-ui";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns" || monitorType === "tcp") return "";
@@ -32,7 +31,6 @@ function getFaviconUrl(url: string, monitorType?: string | null): string {
   }
 }
 
-/** Absolute href for opening the monitored target in a new tab (DNS/TCP store hostnames only). */
 function monitorOpenHref(url: string, monitorType: string): string {
   if (monitorType === "dns" || monitorType === "tcp") {
     const host = url.replace(/^https?:\/\//i, "").split("/")[0]?.trim() ?? url;
@@ -40,6 +38,9 @@ function monitorOpenHref(url: string, monitorType: string): string {
   }
   return url;
 }
+
+const chipClass =
+  "inline-flex max-w-full rounded-md bg-bg-page px-2 py-0.5 text-[11px] font-medium text-text-muted";
 
 export default async function MonitorDetailPage({
   params,
@@ -61,7 +62,6 @@ export default async function MonitorDetailPage({
     );
   }
 
-  // Fetch monitor metadata and check results in parallel — neither depends on the other.
   const [[m], results] = await Promise.all([
     db.select().from(monitor).where(and(eq(monitor.id, id), eq(monitor.userId, session.user.id))),
     db
@@ -109,103 +109,101 @@ export default async function MonitorDetailPage({
   const showDowntimeAckUi = !m.paused && m.currentStatus === false;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <MonitorDetailAckFeedback ackParam={sp.ack} />
       <AutoRefresh />
-      <div className="relative overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-        <div>
-          <div className="border-b border-border/80 bg-muted/30 px-4 py-2.5 dark:bg-muted/20 sm:px-5 sm:py-3">
-            <p
-              className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              {t("heroEyebrow")}
-            </p>
-          </div>
-          <div className="p-4 sm:p-5 md:p-6">
-        <Link
-          href="/dashboard"
-          className="mb-4 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-text-muted transition-colors hover:bg-muted/50 hover:text-text-primary"
-        >
-          <ChevronLeft className="size-4 shrink-0" aria-hidden />
-          {t("breadcrumb")}
-        </Link>
 
-        {/* Header: favicon + name + status + actions */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-2.5">
-              {favicon && <MonitorFavicon src={favicon} size="md" />}
-              <h1
-                className="text-2xl font-semibold tracking-tight text-text-primary"
-                style={{ fontFamily: "var(--font-display)" }}
+      {/* Back link */}
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
+      >
+        <ArrowLeft className="size-3.5 shrink-0" aria-hidden />
+        {t("breadcrumb")}
+      </Link>
+
+      {/* Hero card */}
+      <div className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm">
+        <div className="p-5 sm:p-6 md:p-8">
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0 flex-1">
+              {/* Name + status */}
+              <div className="flex flex-wrap items-center gap-3">
+                {favicon && <MonitorFavicon src={favicon} size="md" />}
+                <h1
+                  className="text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl"
+                  style={{ fontFamily: "var(--font-display)" }}
+                >
+                  {m.name}
+                </h1>
+                <MonitorStatusBadge
+                  paused={!!m.paused}
+                  latest={lastOk === null ? undefined : { ok: lastOk }}
+                />
+              </div>
+
+              {/* URL */}
+              <a
+                href={monitorOpenHref(m.url, monitorType)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`mt-2 inline-flex items-center gap-1.5 text-sm text-text-muted underline-offset-2 transition-colors hover:text-text-primary hover:underline ${monitorType === "dns" || monitorType === "tcp" ? "font-mono" : ""}`}
               >
-                {m.name}
-              </h1>
-              <MonitorStatusBadge
+                {m.url}
+                <ExternalLink className="size-3 shrink-0 opacity-60" aria-hidden />
+              </a>
+
+              {/* Config chips */}
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {monitorType !== "dns" && monitorType !== "tcp" && (
+                  <span className={chipClass}>
+                    {monitorType === "keyword" ? "GET" : m.method}
+                  </span>
+                )}
+                <span className={chipClass}>{t("configEvery", { n: m.intervalMinutes })}</span>
+                {monitorType !== "dns" && monitorType !== "tcp" && (
+                  <>
+                    <span className={chipClass}>{t("configTimeout", { n: m.timeoutSeconds })}</span>
+                    <span className={chipClass}>{t("configExpect", { codes: m.expectedStatusCodes })}</span>
+                    <span className={chipClass}>
+                      {m.sslMonitoring ? t("configSslOn") : t("configSslOff")}
+                    </span>
+                  </>
+                )}
+                {monitorType === "keyword" && m.keywordContains && (
+                  <span className={chipClass}>
+                    {t("configKeywordLabel")}: &ldquo;{m.keywordContains}&rdquo;{" "}
+                    ({m.keywordShouldExist !== false ? t("configMustContain") : t("configMustNotContain")})
+                  </span>
+                )}
+                {monitorType === "dns" && (
+                  <span className={chipClass}>
+                    {m.dnsRecordType} → {m.dnsExpectedValue}
+                  </span>
+                )}
+                {monitorType === "tcp" && (
+                  <span className={chipClass}>
+                    TCP {m.tcpHost ?? m.url}:{m.tcpPort}
+                  </span>
+                )}
+                {m.maintenanceStartsAt && m.maintenanceEndsAt && (
+                  <span className={chipClass}>{t("maintenanceScheduled")}</span>
+                )}
+              </div>
+
+              <NextCheckCountdown
+                monitorId={m.id}
                 paused={!!m.paused}
-                latest={lastOk === null ? undefined : { ok: lastOk }}
+                lastCheckAtIso={m.lastCheckAt ? m.lastCheckAt.toISOString() : null}
+                intervalMinutes={m.intervalMinutes}
+              />
+              <DowntimeAckControls
+                monitorId={m.id}
+                show={showDowntimeAckUi}
+                isAcked={isDowntimeAcked(m)}
               />
             </div>
-            <a
-              href={monitorOpenHref(m.url, monitorType)}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={`mt-1 block break-all text-sm text-text-muted underline-offset-2 transition-colors hover:text-text-primary hover:underline ${monitorType === "dns" || monitorType === "tcp" ? "font-mono" : ""}`}
-            >
-              {m.url}
-            </a>
-            {/* Config meta — chips */}
-            <div className="mt-1.5 flex flex-wrap gap-2">
-              {monitorType !== "dns" && monitorType !== "tcp" && (
-                <span className={monitorMetaChipClass}>
-                  {monitorType === "keyword" ? "GET" : m.method}
-                </span>
-              )}
-              <span className={monitorMetaChipClass}>{t("configEvery", { n: m.intervalMinutes })}</span>
-              {monitorType !== "dns" && monitorType !== "tcp" && (
-                <>
-                  <span className={monitorMetaChipClass}>{t("configTimeout", { n: m.timeoutSeconds })}</span>
-                  <span className={monitorMetaChipClass}>{t("configExpect", { codes: m.expectedStatusCodes })}</span>
-                  <span className={monitorMetaChipClass}>
-                    {m.sslMonitoring ? t("configSslOn") : t("configSslOff")}
-                  </span>
-                </>
-              )}
-              {monitorType === "keyword" && m.keywordContains && (
-                <span className={monitorMetaChipClass}>
-                  {t("configKeywordLabel")}: &ldquo;{m.keywordContains}&rdquo;{" "}
-                  ({m.keywordShouldExist !== false ? t("configMustContain") : t("configMustNotContain")})
-                </span>
-              )}
-              {monitorType === "dns" && (
-                <span className={monitorMetaChipClass}>
-                  {m.dnsRecordType} → {m.dnsExpectedValue}
-                </span>
-              )}
-              {monitorType === "tcp" && (
-                <span className={monitorMetaChipClass}>
-                  TCP {m.tcpHost ?? m.url}:{m.tcpPort}
-                </span>
-              )}
-              {m.maintenanceStartsAt && m.maintenanceEndsAt && (
-                <span className={monitorMetaChipClass}>{t("maintenanceScheduled")}</span>
-              )}
-            </div>
-            <NextCheckCountdown
-              monitorId={m.id}
-              paused={!!m.paused}
-              lastCheckAtIso={m.lastCheckAt ? m.lastCheckAt.toISOString() : null}
-              intervalMinutes={m.intervalMinutes}
-            />
-            <DowntimeAckControls
-              monitorId={m.id}
-              show={showDowntimeAckUi}
-              isAcked={isDowntimeAcked(m)}
-            />
-          </div>
-          <MonitorDetailActions monitor={m} />
-        </div>
+            <MonitorDetailActions monitor={m} />
           </div>
         </div>
       </div>
@@ -227,21 +225,21 @@ export default async function MonitorDetailPage({
             )}
             {recentIncidents.length > 0 && (
               <section
-                className="overflow-hidden rounded-2xl border border-status-down/25 bg-status-down-soft shadow-sm"
+                className="overflow-hidden rounded-2xl border border-status-down/20 bg-status-down-soft shadow-sm"
                 aria-label={t("incidentsTitle")}
               >
-                <div className="border-b border-status-down/20 px-4 py-3 sm:px-5">
+                <div className="border-b border-status-down/15 px-5 py-3.5">
                   <h2
-                    className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-status-down"
+                    className="text-[11px] font-semibold uppercase tracking-widest text-status-down"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
                     {t("incidentsTitle")}
                   </h2>
-                  <p className="mt-1 text-xs text-status-down/75">
+                  <p className="mt-0.5 text-xs text-status-down/70">
                     {t("incidentsSubtitle")}
                   </p>
                 </div>
-                <div className="p-4 sm:p-5">
+                <div className="p-5">
                   <RecentIncidentsList incidents={recentIncidents} />
                 </div>
               </section>
@@ -278,8 +276,8 @@ export default async function MonitorDetailPage({
                       ? t("sslExpiring")
                       : t("sslValid");
             return (
-              <div className="flex min-h-full flex-col rounded-xl border border-border/80 bg-muted/35 px-3 py-3 dark:bg-muted/20 sm:px-4 sm:py-3.5">
-                <span className="text-[0.65rem] font-semibold uppercase tracking-wider text-text-muted">
+              <div className="flex min-h-full flex-col rounded-xl border border-border/60 bg-bg-page/50 px-3 py-3 sm:px-4 sm:py-3.5">
+                <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
                   {t("statSsl")}
                 </span>
                 <p className={`mt-2 text-xl font-semibold tabular-nums sm:text-2xl ${sslColor}`}>
@@ -298,16 +296,16 @@ export default async function MonitorDetailPage({
       </MonitorDetailHistoryClient>
 
       {/* Check log */}
-      <section className="overflow-hidden rounded-2xl border border-border bg-bg-card shadow-sm ring-1 ring-black/[0.04] dark:ring-white/[0.06]">
-        <div className="border-b border-border/80 bg-gradient-to-b from-muted/40 to-transparent px-4 py-2.5 dark:from-muted/25 sm:px-5 sm:py-3">
+      <section className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm">
+        <div className="border-b border-border/60 px-5 py-3.5">
           <h2
-            className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-text-muted"
+            className="text-[11px] font-semibold uppercase tracking-widest text-text-muted"
             style={{ fontFamily: "var(--font-display)" }}
           >
             {t("checkLogTitle")}
           </h2>
         </div>
-        <div className="p-4 sm:p-5 md:p-6">
+        <div className="p-5 md:p-6">
         <p className="text-sm text-text-muted">
           {results.length === 1
             ? t("checkLogSubtitle", { n: m.intervalMinutes, count: results.length })

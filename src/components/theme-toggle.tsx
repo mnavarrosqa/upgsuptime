@@ -3,7 +3,6 @@
 import { useEffect, useState, startTransition } from "react";
 import { Sun, Moon } from "lucide-react";
 import { useTranslations } from "next-intl";
-import { Button } from "@/components/ui/button";
 
 const STORAGE_KEY = "theme";
 
@@ -32,31 +31,29 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <span className="text-sm text-text-muted" aria-hidden>
-        <Sun className="h-4 w-4" />
+      <span className="flex size-8 items-center justify-center text-text-muted" aria-hidden>
+        <Sun className="size-3.5" />
       </span>
     );
   }
 
   return (
-    <Button
+    <button
       type="button"
-      variant="ghost"
-      size="icon-sm"
       onClick={toggle}
-      className="rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
+      className="flex size-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
       aria-label={dark ? t("switchToLight") : t("switchToDark")}
     >
-      <span className="relative h-4 w-4">
+      <span className="relative size-4">
         <Sun
-          className={`absolute inset-0 h-4 w-4 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] ${dark ? "opacity-100 motion-safe:animate-icon-swap-in" : "pointer-events-none rotate-12 scale-90 opacity-0"}`}
+          className={`absolute inset-0 size-4 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] ${dark ? "opacity-100 motion-safe:animate-icon-swap-in" : "pointer-events-none rotate-12 scale-90 opacity-0"}`}
           aria-hidden
         />
         <Moon
-          className={`absolute inset-0 h-4 w-4 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] ${dark ? "pointer-events-none -rotate-12 scale-90 opacity-0" : "opacity-100 motion-safe:animate-icon-swap-in"}`}
+          className={`absolute inset-0 size-4 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] ${dark ? "pointer-events-none -rotate-12 scale-90 opacity-0" : "opacity-100 motion-safe:animate-icon-swap-in"}`}
           aria-hidden
         />
       </span>
-    </Button>
+    </button>
   );
 }

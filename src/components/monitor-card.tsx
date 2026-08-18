@@ -12,7 +12,6 @@ import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { MonitorStatusTopGlow } from "@/components/monitor-status-top-glow";
 import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
 import { SslBadge } from "@/components/ssl-badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { getMonitorRadialKindFromLatest } from "@/lib/monitor-radial-glow";
 
@@ -134,162 +133,154 @@ export function MonitorCard({
     >
       <div
         className={cn(
-          "relative flex h-full flex-col overflow-hidden rounded-lg border bg-bg-card p-3.5 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:shadow active:translate-y-0 active:scale-[0.99] sm:p-4",
+          "relative flex h-full flex-col overflow-hidden rounded-xl border bg-bg-card p-4 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] sm:p-5",
           paused
             ? "border-border opacity-60"
             : latest && !latest.ok
-              ? "border-status-down/35 hover:border-status-down/55"
-              : "border-border hover:border-border-muted"
+              ? "border-status-down/30 hover:border-status-down/50"
+              : "border-border/60 hover:border-border-muted"
         )}
       >
         <MonitorStatusTopGlow kind={getMonitorRadialKindFromLatest(paused, latest)} />
         <Link
           href={`/monitors/${id}`}
-          className="absolute inset-0 z-0 rounded-lg outline-offset-2"
+          className="absolute inset-0 z-0 rounded-xl outline-offset-2"
           aria-label={t("viewDetailsFor", { name })}
         />
-        {/* Header: favicon + name + status */}
+
         <div className="pointer-events-none relative z-[2] flex flex-1 flex-col">
-        <div className="flex items-start gap-2.5">
-          {favicon ? (
-            <Image
-              src={favicon}
-              alt=""
-              className="mt-0.5 h-5 w-5 shrink-0 rounded"
-              width={20}
-              height={20}
-              unoptimized
-            />
-          ) : (
-            <span
-              className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded bg-border text-xs text-text-muted"
-              aria-hidden
-            >
-              {type === "dns" ? "D" : type === "keyword" ? "K" : type === "tcp" ? "T" : "•"}
-            </span>
-          )}
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start justify-between gap-2">
-              <div className="flex min-w-0 items-center gap-1.5">
-                <span className="truncate font-display font-medium leading-snug text-text-primary">
-                  {name}
-                </span>
-                {type !== "http" && (
-                  <span className="shrink-0 rounded-full bg-border px-2 py-0.5 text-xs font-medium text-text-muted">
-                    {type === "dns" ? "DNS" : type === "tcp" ? "TCP" : "Keyword"}
-                  </span>
-                )}
-              </div>
-              <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                <MonitorStatusBadge paused={paused} latest={latest} />
-                {downtimeAcked ? <DowntimeAckBadge /> : null}
-              </div>
-            </div>
-            {type === "dns" || type === "tcp" ? (
-              <span
-                className="mt-0.5 block truncate font-mono text-xs text-text-muted"
-                title={url}
-              >
-                {url}
-              </span>
+          {/* Header: favicon + name + status */}
+          <div className="flex items-start gap-3">
+            {favicon ? (
+              <Image
+                src={favicon}
+                alt=""
+                className="mt-0.5 size-6 shrink-0 rounded-md"
+                width={24}
+                height={24}
+                unoptimized
+              />
             ) : (
-              <a
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="pointer-events-auto mt-0.5 truncate text-xs text-text-muted underline-offset-2 hover:text-text-primary hover:underline"
-                title={url}
-              >
-                {url}
-              </a>
-            )}
-            {latest && !latest.ok && latest.message && (
-              <p
-                className="mt-0.5 truncate text-xs text-status-down"
-                title={latest.message}
-              >
-                {latest.message}
-              </p>
-            )}
-          </div>
-        </div>
-
-        {/* Trend bars */}
-        {trendResults.length > 0 && (
-          <div className="mt-3">
-            <MonitorCardTrend results={trendResults} />
-          </div>
-        )}
-
-        {/* Footer: uptime % · response time · SSL + last checked */}
-        <div className="mt-3 flex items-center justify-between gap-2 pr-[4.75rem] text-xs text-text-muted">
-          <div className="flex items-center gap-1.5 tabular-nums">
-            {uptimePct !== null && (
               <span
-                className={
-                  uptimePct === 100
-                    ? "text-status-up"
-                    : uptimePct >= 90
-                      ? "text-status-warn"
-                      : "text-status-down"
-                }
+                className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-bg-page text-[10px] font-semibold text-text-muted"
+                aria-hidden
               >
-                {uptimePct}%
+                {type === "dns" ? "D" : type === "keyword" ? "K" : type === "tcp" ? "T" : "•"}
               </span>
             )}
-            {latest?.responseTimeMs != null && (
-              <>
-                {uptimePct !== null && <span aria-hidden>·</span>}
-                <span>{latest.responseTimeMs}ms</span>
-              </>
-            )}
-            {sslMonitoring && type !== "dns" && type !== "tcp" && (
-              <>
-                <span aria-hidden>·</span>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <span className="truncate font-display text-[15px] font-semibold leading-snug text-text-primary">
+                    {name}
+                  </span>
+                  {type !== "http" && (
+                    <span className="shrink-0 rounded-md bg-bg-page px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                      {type === "dns" ? "DNS" : type === "tcp" ? "TCP" : "KW"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                  <MonitorStatusBadge paused={paused} latest={latest} />
+                  {downtimeAcked ? <DowntimeAckBadge /> : null}
+                </div>
+              </div>
+              {type === "dns" || type === "tcp" ? (
+                <span
+                  className="mt-1 block truncate font-mono text-xs text-text-muted/80"
+                  title={url}
+                >
+                  {url}
+                </span>
+              ) : (
+                <a
+                  href={url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="pointer-events-auto mt-1 block truncate text-xs text-text-muted/80 underline-offset-2 hover:text-text-primary hover:underline"
+                  title={url}
+                >
+                  {url}
+                </a>
+              )}
+              {latest && !latest.ok && latest.message && (
+                <p
+                  className="mt-1 truncate text-xs font-medium text-status-down"
+                  title={latest.message}
+                >
+                  {latest.message}
+                </p>
+              )}
+            </div>
+          </div>
+
+          {/* Trend bars */}
+          {trendResults.length > 0 && (
+            <div className="mt-4">
+              <MonitorCardTrend results={trendResults} />
+            </div>
+          )}
+
+          {/* Footer: uptime % · response time · SSL | last checked */}
+          <div className="mt-3 flex items-center justify-between gap-2 text-xs text-text-muted">
+            <div className="flex items-center gap-2 tabular-nums">
+              {uptimePct !== null && (
+                <span
+                  className={cn(
+                    "rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
+                    uptimePct === 100
+                      ? "bg-status-up/10 text-status-up"
+                      : uptimePct >= 90
+                        ? "bg-status-warn/10 text-status-warn"
+                        : "bg-status-down/10 text-status-down"
+                  )}
+                >
+                  {uptimePct}%
+                </span>
+              )}
+              {latest?.responseTimeMs != null && (
+                <span className="text-text-muted/80">{latest.responseTimeMs}ms</span>
+              )}
+              {sslMonitoring && type !== "dns" && type !== "tcp" && (
                 <SslBadge
                   monitoring={sslMonitoring}
                   valid={sslValid}
                   expiresAt={sslExpiresAt}
                   compact
                 />
-              </>
-            )}
+              )}
+            </div>
+            <span className="text-text-muted/60">{formatLastChecked(lastCheckAt, tTime)}</span>
           </div>
-          <span>{formatLastChecked(lastCheckAt, tTime)}</span>
-        </div>
         </div>
       </div>
 
-      {/* Quick actions are always visible on touch-sized screens and enhanced on hover for larger screens */}
-      <div className="pointer-events-auto absolute bottom-2 right-2 z-[2] flex translate-y-0 gap-1 opacity-90 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
-        <Button
+      {/* Quick actions */}
+      <div className="pointer-events-auto absolute bottom-3 right-3 z-[2] flex translate-y-0 gap-1 opacity-90 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+        <button
           type="button"
-          variant="outline"
-          size="icon-sm"
           onClick={handleCheckNow}
           title={t("checkNow")}
           aria-label={t("checkNowFor", { name })}
           disabled={checking || !!paused}
-          className="h-9 w-9 rounded border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:bg-bg-card/90 hover:text-text-primary md:h-11 md:w-11 md:bg-bg-card"
+          className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-bg-card/95 text-text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-border-muted hover:text-text-primary disabled:opacity-40 md:size-9"
         >
-          <RefreshCw className={`h-4 w-4 ${checking ? "motion-safe:animate-spin motion-reduce:animate-none" : ""}`} aria-hidden />
-        </Button>
-        <Button
+          <RefreshCw className={`size-3.5 ${checking ? "motion-safe:animate-spin motion-reduce:animate-none" : ""}`} aria-hidden />
+        </button>
+        <button
           type="button"
-          variant="outline"
-          size="icon-sm"
           onClick={handlePauseToggle}
           title={paused ? t("resume") : t("pause")}
           aria-label={paused ? t("resumeMonitor", { name }) : t("pauseMonitor", { name })}
           disabled={loading}
-          className="h-9 w-9 rounded border-border bg-bg-card/90 text-text-muted hover:border-border-muted hover:bg-bg-card/90 hover:text-text-primary md:h-11 md:w-11 md:bg-bg-card"
+          className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-bg-card/95 text-text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-border-muted hover:text-text-primary disabled:opacity-40 md:size-9"
         >
           {paused ? (
-            <Play className="h-4 w-4" aria-hidden />
+            <Play className="size-3.5" aria-hidden />
           ) : (
-            <Pause className="h-4 w-4" aria-hidden />
+            <Pause className="size-3.5" aria-hidden />
           )}
-        </Button>
+        </button>
       </div>
     </li>
   );

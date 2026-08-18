@@ -52,7 +52,7 @@ export function MonitorDetailActions({ monitor }: { monitor: Monitor }) {
           variant="outline"
           onClick={togglePause}
           disabled={pausing}
-          className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary transition hover:bg-bg-page active:scale-95"
+          className="rounded-lg border-border/60 px-4 py-2 text-[13px] font-medium text-text-primary transition hover:bg-bg-page active:scale-[0.97]"
         >
           {pausing
             ? monitor.paused
@@ -66,7 +66,7 @@ export function MonitorDetailActions({ monitor }: { monitor: Monitor }) {
           type="button"
           variant="outline"
           onClick={() => setEditOpen(true)}
-          className="rounded-md border-border px-4 py-2 text-sm font-medium text-text-primary transition hover:bg-bg-page active:scale-95"
+          className="rounded-lg border-border/60 px-4 py-2 text-[13px] font-medium text-text-primary transition hover:bg-bg-page active:scale-[0.97]"
         >
           {t("actionEdit")}
         </Button>

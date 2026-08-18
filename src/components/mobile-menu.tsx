@@ -1,18 +1,23 @@
 "use client";
 
 import { useState, useRef, useEffect, useId, useCallback } from "react";
-import { Menu, X, Sun, Moon, User, LogOut, CircleHelp, Globe } from "lucide-react";
+import { Menu, X, Sun, Moon, User, LogOut, CircleHelp, Globe, LayoutDashboard, Bell, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { useLocale, useTranslations } from "next-intl";
 import { useActivity } from "@/components/activity-context";
-import { Button } from "@/components/ui/button";
 import {
   APP_PRIMARY_NAV_LINKS,
   isAdminNavActive,
   isPrimaryNavActive,
 } from "@/lib/app-main-nav";
+
+const NAV_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
+  "/dashboard": LayoutDashboard,
+  "/activity": Bell,
+  "/admin": ShieldCheck,
+};
 
 export function MobileMenu({
   role,
@@ -54,7 +59,6 @@ export function MobileMenu({
     }
   }, []);
 
-  // Close on navigation
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
@@ -125,153 +129,161 @@ export function MobileMenu({
     setDark(next);
   }
 
+  const menuItemClass =
+    "flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px] text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary";
+
   return (
     <div ref={ref} className="relative">
-      <Button
+      <button
         ref={buttonRef}
         type="button"
-        variant="ghost"
-        size="icon-sm"
         onClick={() => setOpen((o) => !o)}
-        className="h-11 w-11 rounded-md text-text-muted hover:bg-bg-page hover:text-text-primary"
+        className="flex size-10 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
         aria-label={open ? t("closeMenu") : t("openMenu")}
         aria-expanded={open}
         aria-controls={menuId}
         aria-haspopup="menu"
       >
         {open ? (
-          <X className="h-5 w-5" aria-hidden />
+          <X className="size-5" aria-hidden />
         ) : (
-          <Menu className="h-5 w-5" aria-hidden />
+          <Menu className="size-5" aria-hidden />
         )}
-      </Button>
+      </button>
 
       {open && (
         <div
           id={menuId}
           ref={menuRef}
-          className="absolute right-0 top-full z-50 mt-1 w-56 rounded-lg border border-border bg-bg-card py-1 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 w-60 overflow-hidden rounded-xl border border-border/60 bg-bg-card shadow-xl shadow-black/10"
           role="menu"
           aria-label={t("navMenu")}
         >
           {/* User info */}
-          <div className="border-b border-border px-3 py-2.5">
-            {name && (
-              <p className="truncate text-sm font-medium text-text-primary">{name}</p>
-            )}
-            <p
-              className={`truncate text-xs ${name ? "text-text-muted" : "font-medium text-text-primary"}`}
-            >
-              {email}
-            </p>
+          <div className="border-b border-border px-3.5 py-3">
+            <div className="flex items-center gap-2.5">
+              <span className="flex size-8 shrink-0 items-center justify-center rounded-full bg-accent text-xs font-bold text-white">
+                {name ? name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() : email.slice(0, 2).toUpperCase()}
+              </span>
+              <div className="min-w-0">
+                {name && (
+                  <p className="truncate text-sm font-medium text-text-primary">{name}</p>
+                )}
+                <p className={`truncate text-xs ${name ? "text-text-muted" : "font-medium text-text-primary"}`}>
+                  {email}
+                </p>
+              </div>
+            </div>
           </div>
 
           {/* Nav links */}
-          {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
-            const label = t(labelKey);
-            const active = isPrimaryNavActive(pathname, href);
-            const hasUnread = href === "/activity" && unreadCount > 0;
-            return (
-              <Link
-                key={href}
-                href={href}
+          <div className="py-1">
+            {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
+              const label = t(labelKey);
+              const active = isPrimaryNavActive(pathname, href);
+              const hasUnread = href === "/activity" && unreadCount > 0;
+              const Icon = NAV_ICONS[href];
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  role="menuitem"
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => closeMenu()}
+                  className={`${menuItemClass} ${active ? "font-medium text-accent" : ""}`}
+                >
+                  {Icon && <Icon className="size-4 shrink-0" aria-hidden />}
+                  {label}
+                  {hasUnread && (
+                    <span
+                      className="size-1.5 rounded-full bg-status-down"
+                      aria-label={t("unreadIncidents")}
+                    />
+                  )}
+                </Link>
+              );
+            })}
+            {role === "admin" && (() => {
+              const active = isAdminNavActive(pathname);
+              const Icon = NAV_ICONS["/admin"]!;
+              return (
+                <Link
+                  href="/admin"
+                  role="menuitem"
+                  aria-current={active ? "page" : undefined}
+                  onClick={() => closeMenu()}
+                  className={`${menuItemClass} ${active ? "font-medium text-accent" : ""}`}
+                >
+                  <Icon className="size-4 shrink-0" aria-hidden />
+                  {t("admin")}
+                </Link>
+              );
+            })()}
+          </div>
+
+          <div className="border-t border-border" />
+
+          {/* Preferences */}
+          <div className="py-1">
+            {mounted && (
+              <button
+                type="button"
                 role="menuitem"
-                aria-current={active ? "page" : undefined}
-                onClick={() => closeMenu()}
-                className={`flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
-                  active
-                    ? "font-medium text-text-primary"
-                    : "text-text-muted hover:bg-bg-page hover:text-text-primary"
-                }`}
+                onClick={toggleTheme}
+                className={menuItemClass}
               >
-                {label}
-                {hasUnread && (
-                  <span
-                    className="h-2 w-2 rounded-full bg-status-down"
-                    aria-label={t("unreadIncidents")}
-                  />
+                {dark ? (
+                  <Sun className="size-4 shrink-0" aria-hidden />
+                ) : (
+                  <Moon className="size-4 shrink-0" aria-hidden />
                 )}
-              </Link>
-            );
-          })}
-          {role === "admin" && (
-            <Link
-              href="/admin"
-              role="menuitem"
-              aria-current={isAdminNavActive(pathname) ? "page" : undefined}
-              onClick={() => closeMenu()}
-              className={`flex items-center px-3 py-2 text-sm transition-colors ${
-                isAdminNavActive(pathname)
-                  ? "font-medium text-text-primary"
-                  : "text-text-muted hover:bg-bg-page hover:text-text-primary"
-              }`}
-            >
-              {t("admin")}
-            </Link>
-          )}
-
-          <div className="my-1 border-t border-border" />
-
-          {/* Theme toggle */}
-          {mounted && (
-            <Button
+                {dark ? t("lightMode") : t("darkMode")}
+              </button>
+            )}
+            <button
               type="button"
-              variant="ghost"
               role="menuitem"
-              onClick={toggleTheme}
-              className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
+              onClick={switchLanguage}
+              disabled={switchingLocale}
+              className={`${menuItemClass} disabled:opacity-50`}
             >
-              {dark ? (
-                <Sun className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              ) : (
-                <Moon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-              )}
-              {dark ? t("lightMode") : t("darkMode")}
-            </Button>
-          )}
+              <Globe className="size-4 shrink-0" aria-hidden />
+              {locale === "en" ? tLocale("spanish") : tLocale("english")}
+            </button>
+          </div>
 
-          {/* Language toggle */}
-          <Button
-            type="button"
-            variant="ghost"
-            role="menuitem"
-            onClick={switchLanguage}
-            disabled={switchingLocale}
-            className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
-          >
-            <Globe className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {locale === "en" ? tLocale("spanish") : tLocale("english")}
-          </Button>
+          <div className="border-t border-border" />
 
           {/* Account & sign out */}
-          <Link
-            href="/account"
-            role="menuitem"
-            onClick={() => closeMenu()}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
-          >
-            <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {t("account")}
-          </Link>
-          <Link
-            href="/help"
-            role="menuitem"
-            onClick={() => closeMenu()}
-            className="flex items-center gap-2 px-3 py-2 text-sm text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
-          >
-            <CircleHelp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {t("help")}
-          </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            role="menuitem"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
-          >
-            <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {t("signOut")}
-          </Button>
+          <div className="py-1">
+            <Link
+              href="/account"
+              role="menuitem"
+              onClick={() => closeMenu()}
+              className={menuItemClass}
+            >
+              <User className="size-4 shrink-0" aria-hidden />
+              {t("account")}
+            </Link>
+            <Link
+              href="/help"
+              role="menuitem"
+              onClick={() => closeMenu()}
+              className={menuItemClass}
+            >
+              <CircleHelp className="size-4 shrink-0" aria-hidden />
+              {t("help")}
+            </Link>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className={menuItemClass}
+            >
+              <LogOut className="size-4 shrink-0" aria-hidden />
+              {t("signOut")}
+            </button>
+          </div>
         </div>
       )}
     </div>

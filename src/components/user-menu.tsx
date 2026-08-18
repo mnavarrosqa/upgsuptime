@@ -103,33 +103,27 @@ export function UserMenu({ email, name }: UserMenuProps) {
 
   return (
     <div className="relative" ref={ref}>
-      <Button
+      <button
         ref={triggerRef}
         type="button"
-        variant="ghost"
         onClick={() => setOpen((o) => !o)}
-        className="h-auto gap-1.5 rounded-md px-2 py-1.5 text-sm font-normal text-text-muted hover:bg-bg-page hover:text-text-primary"
+        className="flex items-center gap-2 rounded-full p-0.5 transition-shadow hover:ring-2 hover:ring-accent/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
         aria-expanded={open}
         aria-haspopup="true"
         aria-label={t("accountMenu")}
       >
-        <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-border bg-primary text-[10px] font-bold text-primary-foreground">
+        <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent text-[11px] font-bold text-white">
           {initials}
         </span>
-        <ChevronDown
-          className="h-3.5 w-3.5 shrink-0 transition-transform"
-          style={{ transform: open ? "rotate(180deg)" : undefined }}
-          aria-hidden
-        />
-      </Button>
+      </button>
       {open && (
         <div
           ref={menuPanelRef}
-          className="absolute right-0 top-full z-50 mt-1 min-w-[11rem] rounded-lg border border-border bg-bg-card py-1 shadow-lg"
+          className="absolute right-0 top-full z-50 mt-2 min-w-[12rem] overflow-hidden rounded-xl border border-border/60 bg-bg-card shadow-xl shadow-black/10"
           role="menu"
           aria-label={t("accountActions")}
         >
-          <div className="border-b border-border px-3 py-2.5">
+          <div className="border-b border-border px-3.5 py-3">
             {name && (
               <p className="truncate text-sm font-medium text-text-primary">{name}</p>
             )}
@@ -137,43 +131,47 @@ export function UserMenu({ email, name }: UserMenuProps) {
               {email}
             </p>
           </div>
-          <Link
-            href="/account"
-            role="menuitem"
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-page hover:text-text-primary"
-            onClick={() => setOpen(false)}
-          >
-            <User className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {t("account")}
-          </Link>
-          <Link
-            href="/help"
-            role="menuitem"
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-page hover:text-text-primary"
-            onClick={() => setOpen(false)}
-          >
-            <CircleHelp className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {t("help")}
-          </Link>
-          <Link
-            href="/account#onboarding"
-            role="menuitem"
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-page hover:text-text-primary"
-            onClick={() => setOpen(false)}
-          >
-            <BookOpen className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {t("onboardingGuide")}
-          </Link>
-          <Button
-            type="button"
-            variant="ghost"
-            role="menuitem"
-            onClick={() => signOut({ callbackUrl: "/login" })}
-            className="h-auto w-full justify-start gap-2 rounded-none border-0 px-3 py-2 text-left text-sm font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
-          >
-            <LogOut className="h-3.5 w-3.5 shrink-0" aria-hidden />
-            {t("signOut")}
-          </Button>
+          <div className="py-1">
+            <Link
+              href="/account"
+              role="menuitem"
+              className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
+              onClick={() => setOpen(false)}
+            >
+              <User className="size-4 shrink-0" aria-hidden />
+              {t("account")}
+            </Link>
+            <Link
+              href="/help"
+              role="menuitem"
+              className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
+              onClick={() => setOpen(false)}
+            >
+              <CircleHelp className="size-4 shrink-0" aria-hidden />
+              {t("help")}
+            </Link>
+            <Link
+              href="/account#onboarding"
+              role="menuitem"
+              className="flex w-full items-center gap-2.5 px-3.5 py-2 text-left text-[13px] text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
+              onClick={() => setOpen(false)}
+            >
+              <BookOpen className="size-4 shrink-0" aria-hidden />
+              {t("onboardingGuide")}
+            </Link>
+          </div>
+          <div className="border-t border-border">
+            <Button
+              type="button"
+              variant="ghost"
+              role="menuitem"
+              onClick={() => signOut({ callbackUrl: "/login" })}
+              className="h-auto w-full justify-start gap-2.5 rounded-none border-0 px-3.5 py-2.5 text-left text-[13px] font-normal text-text-muted shadow-none hover:bg-bg-page hover:text-text-primary"
+            >
+              <LogOut className="size-4 shrink-0" aria-hidden />
+              {t("signOut")}
+            </Button>
+          </div>
         </div>
       )}
     </div>
