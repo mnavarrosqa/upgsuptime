@@ -25,7 +25,7 @@ import { sortMonitors } from "@/lib/sort-monitors";
 import { isDowntimeAcked } from "@/lib/downtime-ack";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Activity, CheckCircle2, CircleHelp, ExternalLink, Layers, MapPin, SearchX, XCircle } from "lucide-react";
+import { CircleHelp, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -54,6 +54,49 @@ type MonitorGridProps = {
 
 const sectionLabelClass =
   "text-xs font-semibold uppercase tracking-wider text-text-muted";
+
+function StatusLiveDot({ tone }: { tone: "up" | "down" | "paused" }) {
+  return (
+    <span
+      className="relative mt-1.5 flex h-2 w-2 shrink-0 items-center justify-center sm:mt-2"
+      aria-hidden
+    >
+      <span
+        className={cn(
+          "h-2 w-2 rounded-full",
+          tone === "up" && "bg-status-up animate-operational-badge-dot",
+          tone === "down" && "bg-status-down",
+          tone === "paused" && "bg-text-muted/70"
+        )}
+      />
+    </span>
+  );
+}
+
+function SectionHeading({
+  children,
+  tone,
+}: {
+  children: React.ReactNode;
+  tone?: "down" | "up" | "muted";
+}) {
+  return (
+    <li className="col-span-full mt-7 first:mt-0">
+      <div className="flex items-center gap-3">
+        <p
+          className={cn(
+            sectionLabelClass,
+            tone === "down" && "text-status-down",
+            tone === "up" && "text-status-up"
+          )}
+        >
+          {children}
+        </p>
+        <span className="h-px min-w-6 flex-1 bg-border" aria-hidden />
+      </div>
+    </li>
+  );
+}
 
 // Extracted outside MonitorGrid so it is not re-created on every render (Rule 5.4).
 function MonitorGridCard({
@@ -118,15 +161,11 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
     [downMonitors, pausedMonitors, [...upMonitors, ...uncheckedMonitors]].filter((g) => g.length > 0).length > 1;
 
   return (
-    <ul className="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
+    <ul className="mt-5 grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,20rem),1fr))] sm:gap-4">
       {downMonitors.length > 0 && (
         <>
           {multipleGroups && (
-            <li className="col-span-full">
-              <p className={cn(sectionLabelClass, "text-status-down")}>
-                {t("issues")}
-              </p>
-            </li>
+            <SectionHeading tone="down">{t("sectionIssues", { count: downMonitors.length })}</SectionHeading>
           )}
           {downMonitors.map((m, index) => (
             <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
@@ -136,11 +175,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
       {pausedMonitors.length > 0 && (
         <>
           {multipleGroups && (
-            <li className="col-span-full mt-6">
-              <p className={sectionLabelClass}>
-                {t("paused")}
-              </p>
-            </li>
+            <SectionHeading>{t("sectionPaused", { count: pausedMonitors.length })}</SectionHeading>
           )}
           {pausedMonitors.map((m, index) => (
             <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
@@ -150,11 +185,9 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
       {(upMonitors.length > 0 || uncheckedMonitors.length > 0) && (
         <>
           {multipleGroups && (
-            <li className="col-span-full mt-6">
-              <p className={cn(sectionLabelClass, "text-status-up")}>
-                {t("operational")}
-              </p>
-            </li>
+            <SectionHeading tone="up">
+              {t("sectionOperational", { count: upMonitors.length + uncheckedMonitors.length })}
+            </SectionHeading>
           )}
           {upMonitors.map((m, index) => (
             <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
@@ -211,240 +244,153 @@ export function DashboardContent({
     [tSort]
   );
 
-  const upCount = monitors.filter((m) => latestByMonitor[m.id]?.ok === true).length;
-  const downCount = monitors.filter((m) => {
-    const latest = latestByMonitor[m.id];
-    return latest && !latest.ok;
-  }).length;
-  const hasMonitors = monitors.length > 0;
-  const allUp = downCount === 0 && hasMonitors;
+  const { downCount, pausedCount, hasMonitors, allPaused, locationLabel } = useMemo(() => {
+    const paused = monitors.filter((m) => m.paused).length;
+    const down = monitors.filter((m) => {
+      const latest = latestByMonitor[m.id];
+      return !m.paused && latest && !latest.ok;
+    }).length;
+    const has = monitors.length > 0;
+    return {
+      downCount: down,
+      pausedCount: paused,
+      hasMonitors: has,
+      allPaused: has && paused === monitors.length,
+      locationLabel: checkLocation ?? t("statValueLocationUnknown"),
+    };
+  }, [monitors, latestByMonitor, checkLocation, t]);
+
+  const statusTone = downCount > 0 ? "down" : allPaused ? "paused" : "up";
+  const statusLabel = downCount > 0
+    ? t("downCount", { count: downCount })
+    : allPaused
+      ? t("allPaused")
+      : t("allOperational");
 
   return (
     <>
       <div className="motion-safe:motion-enter">
         <AutoRefresh />
-      {/* Header: title + status badge */}
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
-        <h1
-          className="text-2xl font-semibold tracking-tight text-text-primary"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          {t("title")}
-        </h1>
-        {hasMonitors && (
-          <span
-            className={cn(
-              "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-              allUp
-                ? "bg-status-up text-status-up-fg dark:bg-status-up-soft dark:text-status-up"
-                : "bg-status-down text-status-down-fg dark:bg-status-down-soft dark:text-status-down"
-            )}
-          >
-            <span
-              className="relative flex h-1.5 w-1.5 shrink-0 items-center justify-center"
-              aria-hidden
-            >
-              <span
-                className={cn(
-                  "h-1.5 w-1.5 rounded-full dark:bg-current",
-                  allUp
-                    ? "bg-status-up-fg/80 animate-operational-badge-dot"
-                    : "bg-status-down-fg/80"
-                )}
-              />
-            </span>
-            {allUp ? t("allOperational") : t("downCount", { count: downCount })}
-          </span>
-        )}
-      </div>
 
-      {/* Summary strip + toolbar (when monitors exist) */}
-      {hasMonitors && (
-        <>
-          <div className="mt-4 rounded-xl border border-border bg-bg-card p-3 sm:p-4">
-            <p
-              className={sectionLabelClass}
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              {t("summaryHeading")}
-            </p>
-            <div
-              className={cn(
-                "mt-3 flex flex-col gap-3",
-                username ? "sm:flex-row sm:items-stretch sm:gap-4" : ""
-              )}
-            >
-              <div className="grid min-w-0 flex-1 grid-cols-2 gap-2 sm:grid-cols-4">
-                <div className="flex min-w-0 flex-col rounded-lg bg-muted/30 px-2.5 py-2.5 dark:bg-muted/20">
-                  <span className={cn(sectionLabelClass, "flex items-center gap-1")}>
-                    <Layers className="size-3 shrink-0 opacity-80" aria-hidden />
-                    {t("statLabelTotal")}
-                  </span>
-                  <p
-                    className="mt-1.5 truncate text-lg font-semibold tabular-nums text-text-primary sm:text-xl"
-                    style={{ fontFamily: "var(--font-display)" }}
-                  >
-                    {monitors.length}
-                  </p>
-                </div>
-                <div className="flex min-w-0 flex-col rounded-lg bg-status-up-soft px-2.5 py-2.5">
-                  <span className={cn(sectionLabelClass, "flex items-center gap-1 text-status-up")}>
-                    <CheckCircle2 className="size-3 shrink-0 opacity-90" aria-hidden />
-                    {t("statLabelUp")}
-                  </span>
-                  <p className="mt-1.5 text-lg font-semibold tabular-nums text-status-up sm:text-xl">
-                    {upCount}
-                  </p>
-                </div>
-                <div
-                  className={cn(
-                    "flex min-w-0 flex-col rounded-lg px-2.5 py-2.5",
-                    downCount > 0 ? "bg-status-down-soft" : "bg-muted/30 dark:bg-muted/20"
-                  )}
-                >
-                  <span
-                    className={cn(
-                      sectionLabelClass,
-                      "flex items-center gap-1",
-                      downCount > 0 ? "text-status-down" : "text-text-muted"
-                    )}
-                  >
-                    <XCircle className="size-3 shrink-0 opacity-90" aria-hidden />
-                    {t("statLabelDown")}
-                  </span>
-                  <p
-                    className={cn(
-                      "mt-1.5 text-lg font-semibold tabular-nums sm:text-xl",
-                      downCount > 0 ? "text-status-down" : "text-text-muted"
-                    )}
-                  >
-                    {downCount}
-                  </p>
-                </div>
-                <div className="flex min-w-0 flex-col rounded-lg bg-muted/30 px-2.5 py-2.5 dark:bg-muted/20">
-                  <span className={cn(sectionLabelClass, "flex items-center gap-1")}>
-                    <MapPin className="size-3 shrink-0 opacity-80" aria-hidden />
-                    {t("statLabelLocation")}
-                    <TooltipProvider delayDuration={140}>
-                      <TooltipRoot>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex items-center text-text-muted/90 transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:ring-offset-1"
-                            aria-label={t("statLocationTooltip")}
-                          >
-                            <CircleHelp className="size-3 shrink-0" aria-hidden />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipContent
-                            side="top"
-                            sideOffset={6}
-                            className="z-50 max-w-[20rem] rounded-md border border-border bg-bg-card px-2.5 py-2 text-[11px] font-medium normal-case tracking-normal text-text-primary shadow-md"
-                          >
-                            {t("statLocationTooltip")}
-                          </TooltipContent>
-                        </TooltipPortal>
-                      </TooltipRoot>
-                    </TooltipProvider>
-                  </span>
-                  <p className="mt-1.5 truncate text-sm font-medium text-text-primary sm:text-base">
-                    {checkLocation ?? t("statValueLocationUnknown")}
-                  </p>
-                </div>
-              </div>
-              {username ? (
-                <>
-                  <div
-                    className="hidden w-px shrink-0 bg-border sm:block"
-                    aria-hidden
-                  />
-                  <div className="flex items-center justify-center sm:w-[min(100%,13rem)] sm:shrink-0 sm:flex-col sm:justify-center">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          {hasMonitors ? (
+            <>
+              <h1
+                className={cn(
+                  "flex items-start gap-2.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight",
+                  downCount > 0 ? "text-status-down" : "text-text-primary"
+                )}
+                aria-live="polite"
+              >
+                <StatusLiveDot tone={statusTone} />
+                <span>{statusLabel}</span>
+              </h1>
+              <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted">
+                <span className="tabular-nums">{t("monitorCount", { count: monitors.length })}</span>
+                {pausedCount > 0 && !allPaused ? (
+                  <>
+                    <span className="text-border-muted select-none" aria-hidden>
+                      ·
+                    </span>
+                    <span className="tabular-nums">{t("pausedCountMeta", { count: pausedCount })}</span>
+                  </>
+                ) : null}
+                <span className="text-border-muted select-none" aria-hidden>
+                  ·
+                </span>
+                <span className="inline-flex min-w-0 items-center gap-1">
+                  <span className="truncate">{t("checksFrom", { location: locationLabel })}</span>
+                  <TooltipProvider delayDuration={140}>
+                    <TooltipRoot>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="inline-flex size-7 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
+                          aria-label={t("statLocationTooltip")}
+                        >
+                          <CircleHelp className="size-3.5 shrink-0" aria-hidden />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipPortal>
+                        <TooltipContent
+                          side="top"
+                          sideOffset={6}
+                          className="z-50 max-w-[20rem] rounded-md border border-border bg-bg-card px-2.5 py-2 text-[11px] font-medium text-text-primary shadow-md"
+                        >
+                          {t("statLocationTooltip")}
+                        </TooltipContent>
+                      </TooltipPortal>
+                    </TooltipRoot>
+                  </TooltipProvider>
+                </span>
+                {username ? (
+                  <>
+                    <span className="text-border-muted select-none" aria-hidden>
+                      ·
+                    </span>
                     <Link
                       href={`/status/${username}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex w-full max-w-sm items-center justify-center gap-1.5 rounded-lg border border-border bg-bg-elevated/80 px-2.5 py-2 text-center text-xs font-medium text-text-primary transition-[background-color,box-shadow,color] hover:bg-muted hover:text-text-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring sm:w-auto sm:min-w-[10rem] sm:text-sm"
+                      className="inline-flex items-center gap-1 text-text-primary underline-offset-4 transition-colors hover:text-text-muted hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
                     >
-                      <ExternalLink
-                        className="size-3.5 shrink-0 text-text-muted sm:size-4"
-                        aria-hidden
-                      />
                       {t("statusPageLink")}
+                      <ExternalLink className="size-3.5 shrink-0" aria-hidden />
                     </Link>
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </div>
+                  </>
+                ) : null}
+              </p>
+            </>
+          ) : (
+            <>
+              <h1 className="font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight text-text-primary">
+                {t("emptyTitle")}
+              </h1>
+              <p className="mt-2.5 max-w-md text-sm text-text-muted">{t("emptyBody")}</p>
+            </>
+          )}
+        </div>
+        <div className="shrink-0 sm:pt-1">
+          <DashboardAddMonitor />
+        </div>
+      </div>
 
-          <div className="mt-4 rounded-xl border border-border bg-bg-card p-3 sm:p-4 [--enter-delay:90ms] motion-safe:motion-soft-pop">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-3">
-              <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2 sm:flex-nowrap">
-                <div className="min-w-0 flex-1">
-                  <SearchWithTypeahead
-                    monitors={searchItems}
-                    value={searchQuery}
-                    onChange={setSearchQuery}
-                    placeholder={t("searchPlaceholder")}
-                  />
-                </div>
-                <SortDropdown
-                  options={sortOptions}
-                  value={sortBy.field}
-                  direction={sortBy.direction}
-                  onChange={(field, direction) => setSortBy({ field, direction })}
-                />
-              </div>
-              <div className="flex shrink-0 justify-end sm:justify-start">
-                <DashboardAddMonitor />
-              </div>
-            </div>
+      {hasMonitors && (
+        <div className="mt-6 flex flex-col gap-2.5 border-b border-border pb-4 sm:flex-row sm:items-center sm:gap-3">
+          <div className="min-w-0 flex-1">
+            <SearchWithTypeahead
+              monitors={searchItems}
+              value={searchQuery}
+              onChange={setSearchQuery}
+              placeholder={t("searchPlaceholder")}
+            />
           </div>
-        </>
-      )}
-
-      {/* Monitor grid / empty states */}
-      {!hasMonitors ? (
-        <div className="mt-8 rounded-xl border border-dashed border-border-muted bg-bg-card/50 p-8 text-center sm:p-12">
-          <div className="mx-auto flex max-w-sm flex-col items-center">
-            <span className="flex size-11 items-center justify-center rounded-full bg-muted text-text-muted">
-              <Activity className="size-5" aria-hidden />
-            </span>
-            <h2
-              className="mt-4 text-lg font-semibold tracking-tight text-text-primary"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              {t("emptyTitle")}
-            </h2>
-            <p className="mt-2 text-sm text-text-muted">{t("emptyBody")}</p>
-            <div className="mt-6">
-              <DashboardAddMonitor />
-            </div>
+          <div className="shrink-0">
+            <SortDropdown
+              options={sortOptions}
+              value={sortBy.field}
+              direction={sortBy.direction}
+              onChange={(field, direction) => setSortBy({ field, direction })}
+            />
           </div>
         </div>
-      ) : filteredMonitors.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-border-muted bg-bg-card/50 p-8 text-center sm:p-12">
-          <div className="mx-auto flex max-w-sm flex-col items-center">
-            <span className="flex size-11 items-center justify-center rounded-full bg-muted text-text-muted">
-              <SearchX className="size-5" aria-hidden />
-            </span>
-            <h2
-              className="mt-4 text-lg font-semibold tracking-tight text-text-primary"
-              style={{ fontFamily: "var(--font-display)" }}
-            >
-              {t("noSearchTitle")}
-            </h2>
-            <p className="mt-2 text-sm text-text-muted">{t("noSearchMatch")}</p>
-            <Button
-              type="button"
-              variant="link"
-              onClick={() => setSearchQuery("")}
-              className="mt-4 h-auto p-0 text-sm font-medium text-primary underline-offset-4 hover:text-primary/80"
-            >
-              {t("clearSearch")}
-            </Button>
-          </div>
+      )}
+
+      {!hasMonitors ? null : filteredMonitors.length === 0 ? (
+        <div className="mt-10 max-w-md">
+          <h2 className="font-display text-lg font-semibold tracking-tight text-text-primary">
+            {t("noSearchTitle")}
+          </h2>
+          <p className="mt-1.5 text-sm text-text-muted">{t("noSearchMatch")}</p>
+          <Button
+            type="button"
+            variant="link"
+            onClick={() => setSearchQuery("")}
+            className="mt-3 h-auto p-0 text-sm font-medium text-primary underline-offset-4 hover:text-primary/80"
+          >
+            {t("clearSearch")}
+          </Button>
         </div>
       ) : (
         <MonitorGrid

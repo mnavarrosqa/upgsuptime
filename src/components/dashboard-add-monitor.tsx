@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { ConfirmDialog } from "@/components/confirm-dialog";
 import { Overlay } from "@/components/overlay";
 import { AddMonitorFlow } from "@/components/add-monitor-flow";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function DashboardAddMonitor() {
@@ -40,8 +41,8 @@ export function DashboardAddMonitor() {
         type="button"
         variant="default"
         onClick={() => setAddOpen(true)}
-        className="rounded-md px-4 py-2 text-sm font-medium"
       >
+        <Plus data-icon="inline-start" aria-hidden />
         {t("addMonitor")}
       </Button>
       <Overlay

@@ -9,10 +9,12 @@ import { Pause, Play, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { MonitorCardTrend, type TrendPoint } from "@/components/monitor-card-trend";
 import { MonitorStatusBadge } from "@/components/monitor-status-badge";
+import { MonitorStatusTopGlow } from "@/components/monitor-status-top-glow";
 import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
 import { SslBadge } from "@/components/ssl-badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { getMonitorRadialKindFromLatest } from "@/lib/monitor-radial-glow";
 
 type MonitorCardProps = {
   id: string;
@@ -132,10 +134,15 @@ export function MonitorCard({
     >
       <div
         className={cn(
-          "relative flex h-full flex-col overflow-hidden rounded-lg border border-border bg-bg-card p-3.5 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:border-border-muted hover:shadow active:translate-y-0 active:scale-[0.99] sm:p-4",
-          paused ? "opacity-60" : ""
+          "relative flex h-full flex-col overflow-hidden rounded-lg border bg-bg-card p-3.5 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:shadow active:translate-y-0 active:scale-[0.99] sm:p-4",
+          paused
+            ? "border-border opacity-60"
+            : latest && !latest.ok
+              ? "border-status-down/35 hover:border-status-down/55"
+              : "border-border hover:border-border-muted"
         )}
       >
+        <MonitorStatusTopGlow kind={getMonitorRadialKindFromLatest(paused, latest)} />
         <Link
           href={`/monitors/${id}`}
           className="absolute inset-0 z-0 rounded-lg outline-offset-2"
@@ -164,7 +171,7 @@ export function MonitorCard({
           <div className="min-w-0 flex-1">
             <div className="flex items-start justify-between gap-2">
               <div className="flex min-w-0 items-center gap-1.5">
-                <span className="truncate font-medium leading-snug text-text-primary">
+                <span className="truncate font-display font-medium leading-snug text-text-primary">
                   {name}
                 </span>
                 {type !== "http" && (
@@ -215,8 +222,8 @@ export function MonitorCard({
         )}
 
         {/* Footer: uptime % · response time · SSL + last checked */}
-        <div className="mt-3 flex items-center justify-between gap-2 text-xs text-text-muted">
-          <div className="flex items-center gap-1.5">
+        <div className="mt-3 flex items-center justify-between gap-2 pr-[4.75rem] text-xs text-text-muted">
+          <div className="flex items-center gap-1.5 tabular-nums">
             {uptimePct !== null && (
               <span
                 className={

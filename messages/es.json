@@ -442,12 +442,11 @@
   "dashboard": {
     "title": "Panel",
     "allOperational": "Todo bien",
-    "downCount": "{count} caídos",
-    "summaryHeading": "Resumen",
-    "statLabelTotal": "Total",
-    "statLabelUp": "En línea",
-    "statLabelDown": "Caídos",
-    "statLabelLocation": "Comprobaciones desde",
+    "allPaused": "Todos en pausa",
+    "downCount": "{count, plural, one {# caído} other {# caídos}}",
+    "monitorCount": "{count, plural, one {# monitor} other {# monitores}}",
+    "pausedCountMeta": "{count, plural, one {# en pausa} other {# en pausa}}",
+    "checksFrom": "Comprobaciones desde {location}",
     "statLocationTooltip": "Desde dónde se ejecutan las comprobaciones (etiqueta de servidor/región).",
     "statValueLocationUnknown": "Este servidor",
     "statusPageLink": "Página de estado pública",
@@ -457,9 +456,9 @@
     "noSearchTitle": "Nada por aquí",
     "noSearchMatch": "Ningún monitor encaja con eso.",
     "clearSearch": "Quitar búsqueda",
-    "issues": "Problemas",
-    "paused": "En pausa",
-    "operational": "Operativo"
+    "sectionIssues": "{count, plural, one {# problema} other {# problemas}}",
+    "sectionPaused": "{count, plural, one {# en pausa} other {# en pausa}}",
+    "sectionOperational": "{count, plural, one {# operativo} other {# operativos}}"
   },
   "activity": {
     "title": "Actividad",

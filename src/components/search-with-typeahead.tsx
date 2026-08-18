@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useTranslations } from "next-intl";
+import { cn } from "@/lib/utils";
 
 export type MonitorSearchItem = { id: string; name: string; url: string };
 
@@ -14,6 +15,7 @@ type SearchWithTypeaheadProps = {
   onChange: (value: string) => void;
   placeholder?: string | undefined;
   "aria-label"?: string | undefined;
+  className?: string | undefined;
 };
 
 function matchMonitor(m: MonitorSearchItem, query: string): boolean {
@@ -30,6 +32,7 @@ export function SearchWithTypeahead({
   onChange,
   placeholder,
   "aria-label": ariaLabel,
+  className,
 }: SearchWithTypeaheadProps) {
   const t = useTranslations("monitorsPage");
   const resolvedPlaceholder = placeholder ?? t("searchPlaceholder");
@@ -90,7 +93,7 @@ export function SearchWithTypeahead({
   }
 
   return (
-    <div className="relative w-full max-w-sm">
+    <div className={cn("relative w-full", className)}>
       <Input
         ref={inputRef}
         type="search"

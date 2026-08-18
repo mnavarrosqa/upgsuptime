@@ -244,28 +244,16 @@ export default async function HomePage() {
               className="border border-border rounded-xl overflow-hidden bg-bg-card"
               style={{ boxShadow: "0 1px 4px 0 oklch(0 0 0 / 0.06), 0 4px 16px -4px oklch(0 0 0 / 0.06)" }}
             >
-              <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                <span className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.12em]">
-                  {t("screenDashboardTitle")}
-                </span>
-                <span className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-status-up animate-operational-badge-dot inline-block" />
-                  <span className="text-[11px] text-status-up font-medium">{t("screenDashboardBadge")}</span>
-                </span>
-              </div>
-              <div className="px-3 py-3 border-b border-border/80 bg-gradient-to-b from-muted/35 to-transparent dark:from-muted/20">
-                <div className="grid grid-cols-3 gap-1.5">
-                  <div className="rounded-md border border-border/80 bg-muted/35 dark:bg-muted/20 px-2 py-1.5">
-                    <p className="text-[9px] uppercase tracking-wider text-text-muted font-semibold">{tDash("statLabelTotal")}</p>
-                    <p className="mt-1 text-[13px] font-semibold tabular-nums text-text-primary">5</p>
-                  </div>
-                  <div className="rounded-md border border-status-up/25 bg-status-up-soft px-2 py-1.5">
-                    <p className="text-[9px] uppercase tracking-wider text-status-up font-semibold">{tDash("statLabelUp")}</p>
-                    <p className="mt-1 text-[13px] font-semibold tabular-nums text-status-up">4</p>
-                  </div>
-                  <div className="rounded-md border border-status-down/25 bg-status-down-soft px-2 py-1.5">
-                    <p className="text-[9px] uppercase tracking-wider text-status-down font-semibold">{tDash("statLabelDown")}</p>
-                    <p className="mt-1 text-[13px] font-semibold tabular-nums text-status-down">1</p>
+              <div className="px-4 py-3 border-b border-border">
+                <div className="flex items-start gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-status-down" />
+                  <div className="min-w-0">
+                    <p className="font-display text-[15px] font-semibold leading-tight tracking-tight text-status-down">
+                      {tDash("downCount", { count: 1 })}
+                    </p>
+                    <p className="mt-1 text-[10px] text-text-muted">
+                      {t("screenDashboardStat")}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -306,9 +294,6 @@ export default async function HomePage() {
                     </div>
                   </div>
                 ))}
-              </div>
-              <div className="px-4 py-2 border-t border-border bg-bg-elevated/60">
-                <span className="text-[10px] text-text-muted">{t("screenDashboardStat")}</span>
               </div>
             </div>
           </div>

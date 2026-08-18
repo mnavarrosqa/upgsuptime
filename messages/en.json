@@ -442,12 +442,11 @@
   "dashboard": {
     "title": "Dashboard",
     "allOperational": "All systems operational",
-    "downCount": "{count} down",
-    "summaryHeading": "Overview",
-    "statLabelTotal": "Total",
-    "statLabelUp": "Up",
-    "statLabelDown": "Down",
-    "statLabelLocation": "Checks from",
+    "allPaused": "All monitors paused",
+    "downCount": "{count, plural, one {# down} other {# down}}",
+    "monitorCount": "{count, plural, one {# monitor} other {# monitors}}",
+    "pausedCountMeta": "{count, plural, one {# paused} other {# paused}}",
+    "checksFrom": "Checks from {location}",
     "statLocationTooltip": "Where uptime checks are executed from (server/region label).",
     "statValueLocationUnknown": "This server",
     "statusPageLink": "Public status page",
@@ -457,9 +456,9 @@
     "noSearchTitle": "No matches",
     "noSearchMatch": "No monitors match your search.",
     "clearSearch": "Clear search",
-    "issues": "Issues",
-    "paused": "Paused",
-    "operational": "Operational"
+    "sectionIssues": "{count, plural, one {# issue} other {# issues}}",
+    "sectionPaused": "{count, plural, one {# paused} other {# paused}}",
+    "sectionOperational": "{count, plural, one {# operational} other {# operational}}"
   },
   "activity": {
     "title": "Recent Activity",
