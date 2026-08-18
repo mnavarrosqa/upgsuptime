@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { statusErrorCalloutClass } from "@/lib/monitor-ui";
 
 const authInputClass =
   "h-auto min-h-10 w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-2 focus-visible:ring-input-focus/20";
@@ -114,7 +115,7 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {error && (
             <div
-              className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200"
+              className={`rounded-lg px-3.5 py-3 text-sm ${statusErrorCalloutClass}`}
               role="alert"
             >
               {error}
@@ -200,7 +201,7 @@ export default function RegisterPage() {
                   authInputClass,
                   "pr-10",
                   passwordMismatch &&
-                    "border-red-400 focus-visible:border-red-400 focus-visible:ring-red-400/20"
+                    "border-status-down focus-visible:border-status-down focus-visible:ring-status-down/20"
                 )}
               />
               <Button
@@ -216,7 +217,7 @@ export default function RegisterPage() {
               </Button>
             </div>
             {passwordMismatch && (
-              <p className="text-xs text-red-600 dark:text-red-400">{tAuth("passwordsDontMatch")}</p>
+              <p className="text-xs text-status-down">{tAuth("passwordsDontMatch")}</p>
             )}
           </div>
 

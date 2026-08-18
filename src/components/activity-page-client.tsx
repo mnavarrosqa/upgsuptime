@@ -8,6 +8,11 @@ import { useLocale, useTranslations } from "next-intl";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
+  statusSoftDownClass,
+  statusSoftUpClass,
+  statusSoftWarnClass,
+} from "@/lib/monitor-ui";
+import {
   Activity,
   AlertTriangle,
   ArrowDownCircle,
@@ -162,14 +167,14 @@ export function ActivityPageClient({
                       <div className="flex items-center gap-2 px-4 py-4 sm:gap-3 sm:px-5">
                         <div className="flex min-w-0 flex-1 gap-3 sm:gap-4">
                           <div
-                            className="flex size-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-200"
+                            className={`flex size-10 shrink-0 items-center justify-center rounded-full ${statusSoftWarnClass}`}
                             aria-hidden
                           >
                             <AlertTriangle className="size-5" strokeWidth={2} />
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                              <span className="inline-flex items-center rounded-md bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-900 dark:bg-amber-950/60 dark:text-amber-100">
+                              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${statusSoftWarnClass}`}>
                                 {t("degradationBadge")}
                               </span>
                               <Link
@@ -223,9 +228,7 @@ export function ActivityPageClient({
                         <div
                           className={cn(
                             "flex size-10 shrink-0 items-center justify-center rounded-full",
-                            isDown
-                              ? "bg-red-100 text-red-700 dark:bg-red-950/70 dark:text-red-300"
-                              : "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/70 dark:text-emerald-200"
+                            isDown ? statusSoftDownClass : statusSoftUpClass
                           )}
                           aria-hidden
                         >
@@ -240,9 +243,7 @@ export function ActivityPageClient({
                             <span
                               className={cn(
                                 "inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium",
-                                isDown
-                                  ? "bg-red-100 text-red-900 dark:bg-red-950/50 dark:text-red-200"
-                                  : "bg-emerald-100 text-emerald-900 dark:bg-emerald-950/50 dark:text-emerald-200"
+                                isDown ? statusSoftDownClass : statusSoftUpClass
                               )}
                             >
                               {isDown ? t("wentDown") : t("recovered")}

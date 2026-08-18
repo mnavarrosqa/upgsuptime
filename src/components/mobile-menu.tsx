@@ -187,7 +187,7 @@ export function MobileMenu({
                 {label}
                 {hasUnread && (
                   <span
-                    className="h-2 w-2 rounded-full bg-red-500"
+                    className="h-2 w-2 rounded-full bg-status-down"
                     aria-label={t("unreadIncidents")}
                   />
                 )}

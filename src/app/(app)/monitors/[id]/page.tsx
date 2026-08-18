@@ -19,7 +19,9 @@ import { isDowntimeAcked } from "@/lib/downtime-ack";
 import { DowntimeAckControls } from "@/components/downtime-ack-controls";
 import { MonitorDetailAckFeedback } from "@/components/monitor-detail-ack-feedback";
 import { MonitorFavicon } from "@/components/monitor-favicon";
+import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { monitorMetaChipClass } from "@/lib/monitor-ui";
+
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns" || monitorType === "tcp") return "";
   try {
@@ -122,7 +124,7 @@ export default async function MonitorDetailPage({
           </div>
           <div className="p-4 sm:p-5 md:p-6">
         <Link
-          href="/monitors"
+          href="/dashboard"
           className="mb-4 inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-sm text-text-muted transition-colors hover:bg-muted/50 hover:text-text-primary"
         >
           <ChevronLeft className="size-4 shrink-0" aria-hidden />
@@ -140,23 +142,10 @@ export default async function MonitorDetailPage({
               >
                 {m.name}
               </h1>
-              {m.paused ? (
-                <span className="inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium bg-border text-text-muted">
-                  {t("statusPaused")}
-                </span>
-              ) : (
-                <span
-                  className={`inline-flex shrink-0 rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                    lastOk === true
-                      ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
-                      : lastOk === false
-                        ? "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
-                        : "bg-border text-text-muted"
-                  }`}
-                >
-                  {lastOk === true ? t("statusUp") : lastOk === false ? t("statusDown") : t("statusNoData")}
-                </span>
-              )}
+              <MonitorStatusBadge
+                paused={!!m.paused}
+                latest={lastOk === null ? undefined : { ok: lastOk }}
+              />
             </div>
             <a
               href={monitorOpenHref(m.url, monitorType)}
@@ -238,17 +227,17 @@ export default async function MonitorDetailPage({
             )}
             {recentIncidents.length > 0 && (
               <section
-                className="overflow-hidden rounded-2xl border border-red-200 bg-red-50 shadow-sm ring-1 ring-red-200/50 dark:border-red-900/35 dark:bg-red-900/10 dark:ring-red-900/25"
+                className="overflow-hidden rounded-2xl border border-status-down/25 bg-status-down-soft shadow-sm"
                 aria-label={t("incidentsTitle")}
               >
-                <div className="border-b border-red-200/90 px-4 py-3 dark:border-red-900/40 sm:px-5">
+                <div className="border-b border-status-down/20 px-4 py-3 sm:px-5">
                   <h2
-                    className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-red-800 dark:text-red-400"
+                    className="text-[0.65rem] font-semibold uppercase tracking-[0.12em] text-status-down"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
                     {t("incidentsTitle")}
                   </h2>
-                  <p className="mt-1 text-xs text-red-700/75 dark:text-red-400/75">
+                  <p className="mt-1 text-xs text-status-down/75">
                     {t("incidentsSubtitle")}
                   </p>
                 </div>
@@ -272,12 +261,12 @@ export default async function MonitorDetailPage({
               m.sslValid === null
                 ? "text-text-muted"
                 : !m.sslValid
-                  ? "text-red-600 dark:text-red-400"
+                  ? "text-status-down"
                   : sslDays !== null && sslDays <= 2
-                    ? "text-red-600 dark:text-red-400"
+                    ? "text-status-down"
                     : sslDays !== null && sslDays <= 7
-                      ? "text-yellow-600 dark:text-yellow-400"
-                      : "text-emerald-600 dark:text-emerald-400";
+                      ? "text-status-warn"
+                      : "text-status-up";
             const sslLabel =
               m.sslValid === null
                 ? "—"

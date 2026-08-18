@@ -114,18 +114,6 @@
     "maintenanceWindowHint": "Opcional. Úsalo cuando un cambio planificado deba silenciar alertas por un rato."
   },
   "bulkEdit": {
-    "intervalInvalid": "El intervalo debe estar entre 1 y 60.",
-    "timeoutInvalid": "El límite de tiempo debe estar entre 5 y 120.",
-    "noChanges": "Cambia al menos una opción o cancela.",
-    "failedFor": "Falló para \"{name}\"",
-    "updatedCount": "{count, plural, one {# monitor actualizado} other {# monitores actualizados}}",
-    "partialFailure": "{updated} actualizados, {failed} fallaron",
-    "selectedCount": "Seleccionados ({count})",
-    "scopeHint": "El nombre y la URL quedan por monitor. Solo las opciones de abajo se aplican a todos los seleccionados.",
-    "various": "Varios",
-    "slowResponseAlertsHint": "Aprende el P75 normal de cada sitio tras 20+ comprobaciones y avisa si el P75 reciente se mantiene ~2,1× por encima de la base durante 7 comprobaciones seguidas. Una vez por episodio.",
-    "sslBulkHint": "Aplica a monitores HTTPS. Los monitores solo HTTP ignoran esto.",
-    "applyToAll": "Aplicar a todos",
     "importFromFile": "Importar desde archivo",
     "importFileHint": ".txt (una URL por línea), .csv o .xlsx con columnas name y url, o solo URL. Máximo {max} sitios.",
     "sampleFormat": "Formato de ejemplo (recomendado)",
@@ -169,7 +157,10 @@
     "register": "Crear cuenta",
     "createAccount": "Abrir cuenta",
     "save": "Guardar",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar",
+    "pleaseWait": "Espera…"
   },
   "locale": {
     "label": "Idioma",
@@ -260,7 +251,7 @@
     "statusPageMonitorsHeading": "Monitores visibles",
     "statusPageMonitorsSubtitle": "Solo los marcados salen en tu página pública. El resto siguen en tu cuenta.",
     "statusPageMonitorsEmpty": "Todavía no tienes monitores.",
-    "statusPageMonitorsGoToMonitors": "Ir a Monitores",
+    "statusPageMonitorsGoToMonitors": "Ir al panel",
     "statusPageMonitorShowLabel": "Mostrar en página pública",
     "statusPageMonitorShowAria": "Mostrar {name} en la página de estado pública",
     "statusPageUrlLabel": "URL pública",
@@ -375,7 +366,6 @@
     "floatingHelpLabel": "Abrir Ayuda y soporte",
     "floatingHelpBubble": "Puedes revisar Ayuda y soporte en cualquier momento.",
     "floatingHelpBubbleDashboard": "¿Necesitas contexto sobre estado, tendencias o páginas públicas? Ayuda y soporte siempre está disponible.",
-    "floatingHelpBubbleMonitors": "¿Trabajando con monitores? Ayuda y soporte explica comprobaciones, alertas, importaciones y acciones en bloque.",
     "floatingHelpBubbleActivity": "¿Revisando incidentes? Ayuda y soporte explica actividad, reconocimientos y alertas.",
     "floatingHelpBubbleAccount": "Cuenta, páginas de estado, exportaciones y claves de API están cubiertas en Ayuda y soporte.",
     "floatingHelpBubbleAdmin": "Las herramientas de administración tienen artículos propios en Ayuda y soporte, visibles solo para administradores.",
@@ -453,9 +443,6 @@
     "title": "Panel",
     "allOperational": "Todo bien",
     "downCount": "{count} caídos",
-    "monitorCount": "{count, plural, one {# monitor} other {# monitores}}",
-    "upCount": "{count} en línea",
-    "downLabel": "{count} caídos",
     "summaryHeading": "Resumen",
     "statLabelTotal": "Total",
     "statLabelUp": "En línea",
@@ -464,12 +451,10 @@
     "statLocationTooltip": "Desde dónde se ejecutan las comprobaciones (etiqueta de servidor/región).",
     "statValueLocationUnknown": "Este servidor",
     "statusPageLink": "Página de estado pública",
-    "addFirstMonitor": "Añade tu primer monitor para arrancar.",
     "searchPlaceholder": "Busca por nombre o URL…",
     "emptyTitle": "Todavía no hay monitores",
     "emptyBody": "Añade un monitor y aquí verás disponibilidad y latencia.",
     "noSearchTitle": "Nada por aquí",
-    "noMonitorsYet": "Sin monitores todavía. Añade uno arriba.",
     "noSearchMatch": "Ningún monitor encaja con eso.",
     "clearSearch": "Quitar búsqueda",
     "issues": "Problemas",
@@ -495,80 +480,24 @@
     "next": "Siguiente"
   },
   "monitorsPage": {
-    "title": "Monitores",
-    "overviewHeading": "Resumen",
-    "tableSectionHeading": "Todos los monitores",
-    "emptyTitle": "Todavía no hay monitores",
-    "emptyBody": "Añade un monitor para comprobar URLs, o importa una copia en JSON.",
-    "totalCount": "{count} en total",
     "searchPlaceholder": "Busca por nombre o URL…",
-    "exporting": "Exportando…",
-    "export": "Exportar",
-    "import": "Importar",
     "addMonitor": "Añadir monitor",
-    "bulkActions": "Varios a la vez",
-    "selected": "{count} seleccionados",
-    "selectedOnPage": "({count} en esta pagina)",
-    "pausing": "Pausando…",
-    "resuming": "Reanudando…",
     "pause": "Pausar",
     "resume": "Reanudar",
-    "edit": "Editar",
     "delete": "Eliminar",
-    "clear": "Limpiar",
-    "deleteMonitorsTitle": "Eliminar monitores",
     "deleteMonitorTitle": "Eliminar monitor",
-    "deleteBulkMessage": "¿Borramos {count} monitores ({preview})? No hay vuelta atrás.",
-    "andMore": " y {count} más",
     "deleteSingleMessage": "¿Borramos \"{name}\"? No hay vuelta atrás.",
     "addMonitorTitle": "Añadir monitor",
     "unsavedAddMonitorTitle": "¿Salir de este formulario?",
     "unsavedAddMonitorMessage": "Tienes cambios sin guardar en el monitor. ¿Quieres salir sin guardar o seguir editando?",
     "leaveForm": "Salir",
-    "editMonitorTitle": "Editar monitor",
-    "view": "Ver",
-    "actions": "Acciones",
     "deleteFailed": "No se pudo borrar",
-    "couldNotDelete": "No pudimos borrar esos monitores",
     "failedToPause": "No se pudo pausar",
     "monitorPaused": "Monitor en pausa",
-    "monitorsPaused": "{count} monitores en pausa",
-    "couldNotPause": "No pudimos pausarlos",
     "failedToResume": "No se pudo reanudar",
     "monitorResumed": "Monitor reanudado",
-    "monitorsResumed": "{count} monitores reanudados",
-    "couldNotResume": "No pudimos reanudarlos",
     "failedToUpdate": "No se pudo actualizar el monitor",
-    "importJsonArray": "El archivo tiene que ser un array JSON de monitores.",
-    "importParseError": "Ese archivo no es JSON válido.",
-    "tableCaption": "Tus monitores",
-    "selectAllAria": "Seleccionar todos los monitores de la lista",
-    "colMonitor": "Monitor",
-    "colUrl": "URL",
-    "colStatus": "Estado",
-    "colSsl": "SSL",
-    "colLastChecked": "Última comprobación",
-    "colInterval": "Intervalo",
-    "colActions": "Acciones",
-    "noMonitorsYetShort": "Sin monitores. Añade uno arriba.",
-    "importTitle": "Importar monitores",
-    "importDone": "Listo",
-    "importCancel": "Cancelar",
-    "importingLabel": "Importando…",
-    "importConfirm": "Importar {count, plural, one {# monitor} other {# monitores}}",
-    "importSuccess": "Listo: {count, plural, one {# monitor} other {# monitores}} importados.",
-    "importNone": "No entró ningún monitor.",
-    "importErrors": "Errores ({count})",
-    "importReady": "Listo para importar {count, plural, one {# monitor} other {# monitores}}:",
-    "unnamed": "sin nombre",
-    "bulkEditTitle": "Editar {count, plural, one {# monitor} other {# monitores}}",
-    "selectMonitorAria": "Seleccionar {name}",
-    "everyMinutes": "cada {count} min",
     "deleteSuccessSingle": "\"{name}\" eliminado",
-    "deleteSuccessBulk": "{count, plural, one {# monitor eliminado} other {# monitores eliminados}}",
-    "deletePartialFailed": "{count, plural, one {No pudimos borrar # monitor} other {No pudimos borrar # monitores}}",
-    "pausePartialFailed": "{count, plural, one {No pudimos pausar # monitor} other {No pudimos pausar # monitores}}",
-    "resumePartialFailed": "{count, plural, one {No pudimos reanudar # monitor} other {No pudimos reanudar # monitores}}",
     "statusPaused": "Pausado",
     "statusUp": "En línea",
     "statusDown": "Caído",
@@ -582,7 +511,6 @@
     "deleting": "Eliminando…",
     "checkComplete": "Comprobación lista",
     "checking": "Comprobando…",
-    "maintenanceScheduled": "Mantenimiento programado",
     "uptimeTrend": "Tendencia de disponibilidad",
     "searchView": "Ver"
   },
@@ -628,7 +556,7 @@
         "body": [
           "UPG Monitor revisa tus URLs cada cierto tiempo y guarda si la comprobación salió bien, cuánto tardó y el estado SSL si lo tienes activado.",
           "Tus monitores son privados. Con tu usuario puedes compartir una página de estado pública de solo lectura.",
-          "El Panel es el vistazo rápido; Monitores sirve para configurar; Actividad muestra caídas y recuperaciones."
+          "El Panel es el vistazo rápido; Actividad muestra caídas y recuperaciones."
         ]
       },
       "signInAndAccount": {
@@ -652,7 +580,7 @@
         "summary": "Resumen y lista de monitores.",
         "body": [
           "Ves cuántos monitores van en línea, caídos o en pausa, y el estado de cada uno.",
-          "En pausa = no se checan hasta que los reanudes en Monitores.",
+          "En pausa = no se checan hasta que los reanudes en el Panel.",
           "Si no tienes ninguno, el Panel te empuja a añadir el primero."
         ]
       },
@@ -674,7 +602,7 @@
       },
       "addingMonitors": {
         "title": "Añadir un monitor",
-        "summary": "Nueva comprobación desde Panel o Monitores.",
+        "summary": "Nueva comprobación desde el Panel.",
         "body": [
           "Pulsa Añadir monitor, pon nombre y la URL entera (con https://). La app la pide según el intervalo.",
           "Puedes meter todos los que quieras; cada uno va por su lado."
@@ -712,28 +640,11 @@
           "Las cabeceras sensibles se ocultan en las exportaciones de monitores. Mantén los secretos limitados al punto de conexión y rótalos si compartes demasiado un archivo exportado."
         ]
       },
-      "monitorsListAndBulk": {
-        "title": "Lista, orden y varios a la vez",
-        "summary": "Tabla, elegir, pausar, seguir, editar, borrar.",
-        "body": [
-          "Ordenas por nombre, última comprobación, intervalo, etc. La búsqueda filtra por nombre o URL.",
-          "Marca uno o varios para pausar, reanudar, editar en bloque o borrar. En pausa no corren comprobaciones.",
-          "Borrar se lleva la config y el historial de tu cuenta; no hay deshacer."
-        ]
-      },
-      "importExportMonitors": {
-        "title": "Importar y exportar monitores",
-        "summary": "JSON para copia de seguridad o mudarte de sitio.",
-        "body": [
-          "Exportar baja un JSON con tus monitores.",
-          "Importar acepta un array JSON. Mira la vista previa y confirma; lo que falle se reporta sin tumbar todo si se puede."
-        ]
-      },
       "monitorDetailPage": {
         "title": "Detalle del monitor",
         "summary": "Historial, gráficos, comprobar ahora, editar, borrar.",
         "body": [
-          "Desde Panel o la tabla abres el detalle: historial, tiempos, SSL si aplica.",
+          "Desde el Panel abres el detalle: historial, tiempos, SSL si aplica.",
           "Comprobar ahora fuerza una comprobación fuera de turno. Editar/Borrar es solo de ese monitor.",
           "Incidentes y resultados cuentan cuándo empezó y acabó el lío."
         ]
@@ -829,11 +740,11 @@
         ]
       },
       "monitorExportImport": {
-        "title": "Exportar / importar solo monitores",
-        "summary": "Mover definiciones sin el resto de la cuenta.",
+        "title": "Mover monitores entre cuentas",
+        "summary": "Copia de cuenta y alta masiva desde el Panel.",
         "body": [
-          "Exportar/importar monitores sirve para copiar comprobaciones entre cuentas o entornos sin mover todo el perfil y el historial.",
-          "Los monitores importados deben tener ajustes válidos para la instancia actual: destinos alcanzables, tipos soportados y correos de alerta que tengan sentido en destino."
+          "Para copiar un conjunto de monitores, usa exportar/importar en Cuenta. Esa copia incluye las definiciones y, si quieres, el historial.",
+          "Para añadir muchos sitios HTTP de una vez en esta cuenta, usa Añadir monitor en el Panel y elige importación masiva (pegar URLs o subir un archivo)."
         ]
       },
       "publicStatusPage": {
@@ -980,11 +891,9 @@
   "monitorDetail": {
     "heroEyebrow": "Vista del monitor",
     "statsHeading": "Métricas",
-    "breadcrumb": "Monitores",
-    "statusPaused": "Pausado",
+    "breadcrumb": "Panel",
     "statusUp": "En línea",
     "statusDown": "Caído",
-    "statusNoData": "Sin datos",
     "nextCheckPaused": "Siguiente comprobación: en pausa — nada programado",
     "nextCheckPending": "Siguiente comprobación: la primera cuando toque",
     "nextCheckIn": "Siguiente comprobación en {time}",
@@ -1050,7 +959,7 @@
     "statusBadgeDown": "Caído",
     "paginationPrev": "Anterior",
     "paginationNext": "Siguiente",
-    "noIncidents": "Sin incidentes recientes.",
+    "showingRange": "{from}–{to} de {total}",
     "chartNoData": "Sin datos todavía. Los gráficos salen cuando corre el cron.",
     "chartRangeLabel": "Rango",
     "chartDetailLabel": "Gráficos",

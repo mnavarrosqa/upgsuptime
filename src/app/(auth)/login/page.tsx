@@ -11,6 +11,7 @@ import { LanguageSelect } from "@/components/language-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { statusErrorCalloutClass, statusWarnCalloutClass } from "@/lib/monitor-ui";
 
 const authInputClass =
   "h-auto min-h-10 w-full rounded-lg border border-input-border bg-bg-page px-3.5 py-2.5 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-2 focus-visible:ring-input-focus/20";
@@ -101,7 +102,7 @@ function LoginForm() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           {rateLimited && (
             <div
-              className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
+              className={`rounded-lg px-3.5 py-3 text-sm ${statusWarnCalloutClass}`}
               role="alert"
             >
               {tAuth("tooManyAttempts")}
@@ -109,7 +110,7 @@ function LoginForm() {
           )}
           {expired && !rateLimited && (
             <div
-              className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/20 dark:text-amber-200"
+              className={`rounded-lg px-3.5 py-3 text-sm ${statusWarnCalloutClass}`}
               role="alert"
             >
               {tAuth("sessionExpired")}
@@ -117,7 +118,7 @@ function LoginForm() {
           )}
           {error && (
             <div
-              className="rounded-lg border border-red-200 bg-red-50 px-3.5 py-3 text-sm text-red-900 dark:border-red-800 dark:bg-red-900/20 dark:text-red-200"
+              className={`rounded-lg px-3.5 py-3 text-sm ${statusErrorCalloutClass}`}
               role="alert"
             >
               {error}

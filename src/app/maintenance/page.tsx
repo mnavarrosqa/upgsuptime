@@ -38,8 +38,8 @@ export default async function MaintenancePage() {
         <div className="rounded-2xl border border-border bg-bg-card px-6 py-5 text-left">
           <div className="flex items-start gap-3">
             <span className="relative mt-1 flex h-2.5 w-2.5 shrink-0">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-400" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-status-warn opacity-75" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-status-warn" />
             </span>
             <div>
               <p className="text-sm font-medium text-text-primary">{t("statusTitle")}</p>

@@ -10,8 +10,9 @@ const BUBBLE_AUTO_HIDE_MS = 8000;
 const DISMISS_STORAGE_KEY = "upg-floating-help-dismissed";
 
 function getBubbleKey(pathname: string): string {
-  if (pathname.startsWith("/dashboard")) return "floatingHelpBubbleDashboard";
-  if (pathname.startsWith("/monitors")) return "floatingHelpBubbleMonitors";
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/monitors")) {
+    return "floatingHelpBubbleDashboard";
+  }
   if (pathname.startsWith("/activity")) return "floatingHelpBubbleActivity";
   if (pathname.startsWith("/account")) return "floatingHelpBubbleAccount";
   if (pathname.startsWith("/admin")) return "floatingHelpBubbleAdmin";

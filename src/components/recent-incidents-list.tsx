@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { FormattedDateTime } from "@/components/formatted-date-time";
+import { monitorStatusDownPillClass } from "@/lib/monitor-ui";
 
 export type IncidentRow = {
   id: string;
@@ -15,16 +16,8 @@ export type IncidentRow = {
 export function RecentIncidentsList({ incidents }: { incidents: IncidentRow[] }) {
   const t = useTranslations("monitorDetail");
 
-  if (incidents.length === 0) {
-    return (
-      <div className="mt-4 rounded-lg border border-dashed border-border-muted bg-bg-page p-6 text-center text-sm text-text-muted">
-        {t("noIncidents")}
-      </div>
-    );
-  }
-
   return (
-    <div className="mt-4 overflow-x-auto rounded-lg border border-border bg-bg-card">
+    <div className="overflow-x-auto">
       <table className="min-w-full divide-y divide-border">
         <thead>
           <tr>
@@ -47,12 +40,12 @@ export function RecentIncidentsList({ incidents }: { incidents: IncidentRow[] })
         </thead>
         <tbody className="divide-y divide-border">
           {incidents.map((r) => (
-            <tr key={r.id} className="hover:bg-bg-page">
+            <tr key={r.id} className="hover:bg-bg-page/60">
               <td className="px-4 py-3 text-sm text-text-muted">
                 <FormattedDateTime value={r.createdAt} />
               </td>
               <td className="hidden px-4 py-3 sm:table-cell">
-                <span className="inline-flex rounded-full px-2 py-0.5 text-xs font-medium bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400">
+                <span className={monitorStatusDownPillClass}>
                   {t("statusBadgeDown")}
                 </span>
               </td>

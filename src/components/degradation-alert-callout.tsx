@@ -11,6 +11,7 @@ import {
   dismissDegradationCalloutForMonitor,
   isDegradationCalloutDismissed,
 } from "@/lib/degradation-callout-dismiss";
+import { statusWarnCalloutClass } from "@/lib/monitor-ui";
 
 export function DegradationAlertCallout({
   monitorId,
@@ -63,16 +64,16 @@ export function DegradationAlertCallout({
 
   return (
     <section
-      className="rounded-xl border border-amber-200/80 bg-amber-50 p-5 dark:border-amber-800/40 dark:bg-amber-950/25"
+      className={`rounded-xl p-5 ${statusWarnCalloutClass}`}
       aria-label={t("title")}
     >
-      <h2 className="text-sm font-semibold text-amber-900 dark:text-amber-200">
+      <h2 className="text-sm font-semibold">
         {t("title")}
       </h2>
-      <p className="mt-1.5 text-sm text-amber-800/90 dark:text-amber-200/80">
+      <p className="mt-1.5 text-sm text-status-warn-fg/90">
         {t("description")}
       </p>
-      <p className="mt-2 text-sm text-amber-800/80 dark:text-amber-200/70">
+      <p className="mt-2 text-sm text-status-warn-fg/80">
         {t("details")}
       </p>
 
@@ -99,7 +100,7 @@ export function DegradationAlertCallout({
           </>
         ) : (
           <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <p className="text-sm text-amber-800/90 dark:text-amber-200/80 sm:max-w-[28rem]">
+            <p className="text-sm text-status-warn-fg/90 sm:max-w-[28rem]">
               {t("requiresEmail")}
             </p>
             <button

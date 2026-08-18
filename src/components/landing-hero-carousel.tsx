@@ -2,6 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import {
+  monitorStatusDownPillClass,
+  statusSoftDownClass,
+  statusSoftUpClass,
+} from "@/lib/monitor-ui";
 
 type MonitorRow = {
   name: string;
@@ -141,7 +146,7 @@ export function LandingHeroCarousel({
                     {labels.panelTitle}
                   </span>
                   <span className="flex items-center gap-1.5">
-                    <span className="size-1.5 rounded-full bg-green-500 animate-[operational-badge-dot_2.6s_ease-in-out_infinite] inline-block" />
+                    <span className="size-1.5 rounded-full bg-status-up animate-operational-badge-dot inline-block" />
                     <span className="text-[11px] text-text-muted tabular-nums">
                       {labels.panelStatus.replace("{up}", String(upCount)).replace("{total}", String(monitors.length))}
                     </span>
@@ -151,9 +156,9 @@ export function LandingHeroCarousel({
                   {monitors.map((m) => (
                     <div key={m.name} className="px-4 py-3.5 flex items-center gap-3">
                       <div className="relative flex-shrink-0 size-2">
-                        <span className={`size-2 rounded-full absolute inset-0 ${m.status ? "bg-green-500" : "bg-red-500"}`} />
+                        <span className={`size-2 rounded-full absolute inset-0 ${m.status ? "bg-status-up" : "bg-status-down"}`} />
                         {m.status && (
-                          <span className="absolute inset-0 rounded-full bg-green-500 animate-[monitor-status-ring_1.85s_cubic-bezier(0,0,0.2,1)_infinite]" />
+                          <span className="absolute inset-0 rounded-full bg-status-up animate-monitor-status-ring" />
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -165,13 +170,13 @@ export function LandingHeroCarousel({
                           {m.bars.split("").map((b, i) => (
                             <div
                               key={i}
-                              className={`flex-1 rounded-[1px] ${b === "1" ? "bg-green-500/60" : "bg-red-500/60"}`}
+                              className={`flex-1 rounded-[1px] ${b === "1" ? "bg-status-up/60" : "bg-status-down/60"}`}
                               style={{ height: b === "1" ? "100%" : "55%" }}
                             />
                           ))}
                         </div>
                       </div>
-                      <span className={`text-[12px] font-semibold tabular-nums flex-shrink-0 ${m.status ? "text-text-muted" : "text-red-500"}`}>
+                      <span className={`text-[12px] font-semibold tabular-nums flex-shrink-0 ${m.status ? "text-text-muted" : "text-status-down"}`}>
                         {m.uptime}%
                       </span>
                     </div>
@@ -191,8 +196,8 @@ export function LandingHeroCarousel({
                 <div className="px-4 py-3 border-b border-border">
                   <div className="flex items-center justify-between gap-2 mb-0.5">
                     <span className="font-display text-[13px] font-semibold text-text-primary">auth.service</span>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:text-red-400">
-                      <span className="size-1.5 rounded-full bg-red-500" />
+                    <span className={`${monitorStatusDownPillClass} gap-1 text-[10px]`}>
+                      <span className="size-1.5 rounded-full bg-current" />
                       {labels.statusDown}
                     </span>
                   </div>
@@ -218,7 +223,7 @@ export function LandingHeroCarousel({
                   {detailRows.map((row) => (
                     <div key={row.time} className="px-4 py-2 grid grid-cols-[1fr_auto_auto] gap-3 items-center">
                       <span className="text-[11px] text-text-primary tabular-nums">{row.time}</span>
-                      <span className={`text-[11px] tabular-nums font-medium ${row.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>
+                      <span className={`text-[11px] tabular-nums font-medium ${row.ok ? "text-status-up" : "text-status-down"}`}>
                         {row.code}
                       </span>
                       <span className="text-[10px] text-text-muted tabular-nums text-right">{row.ms}</span>
@@ -244,9 +249,7 @@ export function LandingHeroCarousel({
                     <div key={`${row.name}-${row.when}`} className="px-4 py-3 flex items-start gap-2.5">
                       <span
                         className={`mt-0.5 flex size-5 items-center justify-center rounded-full text-[10px] font-semibold ${
-                          row.down
-                            ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                            : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                          row.down ? statusSoftDownClass : statusSoftUpClass
                         }`}
                         aria-hidden
                       >
@@ -255,9 +258,7 @@ export function LandingHeroCarousel({
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                           <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-medium ${
-                            row.down
-                              ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                              : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                            row.down ? statusSoftDownClass : statusSoftUpClass
                           }`}>
                             {row.down ? labels.wentDown : labels.recovered}
                           </span>

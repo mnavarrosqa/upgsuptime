@@ -35,8 +35,6 @@ export const HELP_CATEGORIES: HelpCategoryMeta[] = [
       { id: "monitorTypes" },
       { id: "monitorSettings" },
       { id: "advancedRequestSettings" },
-      { id: "monitorsListAndBulk" },
-      { id: "importExportMonitors" },
     ],
   },
   {

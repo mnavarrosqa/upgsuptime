@@ -37,7 +37,7 @@ export function AppNavLinks({ role }: { role?: string | null }) {
           >
             {label}
             {hasUnread && (
-              <span className="h-2 w-2 rounded-full bg-red-500" aria-label={t("unreadIncidents")} />
+              <span className="h-2 w-2 rounded-full bg-status-down" aria-label={t("unreadIncidents")} />
             )}
           </Link>
         );

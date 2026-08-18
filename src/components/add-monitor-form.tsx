@@ -16,6 +16,7 @@ import {
 } from "@/lib/degradation-callout-dismiss";
 import { DNS_RECORD_TYPES } from "@/lib/validate-monitor";
 import { cn } from "@/lib/utils";
+import { statusErrorCalloutClass, statusWarnCalloutClass } from "@/lib/monitor-ui";
 
 const inputClass =
   "h-10 w-full min-w-0 rounded-lg border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 transition-[border-color,box-shadow,background-color] focus-visible:border-input-focus focus-visible:ring-2 focus-visible:ring-input-focus/20";
@@ -276,7 +277,7 @@ export function AddMonitorForm({
       {error && (
         <div
           role="alert"
-          className="rounded-xl border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:border-red-900/40 dark:bg-red-900/20 dark:text-red-400"
+          className={`rounded-xl px-3 py-2.5 text-sm ${statusErrorCalloutClass}`}
         >
           {error}
         </div>
@@ -705,7 +706,7 @@ export function AddMonitorForm({
         {!isDns && !isTcp && showDegradationDeferHint && (
           <div
             role="note"
-            className="rounded-md border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-xs text-amber-950/90 dark:border-amber-800/40 dark:bg-amber-950/25 dark:text-amber-100/90"
+            className={`rounded-md px-3 py-2.5 text-xs ${statusWarnCalloutClass}`}
           >
             {tDegradationHint("addReminder")}
           </div>

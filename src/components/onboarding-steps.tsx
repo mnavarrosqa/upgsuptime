@@ -7,6 +7,7 @@ import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { statusErrorCalloutClass } from "@/lib/monitor-ui";
 
 const inputClass =
   "h-9 w-full min-w-0 rounded-md border border-input-border bg-bg-page px-3 py-2 text-sm text-text-primary shadow-none placeholder:text-text-muted file:h-7 focus-visible:border-input-focus focus-visible:ring-1 focus-visible:ring-input-focus";
@@ -39,21 +40,21 @@ export function WelcomeStep({ onNext, onSkip }: OnboardingStepProps) {
 
       <div className="space-y-3 rounded-lg bg-bg-page p-4">
         <div className="flex items-start gap-3">
-          <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
+          <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-status-up" />
           <div className="text-sm">
             <p className="font-medium text-text-primary">{t("welcomeFeature1Title")}</p>
             <p className="text-text-muted">{t("welcomeFeature1Body")}</p>
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
+          <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-status-up" />
           <div className="text-sm">
             <p className="font-medium text-text-primary">{t("welcomeFeature2Title")}</p>
             <p className="text-text-muted">{t("welcomeFeature2Body")}</p>
           </div>
         </div>
         <div className="flex items-start gap-3">
-          <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
+          <CheckCircle className="mt-0.5 h-5 w-5 shrink-0 text-status-up" />
           <div className="text-sm">
             <p className="font-medium text-text-primary">{t("welcomeFeature3Title")}</p>
             <p className="text-text-muted">{t("welcomeFeature3Body")}</p>
@@ -143,7 +144,7 @@ export function AddMonitorStep({
       {error && (
         <div
           role="alert"
-          className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400"
+          className={`rounded-md px-3 py-2.5 text-sm ${statusErrorCalloutClass}`}
         >
           {error}
         </div>
@@ -395,7 +396,7 @@ export function CompleteStep({
   return (
     <div className="flex flex-col gap-6 text-center">
       <div>
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-500">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-status-up-soft text-status-up">
           <CheckCircle className="h-9 w-9" />
         </div>
         <h2 className="text-2xl font-semibold text-text-primary">

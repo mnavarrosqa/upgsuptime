@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { statusWarnCalloutClass } from "@/lib/monitor-ui";
 
 type ApiKeyItem = {
   id: string;
@@ -230,10 +231,10 @@ export function ApiAccessSection({
         </div>
 
         {plainToken && (
-          <div className="rounded-md border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-200">
+          <div className={`rounded-md px-4 py-3 text-sm ${statusWarnCalloutClass}`}>
             <p className="font-medium">{t("apiTokenShownOnce")}</p>
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              <code className="max-w-full overflow-auto rounded border border-amber-300 bg-white px-2 py-1 text-xs dark:border-amber-700 dark:bg-amber-950/40">
+              <code className="max-w-full overflow-auto rounded border border-status-warn/40 bg-bg-page px-2 py-1 text-xs">
                 {plainToken}
               </code>
               <Button type="button" variant="outline" onClick={() => void copy(plainToken, t("apiCopiedToken"))}>

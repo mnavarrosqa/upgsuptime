@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import { statusErrorCalloutClass } from "@/lib/monitor-ui";
 import { deriveMonitorNameFromUrl } from "@/lib/derive-monitor-name";
 import {
   parseSitesFromFile,
@@ -284,7 +285,7 @@ export function AddBulkMonitorsForm({
       {error && (
         <div
           role="alert"
-          className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400"
+          className={`rounded-md px-3 py-2.5 text-sm ${statusErrorCalloutClass}`}
         >
           {error.includes("\n") ? (
             <ul className="list-inside list-disc space-y-0.5">
@@ -441,12 +442,12 @@ export function AddBulkMonitorsForm({
                           aria-invalid={nameBad}
                           className={cn(
                             inputClass,
-                            nameBad && "border-red-400 dark:border-red-600"
+                            nameBad && "border-status-down"
                           )}
                           placeholder={deriveMonitorNameFromUrl(r.url.trim())}
                         />
                         {nameBad && (
-                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                          <p className="mt-1 text-xs text-status-down">
                             {issues.nameError}
                           </p>
                         )}
@@ -461,12 +462,12 @@ export function AddBulkMonitorsForm({
                           aria-invalid={urlBad}
                           className={cn(
                             inputClass,
-                            urlBad && "border-red-400 dark:border-red-600"
+                            urlBad && "border-status-down"
                           )}
                           placeholder="https://"
                         />
                         {urlBad && (
-                          <p className="mt-1 text-xs text-red-600 dark:text-red-400">
+                          <p className="mt-1 text-xs text-status-down">
                             {issues.urlError}
                           </p>
                         )}
@@ -477,7 +478,7 @@ export function AddBulkMonitorsForm({
                           variant="ghost"
                           onClick={() => removeRow(r.id)}
                           disabled={submitting}
-                          className="rounded-md px-2 text-sm text-text-muted hover:bg-transparent hover:text-red-600 dark:hover:text-red-400"
+                          className="rounded-md px-2 text-sm text-text-muted hover:bg-transparent hover:text-destructive"
                         >
                           {tBulk("colRemove")}
                         </Button>

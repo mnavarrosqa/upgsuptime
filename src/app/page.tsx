@@ -9,6 +9,12 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { BrandMark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LandingHeroCarousel } from "@/components/landing-hero-carousel";
+import {
+  monitorStatusDownPillClass,
+  monitorStatusUpPillClass,
+  statusSoftDownClass,
+  statusSoftUpClass,
+} from "@/lib/monitor-ui";
 
 const MOCK_MONITORS = [
   { name: "api.production", status: true,  uptime: "99.97", ms: "112ms", bars: "11111111111111111111" },
@@ -181,7 +187,7 @@ export default async function HomePage() {
           <ul className="flex flex-wrap items-center gap-x-4 gap-y-2">
             {([t("bullet1"), t("bullet2"), t("bullet3")] as const).map((item) => (
               <li key={`trust-${item}`} className="inline-flex items-center gap-2 text-xs text-text-muted">
-                <span className="size-1 rounded-full bg-emerald-500/70 inline-block" />
+                <span className="size-1 rounded-full bg-status-up/70 inline-block" />
                 {item}
               </li>
             ))}
@@ -243,8 +249,8 @@ export default async function HomePage() {
                   {t("screenDashboardTitle")}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="size-1.5 rounded-full bg-green-500 animate-[operational-badge-dot_2.6s_ease-in-out_infinite] inline-block" />
-                  <span className="text-[11px] text-green-600 dark:text-green-400 font-medium">{t("screenDashboardBadge")}</span>
+                  <span className="size-1.5 rounded-full bg-status-up animate-operational-badge-dot inline-block" />
+                  <span className="text-[11px] text-status-up font-medium">{t("screenDashboardBadge")}</span>
                 </span>
               </div>
               <div className="px-3 py-3 border-b border-border/80 bg-gradient-to-b from-muted/35 to-transparent dark:from-muted/20">
@@ -253,13 +259,13 @@ export default async function HomePage() {
                     <p className="text-[9px] uppercase tracking-wider text-text-muted font-semibold">{tDash("statLabelTotal")}</p>
                     <p className="mt-1 text-[13px] font-semibold tabular-nums text-text-primary">5</p>
                   </div>
-                  <div className="rounded-md border border-emerald-500/25 bg-emerald-500/[0.06] dark:bg-emerald-500/10 px-2 py-1.5">
-                    <p className="text-[9px] uppercase tracking-wider text-emerald-700 dark:text-emerald-400 font-semibold">{tDash("statLabelUp")}</p>
-                    <p className="mt-1 text-[13px] font-semibold tabular-nums text-emerald-700 dark:text-emerald-400">4</p>
+                  <div className="rounded-md border border-status-up/25 bg-status-up-soft px-2 py-1.5">
+                    <p className="text-[9px] uppercase tracking-wider text-status-up font-semibold">{tDash("statLabelUp")}</p>
+                    <p className="mt-1 text-[13px] font-semibold tabular-nums text-status-up">4</p>
                   </div>
-                  <div className="rounded-md border border-red-500/25 bg-red-500/[0.06] dark:bg-red-500/10 px-2 py-1.5">
-                    <p className="text-[9px] uppercase tracking-wider text-red-700 dark:text-red-400 font-semibold">{tDash("statLabelDown")}</p>
-                    <p className="mt-1 text-[13px] font-semibold tabular-nums text-red-700 dark:text-red-400">1</p>
+                  <div className="rounded-md border border-status-down/25 bg-status-down-soft px-2 py-1.5">
+                    <p className="text-[9px] uppercase tracking-wider text-status-down font-semibold">{tDash("statLabelDown")}</p>
+                    <p className="mt-1 text-[13px] font-semibold tabular-nums text-status-down">1</p>
                   </div>
                 </div>
               </div>
@@ -277,12 +283,8 @@ export default async function HomePage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-start justify-between gap-2">
                           <p className="text-[11px] font-medium text-text-primary truncate">{m.name}</p>
-                          <span className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-medium ${
-                            m.up
-                              ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                          }`}>
-                            <span className={`size-1 rounded-full ${m.up ? "bg-emerald-500" : "bg-red-500"}`} />
+                          <span className={`${m.up ? monitorStatusUpPillClass : monitorStatusDownPillClass} gap-1 px-1.5 py-0.5 text-[9px]`}>
+                            <span className="size-1 rounded-full bg-current" />
                             {m.up ? tDetail("statusUp") : tDetail("statusDown")}
                           </span>
                         </div>
@@ -291,7 +293,7 @@ export default async function HomePage() {
                           {Array.from({ length: 20 }).map((_, i) => (
                             <span
                               key={`${m.name}-${i}`}
-                              className={`flex-1 rounded-[1px] ${m.up || i < 16 ? "bg-emerald-500/55" : "bg-red-500/55"}`}
+                              className={`flex-1 rounded-[1px] ${m.up || i < 16 ? "bg-status-up/55" : "bg-status-down/55"}`}
                             />
                           ))}
                         </div>
@@ -327,8 +329,8 @@ export default async function HomePage() {
             <div className="px-4 py-3 border-b border-border">
               <div className="flex items-center justify-between gap-2 mb-0.5">
                 <span className="font-display text-[13px] font-semibold text-text-primary">auth.service</span>
-                <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-900/30 px-2 py-0.5 text-[10px] font-medium text-red-700 dark:text-red-400">
-                  <span className="size-1.5 rounded-full bg-red-500" />
+                <span className={`${monitorStatusDownPillClass} gap-1 text-[10px]`}>
+                  <span className="size-1.5 rounded-full bg-current" />
                   {t("mockStatusDown")}
                 </span>
               </div>
@@ -344,10 +346,10 @@ export default async function HomePage() {
             </div>
             <div className="grid grid-cols-4 divide-x divide-border border-b border-border bg-muted/25 dark:bg-muted/15">
               {([
-                { label: t("mockUptimeLabel"),    value: "97.4%", color: "text-yellow-600 dark:text-yellow-400" },
+                { label: t("mockUptimeLabel"),    value: "97.4%", color: "text-status-warn" },
                 { label: t("mockAvgLabel"),       value: "1.2 s", color: "text-text-primary" },
-                { label: t("mockIncidentsLabel"), value: "3",     color: "text-red-600 dark:text-red-400" },
-                { label: t("mockSslLabel"),       value: "✓",     color: "text-green-600 dark:text-green-400" },
+                { label: t("mockIncidentsLabel"), value: "3",     color: "text-status-down" },
+                { label: t("mockSslLabel"),       value: "✓",     color: "text-status-up" },
               ] as const).map((s) => (
                 <div key={s.label} className="px-2 py-3 text-center">
                   <p className={`text-[14px] font-semibold tabular-nums ${s.color}`}>{s.value}</p>
@@ -367,7 +369,7 @@ export default async function HomePage() {
               {mockDetailRows.map((row) => (
                 <div key={row.time} className="px-4 py-2 grid grid-cols-[1fr_auto_auto] gap-3 items-center">
                   <span className="text-[11px] text-text-primary tabular-nums">{row.time}</span>
-                  <span className={`text-[11px] tabular-nums font-medium ${row.ok ? "text-green-600 dark:text-green-400" : "text-red-600 dark:text-red-400"}`}>{row.code}</span>
+                  <span className={`text-[11px] tabular-nums font-medium ${row.ok ? "text-status-up" : "text-status-down"}`}>{row.code}</span>
                   <span className="text-[10px] text-text-muted tabular-nums text-right">{row.ms}</span>
                 </div>
               ))}
@@ -399,9 +401,7 @@ export default async function HomePage() {
                 <div key={`${row.name}-${row.when}`} className="px-4 py-3 flex items-start gap-2.5">
                   <span
                     className={`mt-0.5 flex size-5 items-center justify-center rounded-full text-[10px] font-semibold ${
-                      row.down
-                        ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                        : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                      row.down ? statusSoftDownClass : statusSoftUpClass
                     }`}
                     aria-hidden
                   >
@@ -410,9 +410,7 @@ export default async function HomePage() {
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                       <span className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[9px] font-medium ${
-                        row.down
-                          ? "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
-                          : "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+                        row.down ? statusSoftDownClass : statusSoftUpClass
                       }`}>
                         {row.down ? t("mockWentDown") : t("mockRecovered")}
                       </span>

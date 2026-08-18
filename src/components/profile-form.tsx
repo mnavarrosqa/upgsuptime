@@ -10,6 +10,7 @@ import { LanguageSelect } from "@/components/language-select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { statusWarnCalloutClass } from "@/lib/monitor-ui";
 
 type ProfileFormProps = {
   username: string | null | undefined;
@@ -62,7 +63,7 @@ export function ProfileForm({ username, language }: ProfileFormProps) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-4">
       {error && (
         <div
-          className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-900/30 dark:text-amber-200"
+          className={`rounded-md px-4 py-3 text-sm ${statusWarnCalloutClass}`}
           role="alert"
         >
           {error}

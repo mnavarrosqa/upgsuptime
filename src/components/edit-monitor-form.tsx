@@ -10,6 +10,7 @@ import { Spinner } from "@/components/spinner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { statusErrorCalloutClass, statusWarnCalloutClass } from "@/lib/monitor-ui";
 import {
   clearDegradationCalloutDismissed,
   isDegradationCalloutDismissed,
@@ -196,7 +197,7 @@ export function EditMonitorForm({
       {error && (
         <div
           role="alert"
-          className="rounded-md bg-red-50 px-3 py-2.5 text-sm text-red-700 dark:bg-red-900/20 dark:text-red-400"
+          className={`rounded-md px-3 py-2.5 text-sm ${statusErrorCalloutClass}`}
         >
           {error}
         </div>
@@ -583,7 +584,7 @@ export function EditMonitorForm({
         {!isDns && !isTcp && showDegradationDeferHint && (
           <div
             role="note"
-            className="rounded-md border border-amber-200/80 bg-amber-50 px-3 py-2.5 text-xs text-amber-950/90 dark:border-amber-800/40 dark:bg-amber-950/25 dark:text-amber-100/90"
+            className={`rounded-md px-3 py-2.5 text-xs ${statusWarnCalloutClass}`}
           >
             {tDegradationHint("editReminder")}
           </div>

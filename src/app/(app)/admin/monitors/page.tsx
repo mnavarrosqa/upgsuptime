@@ -3,6 +3,7 @@ import { monitor, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AdminSubNav } from "@/components/admin-sub-nav";
 import { getTranslations } from "next-intl/server";
+import { monitorStatusDownPillClass, monitorStatusUpPillClass } from "@/lib/monitor-ui";
 
 export default async function AdminMonitorsPage() {
   const t = await getTranslations("admin.monitors");
@@ -75,11 +76,11 @@ export default async function AdminMonitorsPage() {
                       {t("statusUnchecked")}
                     </span>
                   ) : m.currentStatus ? (
-                    <span className="inline-flex items-center rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-700 dark:text-green-300">
+                    <span className={monitorStatusUpPillClass}>
                       {t("statusUp")}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-700 dark:text-red-300">
+                    <span className={monitorStatusDownPillClass}>
                       {t("statusDown")}
                     </span>
                   )}

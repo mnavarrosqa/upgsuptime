@@ -10,7 +10,6 @@ import {
   Content as UptimeTooltipContent,
 } from "@radix-ui/react-tooltip";
 import type { TooltipProps } from "recharts";
-import { DEGRADATION_ENTER_RATIO } from "@/lib/degradation-config";
 import { computeDegradationSnapshotFromHistory } from "@/lib/degradation-snapshot";
 import {
   ResponsiveContainer,
@@ -439,12 +438,10 @@ export function UptimeTrendCharts({
     ratio == null
       ? "text-text-muted"
       : isAboveEnterThreshold
-        ? "text-red-600 dark:text-red-400"
+        ? "text-status-down"
         : ratio <= 1
-          ? "text-emerald-600 dark:text-emerald-400"
-          : ratio <= DEGRADATION_ENTER_RATIO
-            ? "text-yellow-600 dark:text-yellow-400"
-            : "text-yellow-600 dark:text-yellow-400";
+          ? "text-status-up"
+          : "text-status-warn";
 
   return (
     <div className="mt-4 min-w-0 space-y-8">
@@ -554,10 +551,10 @@ export function UptimeTrendCharts({
                     const segmentTone = !seg.hasData
                       ? "bg-border"
                       : seg.downCount === 0
-                        ? "bg-emerald-500 dark:bg-emerald-600"
+                        ? "bg-status-up"
                         : seg.upCount === 0
-                          ? "bg-red-500 dark:bg-red-600"
-                          : "bg-amber-500 dark:bg-amber-600";
+                          ? "bg-status-down"
+                          : "bg-status-warn";
                     const segmentClass = `block min-h-[8px] min-w-0 cursor-default transition-opacity hover:opacity-90 ${
                       uptimeStripIsDense ? "rounded-none first:rounded-l-sm last:rounded-r-sm" : "rounded-[1px]"
                     } ${segmentTone}`;

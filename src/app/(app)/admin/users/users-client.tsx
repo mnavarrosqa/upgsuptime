@@ -157,7 +157,7 @@ export function AdminUsersClient({
                         size="xs"
                         onClick={() => setConfirmDelete(u)}
                         disabled={isSelf || isBusy}
-                        className="rounded-lg text-red-600 hover:bg-red-500/10 disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400"
+                        className="rounded-lg text-destructive hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-40"
                         title={isSelf ? t("cannotDeleteSelf") : t("deleteUser")}
                       >
                         {t("deleteUser")}

@@ -33,14 +33,14 @@ export default async function AdminPage() {
       value: monitorsUp,
       detail: upRate === null ? t("overview.cardUpDetailNoStatus") : t("overview.cardUpDetailRate", { upRate }),
       icon: CheckCircle2,
-      tone: "text-green-600 dark:text-green-400",
+      tone: "text-status-up",
     },
     {
       label: t("overview.cardDown"),
       value: monitorsDown,
       detail: monitorsDown === 0 ? t("overview.cardDownDetailGood") : t("overview.cardDownDetailBad"),
       icon: XCircle,
-      tone: monitorsDown > 0 ? "text-red-600 dark:text-red-400" : "text-text-muted",
+      tone: monitorsDown > 0 ? "text-status-down" : "text-text-muted",
     },
   ];
 

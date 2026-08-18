@@ -103,7 +103,7 @@ export function AdminSettingsClient({
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-2 py-1 text-xs font-medium ${
               initial.smtpConfigured
-                ? "bg-green-500/10 text-green-700 dark:text-green-300"
+                ? "bg-status-up-soft text-status-up"
                 : "bg-bg-page text-text-muted"
             }`}
           >
@@ -128,12 +128,12 @@ export function AdminSettingsClient({
               <span
                 className={`inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium ${
                   set
-                    ? "bg-green-500/10 text-green-700 dark:text-green-300"
+                    ? "bg-status-up-soft text-status-up"
                     : "bg-bg-card text-text-muted"
                 }`}
               >
                 <span
-                  className={`size-1.5 rounded-full ${set ? "bg-green-500" : "bg-border-muted"}`}
+                  className={`size-1.5 rounded-full ${set ? "bg-status-up" : "bg-border-muted"}`}
                   aria-hidden
                 />
                 {set ? t("smtpVarSet") : t("smtpVarMissing")}

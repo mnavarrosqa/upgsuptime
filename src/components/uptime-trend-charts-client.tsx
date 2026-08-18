@@ -163,10 +163,10 @@ export function MonitorDetailHistoryClient({
               uptimePct === null
                 ? "text-text-muted"
                 : uptimePct === 100
-                  ? "text-emerald-600 dark:text-emerald-400"
+                  ? "text-status-up"
                   : uptimePct >= 90
-                    ? "text-yellow-600 dark:text-yellow-400"
-                    : "text-red-600 dark:text-red-400"
+                    ? "text-status-warn"
+                    : "text-status-down"
             }`}
             style={{ fontFamily: "var(--font-display)" }}
           >
@@ -206,9 +206,7 @@ export function MonitorDetailHistoryClient({
           </span>
           <p
             className={`mt-2 text-xl font-semibold tabular-nums sm:text-2xl ${
-              incidentCount > 0
-                ? "text-red-600 dark:text-red-400"
-                : "text-emerald-600 dark:text-emerald-400"
+              incidentCount > 0 ? "text-status-down" : "text-status-up"
             }`}
             style={{ fontFamily: "var(--font-display)" }}
           >

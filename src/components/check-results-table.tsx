@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { FormattedDateTime } from "@/components/formatted-date-time";
 import { Button } from "@/components/ui/button";
+import { monitorStatusDownPillClass, monitorStatusUpPillClass } from "@/lib/monitor-ui";
 
 type CheckResultRow = {
   id: string;
@@ -29,7 +30,7 @@ export function CheckResultsTable({
   const pageResults = results.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   return (
-    <div className="mt-4">
+    <div>
       <div className="overflow-x-auto rounded-md border border-border bg-bg-page">
         <table className="min-w-full divide-y divide-border">
           <thead>
@@ -60,13 +61,7 @@ export function CheckResultsTable({
                   <FormattedDateTime value={r.createdAt} />
                 </td>
                 <td className="px-4 py-2.5">
-                  <span
-                    className={`inline-flex rounded-full px-2 py-0.5 text-xs font-medium ${
-                      r.ok
-                        ? "bg-emerald-600 text-white dark:bg-emerald-900/40 dark:text-emerald-400"
-                        : "bg-red-600 text-white dark:bg-red-900/40 dark:text-red-400"
-                    }`}
-                  >
+                  <span className={r.ok ? monitorStatusUpPillClass : monitorStatusDownPillClass}>
                     {r.ok ? t("statusBadgeUp") : t("statusBadgeDown")}
                   </span>
                 </td>
@@ -90,7 +85,11 @@ export function CheckResultsTable({
       {totalPages > 1 && (
         <div className="mt-3 flex items-center justify-between text-sm text-text-muted">
           <span>
-            {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, results.length)} of {results.length}
+            {t("showingRange", {
+              from: page * PAGE_SIZE + 1,
+              to: Math.min((page + 1) * PAGE_SIZE, results.length),
+              total: results.length,
+            })}
           </span>
           <div className="flex gap-2">
             <Button

@@ -51,7 +51,7 @@ export function StatusPageMonitorsVisibility({
       <p className="text-sm text-text-muted">
         {tAccount("statusPageMonitorsEmpty")}{" "}
         <Link
-          href="/monitors"
+          href="/dashboard"
           className="font-medium text-primary underline-offset-4 hover:underline"
         >
           {tAccount("statusPageMonitorsGoToMonitors")}

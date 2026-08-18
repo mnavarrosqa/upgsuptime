@@ -114,18 +114,6 @@
     "maintenanceWindowHint": "Optional. Use this when a planned change should suppress alerts for a short window."
   },
   "bulkEdit": {
-    "intervalInvalid": "Interval must be between 1 and 60.",
-    "timeoutInvalid": "Timeout must be between 5 and 120.",
-    "noChanges": "Change at least one setting, or cancel.",
-    "failedFor": "Failed for \"{name}\"",
-    "updatedCount": "{count, plural, one {# monitor updated} other {# monitors updated}}",
-    "partialFailure": "{updated} updated, {failed} failed",
-    "selectedCount": "Selected ({count})",
-    "scopeHint": "Name and URL stay per monitor. Only the settings below are applied to all selected.",
-    "various": "Various",
-    "slowResponseAlertsHint": "Learns each site's normal P75 over 20+ checks, then alerts when recent P75 stays ~2.1× above baseline for 7 checks in a row. Fires once per episode.",
-    "sslBulkHint": "Applies to HTTPS monitors. HTTP-only monitors ignore this.",
-    "applyToAll": "Apply to all",
     "importFromFile": "Import from file",
     "importFileHint": ".txt (one URL per line), .csv, or .xlsx with columns name and url, or URL only. Up to {max} sites.",
     "sampleFormat": "Sample format (recommended)",
@@ -169,7 +157,10 @@
     "register": "Register",
     "createAccount": "Create account",
     "save": "Save",
-    "close": "Close"
+    "close": "Close",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "pleaseWait": "Please wait…"
   },
   "locale": {
     "label": "Language",
@@ -260,7 +251,7 @@
     "statusPageMonitorsHeading": "Visible monitors",
     "statusPageMonitorsSubtitle": "Only checked monitors appear on your public page. Others stay in your account only.",
     "statusPageMonitorsEmpty": "You don’t have any monitors yet.",
-    "statusPageMonitorsGoToMonitors": "Go to Monitors",
+    "statusPageMonitorsGoToMonitors": "Go to Dashboard",
     "statusPageMonitorShowLabel": "Show on public page",
     "statusPageMonitorShowAria": "Show {name} on public status page",
     "statusPageUrlLabel": "Public URL",
@@ -375,7 +366,6 @@
     "floatingHelpLabel": "Open Help & Support",
     "floatingHelpBubble": "You can check Help & Support at any moment.",
     "floatingHelpBubbleDashboard": "Need context on status, trends, or public pages? Help & Support is always available.",
-    "floatingHelpBubbleMonitors": "Working on monitors? Help & Support explains checks, alerts, imports, and bulk actions.",
     "floatingHelpBubbleActivity": "Reviewing incidents? Help & Support explains activity, acknowledgements, and alert behavior.",
     "floatingHelpBubbleAccount": "Account settings, status pages, exports, and API keys are covered in Help & Support.",
     "floatingHelpBubbleAdmin": "Admin tools have their own Help & Support articles, visible only to admins.",
@@ -453,9 +443,6 @@
     "title": "Dashboard",
     "allOperational": "All systems operational",
     "downCount": "{count} down",
-    "monitorCount": "{count, plural, one {# monitor} other {# monitors}}",
-    "upCount": "{count} up",
-    "downLabel": "{count} down",
     "summaryHeading": "Overview",
     "statLabelTotal": "Total",
     "statLabelUp": "Up",
@@ -464,12 +451,10 @@
     "statLocationTooltip": "Where uptime checks are executed from (server/region label).",
     "statValueLocationUnknown": "This server",
     "statusPageLink": "Public status page",
-    "addFirstMonitor": "Add your first monitor to get started.",
     "searchPlaceholder": "Search by name or URL…",
     "emptyTitle": "No monitors yet",
     "emptyBody": "Add your first monitor to track uptime and response time from this dashboard.",
     "noSearchTitle": "No matches",
-    "noMonitorsYet": "No monitors yet. Add one above to get started.",
     "noSearchMatch": "No monitors match your search.",
     "clearSearch": "Clear search",
     "issues": "Issues",
@@ -495,80 +480,24 @@
     "next": "Next"
   },
   "monitorsPage": {
-    "title": "Monitors",
-    "overviewHeading": "Overview",
-    "tableSectionHeading": "All monitors",
-    "emptyTitle": "No monitors yet",
-    "emptyBody": "Add a monitor to run scheduled checks, or import a JSON backup.",
-    "totalCount": "{count} total",
     "searchPlaceholder": "Search by name or URL…",
-    "exporting": "Exporting…",
-    "export": "Export",
-    "import": "Import",
     "addMonitor": "Add monitor",
-    "bulkActions": "Bulk actions",
-    "selected": "{count} selected",
-    "selectedOnPage": "({count} on this page)",
-    "pausing": "Pausing…",
-    "resuming": "Resuming…",
     "pause": "Pause",
     "resume": "Resume",
-    "edit": "Edit",
     "delete": "Delete",
-    "clear": "Clear",
-    "deleteMonitorsTitle": "Delete monitors",
     "deleteMonitorTitle": "Delete monitor",
-    "deleteBulkMessage": "Delete {count} monitors ({preview})? This cannot be undone.",
-    "andMore": " and {count} more",
     "deleteSingleMessage": "Delete \"{name}\"? This cannot be undone.",
     "addMonitorTitle": "Add monitor",
     "unsavedAddMonitorTitle": "Leave this form?",
     "unsavedAddMonitorMessage": "You have unsaved monitor changes. Do you want to leave without saving or continue editing?",
     "leaveForm": "Leave",
-    "editMonitorTitle": "Edit monitor",
-    "view": "View",
-    "actions": "Actions",
     "deleteFailed": "Delete failed",
-    "couldNotDelete": "Could not delete monitors",
     "failedToPause": "Failed to pause",
     "monitorPaused": "Monitor paused",
-    "monitorsPaused": "{count} monitors paused",
-    "couldNotPause": "Could not pause monitors",
     "failedToResume": "Failed to resume",
     "monitorResumed": "Monitor resumed",
-    "monitorsResumed": "{count} monitors resumed",
-    "couldNotResume": "Could not resume monitors",
     "failedToUpdate": "Failed to update monitor",
-    "importJsonArray": "File must contain a JSON array of monitors.",
-    "importParseError": "Could not parse file as JSON.",
-    "tableCaption": "Your monitors",
-    "selectAllAria": "Select all monitors in this list",
-    "colMonitor": "Monitor",
-    "colUrl": "URL",
-    "colStatus": "Status",
-    "colSsl": "SSL",
-    "colLastChecked": "Last checked",
-    "colInterval": "Interval",
-    "colActions": "Actions",
-    "noMonitorsYetShort": "No monitors yet. Add one above.",
-    "importTitle": "Import monitors",
-    "importDone": "Done",
-    "importCancel": "Cancel",
-    "importingLabel": "Importing…",
-    "importConfirm": "Import {count, plural, one {# monitor} other {# monitors}}",
-    "importSuccess": "Successfully imported {count, plural, one {# monitor} other {# monitors}}.",
-    "importNone": "No monitors were imported.",
-    "importErrors": "Errors ({count})",
-    "importReady": "Ready to import {count, plural, one {# monitor} other {# monitors}}:",
-    "unnamed": "unnamed",
-    "bulkEditTitle": "Edit {count, plural, one {# monitor} other {# monitors}}",
-    "selectMonitorAria": "Select {name}",
-    "everyMinutes": "every {count}m",
     "deleteSuccessSingle": "\"{name}\" deleted",
-    "deleteSuccessBulk": "{count, plural, one {# monitor deleted} other {# monitors deleted}}",
-    "deletePartialFailed": "{count, plural, one {# monitor could not be deleted} other {# monitors could not be deleted}}",
-    "pausePartialFailed": "{count, plural, one {# monitor could not be paused} other {# monitors could not be paused}}",
-    "resumePartialFailed": "{count, plural, one {# monitor could not be resumed} other {# monitors could not be resumed}}",
     "statusPaused": "Paused",
     "statusUp": "Up",
     "statusDown": "Down",
@@ -582,7 +511,6 @@
     "deleting": "Deleting…",
     "checkComplete": "Check complete",
     "checking": "Checking…",
-    "maintenanceScheduled": "Maintenance scheduled",
     "uptimeTrend": "Uptime trend",
     "searchView": "View"
   },
@@ -628,7 +556,7 @@
         "body": [
           "UPG Monitor checks URLs, hosts, ports, DNS records, keywords, and certificates on a schedule. Each run records whether the check succeeded, how long it took, and any status details needed for later review.",
           "Your monitors are private by default. You can publish selected monitors on a read-only status page, share data through the status API, and keep operational history inside your account.",
-          "Use Dashboard for the current picture, Monitors for configuration, Activity for cross-monitor events, and Help & Support when you need a reference."
+          "Use Dashboard for the current picture, Activity for cross-monitor events, and Help & Support when you need a reference."
         ]
       },
       "signInAndAccount": {
@@ -660,7 +588,7 @@
         "summary": "Summary cards and monitor status at a glance.",
         "body": [
           "The Dashboard shows how many monitors are up, down, or paused, and lists each monitor with its current state.",
-          "Paused monitors are not checked until you resume them from the Monitors page. New accounts see an empty state that points to adding the first monitor.",
+          "Paused monitors are not checked until you resume them from the Dashboard. New accounts see an empty state that points to adding the first monitor.",
           "Dashboard data comes from stored monitor and check results, so it is the best first place to confirm what is happening right now."
         ]
       },
@@ -682,7 +610,7 @@
       },
       "addingMonitors": {
         "title": "Adding a monitor",
-        "summary": "Create a new check from Dashboard or Monitors.",
+        "summary": "Create a new check from the Dashboard.",
         "body": [
           "Choose Add monitor, enter a clear name, and provide the target details for the monitor type. HTTP and keyword monitors use a full HTTP or HTTPS URL; DNS and TCP monitors use host-oriented fields.",
           "Each monitor runs independently on its configured interval. You can later edit the schedule, timeout, notifications, status page visibility, and advanced request behavior."
@@ -719,28 +647,11 @@
           "Sensitive headers are redacted from monitor exports. Keep secrets scoped to the monitored endpoint and rotate them if an exported file is shared too widely."
         ]
       },
-      "monitorsListAndBulk": {
-        "title": "Monitors list, sorting, and bulk actions",
-        "summary": "Table controls, selection, pause, resume, edit, and delete.",
-        "body": [
-          "The Monitors table supports sorting by fields such as name, last check, and interval. Search narrows the list by name or URL.",
-          "Select one or more monitors to pause, resume, edit shared fields in bulk, or delete. Bulk edit applies only the fields you choose and leaves per-monitor details like name and URL alone.",
-          "Deleting a monitor removes its configuration and history from your account. Treat delete as permanent."
-        ]
-      },
-      "importExportMonitors": {
-        "title": "Import and export monitors",
-        "summary": "JSON backup and restore for monitor definitions.",
-        "body": [
-          "Export downloads a JSON file of monitor definitions for backup or copying to another environment.",
-          "Import accepts a JSON array of monitor objects. Review the preview and confirm; invalid entries are reported without stopping the whole import when possible."
-        ]
-      },
       "monitorDetailPage": {
         "title": "Monitor detail page",
         "summary": "History, charts, check now, edit, and delete.",
         "body": [
-          "Open a monitor from Dashboard or the Monitors table to inspect detailed history, response times, SSL information, incident context, and configuration actions.",
+          "Open a monitor from the Dashboard to inspect detailed history, response times, SSL information, incident context, and configuration actions.",
           "Check now runs an immediate check outside the normal schedule. Edit and Delete apply only to the current monitor.",
           "Use the detail page when a summary status is not enough and you need exact timing, response, or certificate evidence."
         ]
@@ -828,11 +739,11 @@
         ]
       },
       "monitorExportImport": {
-        "title": "Monitor-only export and import",
-        "summary": "Move monitor definitions without the rest of the account.",
+        "title": "Moving monitors between accounts",
+        "summary": "Account backup and Dashboard bulk add.",
         "body": [
-          "Monitor export/import is useful when you want to copy checks between accounts or environments without moving the full account profile and history.",
-          "Imported monitors still need valid settings for the current instance, including reachable targets, supported monitor types, and alert addresses that make sense for the destination."
+          "To copy an existing set of monitors, use Account export/import. That backup includes monitor definitions and, optionally, check history.",
+          "To add many HTTP sites at once on this account, use Add monitor on the Dashboard and choose bulk import (paste URLs or upload a file)."
         ]
       },
       "publicStatusPage": {
@@ -915,7 +826,7 @@
         "summary": "Instance-wide monitors and configuration.",
         "body": [
           "Admins may inspect monitors and application settings across the installation.",
-          "Use the admin area for instance-level work. Normal monitor ownership and day-to-day edits still belong in Dashboard, Monitors, and Account."
+          "Use the admin area for instance-level work. Normal monitor ownership and day-to-day edits still belong in Dashboard and Account."
         ]
       }
     }
@@ -979,11 +890,9 @@
   "monitorDetail": {
     "heroEyebrow": "Monitor overview",
     "statsHeading": "Metrics",
-    "breadcrumb": "Monitors",
-    "statusPaused": "Paused",
+    "breadcrumb": "Dashboard",
     "statusUp": "Up",
     "statusDown": "Down",
-    "statusNoData": "No data",
     "nextCheckPaused": "Next check: paused — no scheduled runs",
     "nextCheckPending": "Next check: first run when the scheduler picks up this monitor",
     "nextCheckIn": "Next check in {time}",
@@ -1049,7 +958,7 @@
     "statusBadgeDown": "Down",
     "paginationPrev": "Previous",
     "paginationNext": "Next",
-    "noIncidents": "No recent incidents.",
+    "showingRange": "{from}–{to} of {total}",
     "chartNoData": "No check data yet. Charts will appear after the cron job runs.",
     "chartRangeLabel": "Range",
     "chartDetailLabel": "Charts",
