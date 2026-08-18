@@ -101,12 +101,12 @@ function buildSplashSvg(width, height) {
   const logoX = Math.round((width - logoSize) / 2);
   const textY = topY + logoSize + gap + Math.round(fontSize * 0.85);
 
+  // Keep geometry in sync with src/app/icon.svg and src/components/brand-mark.tsx.
   const logoInner = `
   <g transform="translate(${logoX},${topY}) scale(${logoSize / 32})">
-    <g transform="translate(6,6) scale(0.833)" stroke="#fafaf9" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none">
-      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/>
-      <path d="M3.22 12H9.5l1.5-2.5 2 5 1.5-3 1.5 2H21"/>
-    </g>
+    <path d="M6 16.5 H11 L14.2 9.4 L19.2 16.5 H21.2" fill="none" stroke="#f4f1ee" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
+    <circle cx="24.6" cy="16.5" r="3.55" fill="#76cd9c" opacity="0.28"/>
+    <circle cx="24.6" cy="16.5" r="2.2" fill="#76cd9c"/>
   </g>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>

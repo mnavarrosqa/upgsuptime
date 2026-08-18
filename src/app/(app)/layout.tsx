@@ -43,7 +43,7 @@ export default async function AppLayout({
               className="flex shrink-0 items-center gap-2 text-sm font-semibold text-text-primary hover:text-text-muted"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              <BrandMark className="size-4 shrink-0" />
+              <BrandMark className="size-5 shrink-0" />
               {t("appTitle")}
             </Link>
 

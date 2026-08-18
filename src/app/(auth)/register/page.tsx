@@ -97,7 +97,7 @@ export default function RegisterPage() {
       {/* Brand */}
       <div className="mb-8 flex flex-col items-center text-center">
         <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-accent text-bg-page">
-          <BrandMark size={22} strokeWidth={2.5} />
+          <BrandMark size={24} />
         </div>
         <h1
           className="text-2xl font-semibold tracking-tight text-text-primary"
