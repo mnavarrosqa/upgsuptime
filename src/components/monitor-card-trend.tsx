@@ -224,16 +224,19 @@ export function MonitorCardTrend({
           strokeOpacity={hovering ? 0.7 : 0.45}
           vectorEffect="non-scaling-stroke"
         />
-        <circle
-          cx={active.x}
-          cy={active.y}
-          r={hovering ? 4 : 3.25}
-          fill={pointStroke}
-          stroke="var(--bg-card)"
-          strokeWidth="1.5"
-          vectorEffect="non-scaling-stroke"
-        />
       </svg>
+      <span
+        className={cn(
+          "pointer-events-none absolute z-[1] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg-card",
+          hovering ? "size-2.5" : "size-2"
+        )}
+        style={{
+          left: `${(active.x / VW) * 100}%`,
+          top: `${(active.y / VH) * 100}%`,
+          backgroundColor: pointStroke,
+        }}
+        aria-hidden
+      />
     </div>
   );
 }

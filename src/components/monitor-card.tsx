@@ -270,7 +270,15 @@ export function MonitorCard({
             >
               {uptimePct != null ? formatUptimePct(uptimePct) : "—"}
             </span>
-            <span className="text-xs text-text-muted">{t("uptimeLabel")}</span>
+            <span className="min-w-0 truncate text-xs text-text-muted">
+              {t("uptimeLabel")}
+              {latest?.responseTimeMs != null ? (
+                <>
+                  <span aria-hidden> · </span>
+                  <span className="tabular-nums">{t("trendCheckMs", { ms: latest.responseTimeMs })}</span>
+                </>
+              ) : null}
+            </span>
           </div>
 
           {trendResults.length > 0 ? (
