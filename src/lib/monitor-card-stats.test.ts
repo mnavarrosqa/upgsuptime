@@ -48,8 +48,8 @@ describe("monitor-card-stats", () => {
 
   it("sparklineIndexFromViewX maps x to the nearest check", () => {
     expect(sparklineIndexFromViewX(0, 1)).toBe(0);
-    expect(sparklineIndexFromViewX(6, 5)).toBe(0);
-    expect(sparklineIndexFromViewX(160 - 12, 5)).toBe(4);
-    expect(sparklineIndexFromViewX(6 + (160 - 6 - 12) / 2, 5)).toBe(2);
+    expect(sparklineIndexFromViewX(0, 5)).toBe(0);
+    expect(sparklineIndexFromViewX(160, 5)).toBe(4);
+    expect(sparklineIndexFromViewX(80, 5)).toBe(2);
   });
 });

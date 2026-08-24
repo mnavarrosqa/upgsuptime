@@ -17,8 +17,8 @@ export type SparklineTone = "up" | "down" | "muted";
 
 const VW = 160;
 const VH = 64;
-const PAD_X = 6;
-const PAD_RIGHT = 12;
+const PAD_X = 0;
+const PAD_RIGHT = 0;
 const PAD_Y = 8;
 
 function smoothLine(pts: { x: number; y: number }[]): string {
@@ -128,7 +128,7 @@ export function MonitorCardTrend({
 
   return (
     <div
-      className="relative h-16 w-full cursor-crosshair motion-safe:motion-soft-pop"
+      className="relative h-16 w-full overflow-visible cursor-crosshair motion-safe:motion-soft-pop"
       aria-label={t("uptimeTrend")}
       aria-describedby={liveId}
       onPointerMove={(e) => setFromClientX(e.currentTarget, e.clientX)}

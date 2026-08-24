@@ -285,7 +285,7 @@ export function MonitorCard({
             <Link
               href={`/monitors/${id}`}
               tabIndex={-1}
-              className="pointer-events-auto relative z-[2] mt-3 block h-16 min-w-0 rounded-md"
+              className="pointer-events-auto relative z-[2] mt-3 block h-16 min-w-0 overflow-visible"
             >
               <MonitorCardTrend results={trendResults} tone={tone} />
             </Link>

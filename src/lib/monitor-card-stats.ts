@@ -58,8 +58,8 @@ function round1(n: number): number {
 export function sparklineIndexFromViewX(
   viewX: number,
   count: number,
-  padX = 6,
-  padRight = 12,
+  padX = 0,
+  padRight = 0,
   vw = 160,
 ): number {
   if (count <= 1) return 0;
