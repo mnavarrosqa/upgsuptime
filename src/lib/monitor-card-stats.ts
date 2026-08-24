@@ -17,9 +17,8 @@ export function uptimePercent(results: TrendPoint[]): number | null {
 }
 
 /**
- * Window change as a signed percent (one decimal).
- * Prefers uptime shift between the older/newer halves; if uptime is flat,
- * falls back to latency improvement (faster = positive).
+ * Window change as a signed percent (one decimal) between the older and
+ * newer halves of the recent check list. Not latency.
  */
 export function trendDeltaPercent(results: TrendPoint[]): number | null {
   if (results.length < 4) return null;
@@ -31,14 +30,8 @@ export function trendDeltaPercent(results: TrendPoint[]): number | null {
   const pct = (arr: TrendPoint[]) =>
     (arr.filter((r) => r.ok).length / arr.length) * 100;
   const uptimeDelta = pct(newer) - pct(older);
-  if (Math.abs(uptimeDelta) >= 0.05) {
-    return round1(uptimeDelta);
-  }
-
-  const olderAvg = avgMs(older);
-  const newerAvg = avgMs(newer);
-  if (olderAvg == null || newerAvg == null || olderAvg === 0) return 0;
-  return round1(((olderAvg - newerAvg) / olderAvg) * 100);
+  if (Math.abs(uptimeDelta) < 0.05) return 0;
+  return round1(uptimeDelta);
 }
 
 export function sparklineHealthValues(points: TrendPoint[]): number[] {
@@ -56,14 +49,6 @@ export function normalizeSparklineValues(values: number[]): number[] {
   const max = Math.max(...values);
   if (max - min < 0.04) return values.map(() => 0.62);
   return values.map((v) => 0.12 + ((v - min) / (max - min)) * 0.76);
-}
-
-function avgMs(arr: TrendPoint[]): number | null {
-  const times = arr
-    .map((r) => r.responseTimeMs)
-    .filter((ms): ms is number => ms != null);
-  if (times.length === 0) return null;
-  return times.reduce((a, b) => a + b, 0) / times.length;
 }
 
 function round1(n: number): number {

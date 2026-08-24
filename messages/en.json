@@ -519,7 +519,7 @@
     "checkComplete": "Check complete",
     "checking": "Checking…",
     "uptimeTrend": "Uptime trend",
-    "uptimeLabel": "Uptime",
+    "uptimeLabel": "Uptime · 90d",
     "trendCheckMs": "{ms}ms",
     "moreActions": "More actions for {name}",
     "openSite": "Open site",

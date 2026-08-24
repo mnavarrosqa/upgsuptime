@@ -36,6 +36,7 @@ type DashboardContentProps = {
     { ok: boolean; responseTimeMs: number | null; message: string | null }
   >;
   trendByMonitor: Record<string, TrendPoint[]>;
+  uptimeByMonitor: Record<string, number | null>;
   username: string | null;
   onboarding?: {
     onboardingCompleted?: boolean | null;
@@ -49,6 +50,7 @@ type MonitorGridProps = {
   monitors: Monitor[];
   latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }>;
   trendByMonitor: Record<string, TrendPoint[]>;
+  uptimeByMonitor: Record<string, number | null>;
   sortBy: { field: string; direction: "asc" | "desc" };
 };
 
@@ -104,11 +106,13 @@ function MonitorGridCard({
   index,
   latestByMonitor,
   trendByMonitor,
+  uptimeByMonitor,
 }: {
   m: Monitor;
   index: number;
   latestByMonitor: MonitorGridProps["latestByMonitor"];
   trendByMonitor: MonitorGridProps["trendByMonitor"];
+  uptimeByMonitor: MonitorGridProps["uptimeByMonitor"];
 }) {
   return (
     <MonitorCard
@@ -120,6 +124,7 @@ function MonitorGridCard({
       paused={m.paused}
       latest={latestByMonitor[m.id]}
       trendResults={trendByMonitor[m.id] ?? []}
+      uptimePct={uptimeByMonitor[m.id] ?? null}
       lastCheckAt={m.lastCheckAt}
       sslMonitoring={!!m.sslMonitoring}
       sslValid={m.sslValid ?? null}
@@ -130,7 +135,7 @@ function MonitorGridCard({
   );
 }
 
-function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: MonitorGridProps) {
+function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, uptimeByMonitor, sortBy }: MonitorGridProps) {
   const t = useTranslations("dashboard");
   const downMonitors = sortMonitors(
     monitors.filter((m) => !m.paused && latestByMonitor[m.id] && !latestByMonitor[m.id].ok),
@@ -168,7 +173,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
             <SectionHeading tone="down">{t("sectionIssues", { count: downMonitors.length })}</SectionHeading>
           )}
           {downMonitors.map((m, index) => (
-            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} uptimeByMonitor={uptimeByMonitor} />
           ))}
         </>
       )}
@@ -178,7 +183,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
             <SectionHeading>{t("sectionPaused", { count: pausedMonitors.length })}</SectionHeading>
           )}
           {pausedMonitors.map((m, index) => (
-            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} uptimeByMonitor={uptimeByMonitor} />
           ))}
         </>
       )}
@@ -190,10 +195,10 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
             </SectionHeading>
           )}
           {upMonitors.map((m, index) => (
-            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+            <MonitorGridCard key={m.id} m={m} index={index} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} uptimeByMonitor={uptimeByMonitor} />
           ))}
           {uncheckedMonitors.map((m, index) => (
-            <MonitorGridCard key={m.id} m={m} index={index + upMonitors.length} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} />
+            <MonitorGridCard key={m.id} m={m} index={index + upMonitors.length} latestByMonitor={latestByMonitor} trendByMonitor={trendByMonitor} uptimeByMonitor={uptimeByMonitor} />
           ))}
         </>
       )}
@@ -205,6 +210,7 @@ export function DashboardContent({
   monitors,
   latestByMonitor,
   trendByMonitor,
+  uptimeByMonitor,
   username,
   onboarding,
   userId,
@@ -397,6 +403,7 @@ export function DashboardContent({
           monitors={filteredMonitors}
           latestByMonitor={latestByMonitor}
           trendByMonitor={trendByMonitor}
+          uptimeByMonitor={uptimeByMonitor}
           sortBy={sortBy}
         />
       )}

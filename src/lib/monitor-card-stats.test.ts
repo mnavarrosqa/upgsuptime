@@ -35,10 +35,10 @@ describe("monitor-card-stats", () => {
     expect(trendDeltaPercent([...newer, ...older])).toBe(-75);
   });
 
-  it("trendDeltaPercent uses latency when uptime is flat", () => {
+  it("trendDeltaPercent is 0 when uptime is flat", () => {
     const older = [pt(true, 200), pt(true, 200)];
     const newer = [pt(true, 100), pt(true, 100)];
-    expect(trendDeltaPercent([...newer, ...older])).toBe(50);
+    expect(trendDeltaPercent([...newer, ...older])).toBe(0);
   });
 
   it("sparklineHealthValues dip on failed checks", () => {

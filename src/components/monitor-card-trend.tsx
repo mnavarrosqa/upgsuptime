@@ -64,6 +64,7 @@ export function MonitorCardTrend({
   const tTime = useTranslations("time");
   const rawId = useId();
   const gid = `mcg-${rawId.replace(/:/g, "")}`;
+  const clipId = `${gid}-clip`;
   const liveId = `${gid}-live`;
   const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
@@ -73,6 +74,7 @@ export function MonitorCardTrend({
     const values = normalizeSparklineValues(sparklineHealthValues(chrono));
     const spanX = VW - PAD_X - PAD_RIGHT;
     const spanY = VH - PAD_Y * 2;
+    const yBottom = PAD_Y + spanY;
     const pts = values.map((v, i) => ({
       x: PAD_X + (values.length === 1 ? spanX : (i / (values.length - 1)) * spanX),
       y: PAD_Y + (1 - v) * spanY,
@@ -81,8 +83,12 @@ export function MonitorCardTrend({
     const line = smoothLine(pts);
     const last = pts[pts.length - 1]!;
     const first = pts[0]!;
-    const area = `${line} L ${last.x} ${VH} L ${first.x} ${VH} Z`;
-    return { line, area, pts };
+    const area = `${line} L ${last.x} ${yBottom} L ${first.x} ${yBottom} Z`;
+    const cell = pts.length > 1 ? spanX / (pts.length - 1) : spanY / 3;
+    const yTicks = Math.max(2, Math.round(spanY / cell));
+    const gridY = Array.from({ length: yTicks + 1 }, (_, i) => PAD_Y + (i / yTicks) * spanY);
+    const gridX = pts.map((p) => p.x);
+    return { line, area, pts, gridX, gridY, yBottom };
   }, [results]);
 
   if (!geom) return null;
@@ -122,7 +128,7 @@ export function MonitorCardTrend({
 
   return (
     <div
-      className="relative h-full min-h-28 w-full cursor-crosshair motion-safe:motion-soft-pop"
+      className="relative h-16 w-full cursor-crosshair motion-safe:motion-soft-pop"
       aria-label={t("uptimeTrend")}
       aria-describedby={liveId}
       onPointerMove={(e) => setFromClientX(e.currentTarget, e.clientX)}
@@ -164,9 +170,40 @@ export function MonitorCardTrend({
             <stop offset="0%" stopColor={stroke} stopOpacity="0.28" />
             <stop offset="100%" stopColor={stroke} stopOpacity="0" />
           </linearGradient>
+          <clipPath id={clipId}>
+            <rect x={PAD_X} y={PAD_Y} width={VW - PAD_X - PAD_RIGHT} height={VH - PAD_Y * 2} />
+          </clipPath>
         </defs>
         <rect x="0" y="0" width={VW} height={VH} fill="transparent" />
-        <path d={geom.area} fill={`url(#${gid})`} />
+        {geom.gridY.map((y, i) => (
+          <line
+            key={`hy-${i}`}
+            x1={PAD_X}
+            y1={y}
+            x2={VW - PAD_RIGHT}
+            y2={y}
+            stroke="var(--border)"
+            strokeWidth="1"
+            strokeOpacity="0.85"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        {geom.gridX.map((x, i) => (
+          <line
+            key={`vx-${i}`}
+            x1={x}
+            y1={PAD_Y}
+            x2={x}
+            y2={geom.yBottom}
+            stroke="var(--border)"
+            strokeWidth="1"
+            strokeOpacity="0.85"
+            vectorEffect="non-scaling-stroke"
+          />
+        ))}
+        <g clipPath={`url(#${clipId})`}>
+          <path d={geom.area} fill={`url(#${gid})`} />
+        </g>
         <path
           d={geom.line}
           fill="none"
@@ -178,9 +215,9 @@ export function MonitorCardTrend({
         />
         <line
           x1={active.x}
-          y1={PAD_Y - 2}
+          y1={PAD_Y}
           x2={active.x}
-          y2={VH - 4}
+          y2={geom.yBottom}
           stroke={pointStroke}
           strokeWidth="1"
           strokeDasharray="2.5 3"

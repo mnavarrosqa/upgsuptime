@@ -519,7 +519,7 @@
     "checkComplete": "Comprobación lista",
     "checking": "Comprobando…",
     "uptimeTrend": "Tendencia de disponibilidad",
-    "uptimeLabel": "Disponibilidad",
+    "uptimeLabel": "Disponibilidad · 90 d",
     "trendCheckMs": "{ms}ms",
     "moreActions": "Más acciones para {name}",
     "openSite": "Abrir sitio",

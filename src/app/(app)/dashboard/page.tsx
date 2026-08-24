@@ -5,6 +5,11 @@ import { db } from "@/db";
 import { monitor, checkResult, user } from "@/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
 import { DashboardContent } from "@/components/dashboard-content";
+import {
+  getUptimeStats90d,
+  ninetyDaysAgoFrom,
+  uptimePctFromCounts,
+} from "@/lib/monitor-public-status";
 
 export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
@@ -25,6 +30,7 @@ export default async function DashboardPage() {
     string,
     { id: string; ok: boolean; responseTimeMs: number | null; createdAt: string; message: string | null }[]
   > = {};
+  const uptimeByMonitor: Record<string, number | null> = {};
   const checkLocation = (() => {
     const explicitLocation = process.env.CHECKS_LOCATION ?? process.env.NEXT_PUBLIC_CHECKS_LOCATION;
     const value = explicitLocation?.trim();
@@ -47,19 +53,22 @@ export default async function DashboardPage() {
 
     // Fetch latest status and trend data in a single batched query instead of
     // N sequential per-monitor queries — eliminates the N+1 waterfall.
-    const recentResults = await db
-      .select({
-        id: checkResult.id,
-        monitorId: checkResult.monitorId,
-        ok: checkResult.ok,
-        responseTimeMs: checkResult.responseTimeMs,
-        message: checkResult.message,
-        createdAt: checkResult.createdAt,
-      })
-      .from(checkResult)
-      .where(inArray(checkResult.monitorId, monitorIds))
-      .orderBy(desc(checkResult.createdAt))
-      .limit(trendLimit);
+    const [recentResults, uptimeStats] = await Promise.all([
+      db
+        .select({
+          id: checkResult.id,
+          monitorId: checkResult.monitorId,
+          ok: checkResult.ok,
+          responseTimeMs: checkResult.responseTimeMs,
+          message: checkResult.message,
+          createdAt: checkResult.createdAt,
+        })
+        .from(checkResult)
+        .where(inArray(checkResult.monitorId, monitorIds))
+        .orderBy(desc(checkResult.createdAt))
+        .limit(trendLimit),
+      getUptimeStats90d(monitorIds, ninetyDaysAgoFrom()),
+    ]);
 
     const grouped = new Map<
       string,
@@ -83,6 +92,12 @@ export default async function DashboardPage() {
       }
     }
     trendByMonitor = Object.fromEntries(grouped);
+    for (const m of monitors) {
+      const counts = uptimeStats.get(m.id);
+      uptimeByMonitor[m.id] = counts
+        ? uptimePctFromCounts(counts.total, counts.okCount)
+        : null;
+    }
   }
 
   return (
@@ -90,6 +105,7 @@ export default async function DashboardPage() {
       monitors={monitors}
       latestByMonitor={latestByMonitor}
       trendByMonitor={trendByMonitor}
+      uptimeByMonitor={uptimeByMonitor}
       username={session.user.name ?? null}
       onboarding={{
         onboardingCompleted: userOnboarding?.onboardingCompleted,

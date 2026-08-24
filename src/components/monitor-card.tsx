@@ -5,8 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
-  ArrowDown,
-  ArrowUp,
   ExternalLink,
   MoreHorizontal,
   Pause,
@@ -21,7 +19,6 @@ import { SslBadge } from "@/components/ssl-badge";
 import { cn } from "@/lib/utils";
 import { getMonitorRadialKindFromLatest } from "@/lib/monitor-radial-glow";
 import { MonitorStatusTopGlow } from "@/components/monitor-status-top-glow";
-import { trendDeltaPercent, uptimePercent } from "@/lib/monitor-card-stats";
 
 type MonitorCardProps = {
   id: string;
@@ -31,6 +28,7 @@ type MonitorCardProps = {
   paused?: boolean | null;
   latest: { ok: boolean; responseTimeMs: number | null; message?: string | null } | undefined;
   trendResults: TrendPoint[];
+  uptimePct?: number | null;
   lastCheckAt: Date | null;
   sslMonitoring: boolean;
   sslValid: boolean | null;
@@ -63,11 +61,11 @@ function formatLastChecked(
   return tTime("daysAgo", { count: Math.floor(diffHr / 24) });
 }
 
-function formatDelta(value: number): string {
-  return `${Math.abs(value).toLocaleString(undefined, {
-    minimumFractionDigits: 1,
+function formatUptimePct(value: number): string {
+  return value.toLocaleString(undefined, {
+    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
-  })}%`;
+  });
 }
 
 function StatusDot({
@@ -106,6 +104,7 @@ export function MonitorCard({
   paused,
   latest,
   trendResults,
+  uptimePct = null,
   lastCheckAt,
   sslMonitoring,
   sslValid,
@@ -124,10 +123,7 @@ export function MonitorCard({
 
   const type = monitorType ?? "http";
   const favicon = getFaviconUrl(url, type);
-  const uptimePct = uptimePercent(trendResults);
-  const delta = trendDeltaPercent(trendResults);
-  const negative = Boolean(latest && !latest.ok) || (delta != null && delta < 0);
-  const tone = paused ? "muted" : negative ? "down" : "up";
+  const tone = paused ? "muted" : latest && !latest.ok ? "down" : "up";
   const canOpenUrl = type === "http" || type === "keyword";
   const sslDays =
     sslExpiresAt == null
@@ -272,32 +268,8 @@ export function MonitorCard({
               className="font-display text-[1.5rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
               title={formatLastChecked(lastCheckAt, tTime)}
             >
-              {uptimePct ?? "—"}
+              {uptimePct != null ? formatUptimePct(uptimePct) : "—"}
             </span>
-            {delta != null && delta !== 0 ? (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 text-xs font-medium tabular-nums",
-                  delta > 0 ? "text-status-up" : "text-status-down"
-                )}
-                aria-label={delta > 0 ? t("trendUp", { value: formatDelta(delta) }) : t("trendDown", { value: formatDelta(delta) })}
-              >
-                <span
-                  className={cn(
-                    "inline-flex size-3.5 items-center justify-center rounded-full",
-                    delta > 0 ? "bg-status-up/10" : "bg-status-down/10"
-                  )}
-                  aria-hidden
-                >
-                  {delta > 0 ? (
-                    <ArrowUp className="size-2.5" strokeWidth={2.5} />
-                  ) : (
-                    <ArrowDown className="size-2.5" strokeWidth={2.5} />
-                  )}
-                </span>
-                {formatDelta(delta)}
-              </span>
-            ) : null}
             <span className="text-xs text-text-muted">{t("uptimeLabel")}</span>
           </div>
 
@@ -305,7 +277,7 @@ export function MonitorCard({
             <Link
               href={`/monitors/${id}`}
               tabIndex={-1}
-              className="pointer-events-auto relative z-[2] mt-3 block min-h-28 min-w-0 flex-1 rounded-md"
+              className="pointer-events-auto relative z-[2] mt-3 block h-16 min-w-0 rounded-md"
             >
               <MonitorCardTrend results={trendResults} tone={tone} />
             </Link>
