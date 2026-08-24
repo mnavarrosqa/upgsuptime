@@ -1,4 +1,10 @@
-export type TrendPoint = { id?: string; ok: boolean; responseTimeMs?: number | null };
+export type TrendPoint = {
+  id?: string;
+  ok: boolean;
+  responseTimeMs?: number | null;
+  createdAt?: string | Date | null;
+  message?: string | null;
+};
 
 /** API trend rows are newest-first; charts read left→right (oldest first). */
 export function chronologicalTrend(results: TrendPoint[]): TrendPoint[] {
@@ -62,4 +68,17 @@ function avgMs(arr: TrendPoint[]): number | null {
 
 function round1(n: number): number {
   return Math.round(n * 10) / 10;
+}
+
+export function sparklineIndexFromViewX(
+  viewX: number,
+  count: number,
+  padX = 6,
+  padRight = 12,
+  vw = 160,
+): number {
+  if (count <= 1) return 0;
+  const span = vw - padX - padRight;
+  const t = span <= 0 ? 0 : (viewX - padX) / span;
+  return Math.max(0, Math.min(count - 1, Math.round(t * (count - 1))));
 }

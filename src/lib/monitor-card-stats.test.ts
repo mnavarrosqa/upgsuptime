@@ -4,6 +4,7 @@ import {
   sparklineHealthValues,
   trendDeltaPercent,
   uptimePercent,
+  sparklineIndexFromViewX,
   type TrendPoint,
 } from "@/lib/monitor-card-stats";
 
@@ -43,5 +44,12 @@ describe("monitor-card-stats", () => {
   it("sparklineHealthValues dip on failed checks", () => {
     const values = sparklineHealthValues([pt(true, 80), pt(false, null)]);
     expect(values[1]).toBeLessThan(values[0]!);
+  });
+
+  it("sparklineIndexFromViewX maps x to the nearest check", () => {
+    expect(sparklineIndexFromViewX(0, 1)).toBe(0);
+    expect(sparklineIndexFromViewX(6, 5)).toBe(0);
+    expect(sparklineIndexFromViewX(160 - 12, 5)).toBe(4);
+    expect(sparklineIndexFromViewX(6 + (160 - 6 - 12) / 2, 5)).toBe(2);
   });
 });

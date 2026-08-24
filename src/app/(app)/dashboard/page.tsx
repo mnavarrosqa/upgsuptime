@@ -21,7 +21,10 @@ export default async function DashboardPage() {
   ]);
 
   const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }> = {};
-  let trendByMonitor: Record<string, { id: string; ok: boolean; responseTimeMs: number | null }[]> = {};
+  let trendByMonitor: Record<
+    string,
+    { id: string; ok: boolean; responseTimeMs: number | null; createdAt: string; message: string | null }[]
+  > = {};
   const checkLocation = (() => {
     const explicitLocation = process.env.CHECKS_LOCATION ?? process.env.NEXT_PUBLIC_CHECKS_LOCATION;
     const value = explicitLocation?.trim();
@@ -51,13 +54,17 @@ export default async function DashboardPage() {
         ok: checkResult.ok,
         responseTimeMs: checkResult.responseTimeMs,
         message: checkResult.message,
+        createdAt: checkResult.createdAt,
       })
       .from(checkResult)
       .where(inArray(checkResult.monitorId, monitorIds))
       .orderBy(desc(checkResult.createdAt))
       .limit(trendLimit);
 
-    const grouped = new Map<string, { id: string; ok: boolean; responseTimeMs: number | null }[]>();
+    const grouped = new Map<
+      string,
+      { id: string; ok: boolean; responseTimeMs: number | null; createdAt: string; message: string | null }[]
+    >();
     for (const r of recentResults) {
       // First result per monitor = most recent = latestByMonitor entry
       if (!(r.monitorId in latestByMonitor)) {
@@ -65,7 +72,13 @@ export default async function DashboardPage() {
       }
       const list = grouped.get(r.monitorId) ?? [];
       if (list.length < 24) {
-        list.push({ id: r.id, ok: r.ok, responseTimeMs: r.responseTimeMs });
+        list.push({
+          id: r.id,
+          ok: r.ok,
+          responseTimeMs: r.responseTimeMs,
+          createdAt: new Date(r.createdAt).toISOString(),
+          message: r.message,
+        });
         grouped.set(r.monitorId, list);
       }
     }

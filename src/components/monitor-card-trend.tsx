@@ -1,13 +1,15 @@
 "use client";
 
-import { useId, useMemo } from "react";
+import { useId, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   chronologicalTrend,
   normalizeSparklineValues,
   sparklineHealthValues,
+  sparklineIndexFromViewX,
   type TrendPoint,
 } from "@/lib/monitor-card-stats";
+import { cn } from "@/lib/utils";
 
 export type { TrendPoint };
 
@@ -37,6 +39,20 @@ function smoothLine(pts: { x: number; y: number }[]): string {
   return d;
 }
 
+function formatCheckWhen(
+  date: string | Date | null | undefined,
+  tTime: (key: string, values?: Record<string, number>) => string,
+): string | null {
+  if (!date) return null;
+  const diffMs = Date.now() - new Date(date).getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return tTime("justNow");
+  if (diffMin < 60) return tTime("minutesAgo", { count: diffMin });
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return tTime("hoursAgo", { count: diffHr });
+  return tTime("daysAgo", { count: Math.floor(diffHr / 24) });
+}
+
 export function MonitorCardTrend({
   results,
   tone,
@@ -45,8 +61,11 @@ export function MonitorCardTrend({
   tone: SparklineTone;
 }) {
   const t = useTranslations("monitorsPage");
+  const tTime = useTranslations("time");
   const rawId = useId();
   const gid = `mcg-${rawId.replace(/:/g, "")}`;
+  const liveId = `${gid}-live`;
+  const [hoverIndex, setHoverIndex] = useState<number | null>(null);
 
   const geom = useMemo(() => {
     const chrono = chronologicalTrend(results);
@@ -57,12 +76,13 @@ export function MonitorCardTrend({
     const pts = values.map((v, i) => ({
       x: PAD_X + (values.length === 1 ? spanX : (i / (values.length - 1)) * spanX),
       y: PAD_Y + (1 - v) * spanY,
+      check: chrono[i]!,
     }));
     const line = smoothLine(pts);
     const last = pts[pts.length - 1]!;
     const first = pts[0]!;
     const area = `${line} L ${last.x} ${VH} L ${first.x} ${VH} Z`;
-    return { line, area, last };
+    return { line, area, pts };
   }, [results]);
 
   if (!geom) return null;
@@ -74,8 +94,65 @@ export function MonitorCardTrend({
         ? "var(--status-up)"
         : "var(--text-muted)";
 
+  const activeIndex = hoverIndex ?? geom.pts.length - 1;
+  const active = geom.pts[activeIndex]!;
+  const activeCheck = active.check;
+  const hovering = hoverIndex != null;
+  const pointStroke =
+    tone === "muted"
+      ? stroke
+      : activeCheck.ok
+        ? "var(--status-up)"
+        : "var(--status-down)";
+  const when = formatCheckWhen(activeCheck.createdAt, tTime);
+  const statusLabel = activeCheck.ok ? t("statusUp") : t("statusDown");
+  const latency =
+    activeCheck.responseTimeMs != null ? t("trendCheckMs", { ms: activeCheck.responseTimeMs }) : null;
+  const liveText = [statusLabel, latency, when].filter(Boolean).join(" · ");
+
+  function setFromClientX(target: HTMLElement, clientX: number) {
+    const rect = target.getBoundingClientRect();
+    if (rect.width <= 0) return;
+    const viewX = ((clientX - rect.left) / rect.width) * VW;
+    setHoverIndex(sparklineIndexFromViewX(viewX, geom!.pts.length, PAD_X, PAD_RIGHT, VW));
+  }
+
+  const tooltipLeft = (active.x / VW) * 100;
+  const tooltipShift = tooltipLeft < 22 ? "0%" : tooltipLeft > 78 ? "-100%" : "-50%";
+
   return (
-    <div className="h-16 w-full min-w-28 motion-safe:motion-soft-pop" aria-label={t("uptimeTrend")}>
+    <div
+      className="relative h-full min-h-28 w-full cursor-crosshair motion-safe:motion-soft-pop"
+      aria-label={t("uptimeTrend")}
+      aria-describedby={liveId}
+      onPointerMove={(e) => setFromClientX(e.currentTarget, e.clientX)}
+      onPointerLeave={() => setHoverIndex(null)}
+    >
+      <span id={liveId} className="sr-only" aria-live="polite">
+        {liveText}
+      </span>
+      {hovering ? (
+        <div
+          className="pointer-events-none absolute top-0 z-10"
+          style={{ left: `${tooltipLeft}%`, transform: `translateX(${tooltipShift})` }}
+        >
+          <div
+            className={cn(
+              "max-w-[11rem] rounded-md border border-border/80 bg-bg-card px-2 py-1 text-[11px] leading-snug shadow-md",
+              activeCheck.ok ? "text-text-primary" : "text-status-down"
+            )}
+          >
+            <p className="truncate font-medium">
+              {statusLabel}
+              {latency ? <span className="font-normal text-text-muted"> · {latency}</span> : null}
+            </p>
+            {when ? <p className="truncate text-text-muted">{when}</p> : null}
+            {!activeCheck.ok && activeCheck.message ? (
+              <p className="mt-0.5 truncate text-text-muted">{activeCheck.message}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
       <svg
         viewBox={`0 0 ${VW} ${VH}`}
         className="h-full w-full overflow-visible"
@@ -88,6 +165,7 @@ export function MonitorCardTrend({
             <stop offset="100%" stopColor={stroke} stopOpacity="0" />
           </linearGradient>
         </defs>
+        <rect x="0" y="0" width={VW} height={VH} fill="transparent" />
         <path d={geom.area} fill={`url(#${gid})`} />
         <path
           d={geom.line}
@@ -99,21 +177,21 @@ export function MonitorCardTrend({
           vectorEffect="non-scaling-stroke"
         />
         <line
-          x1={geom.last.x}
+          x1={active.x}
           y1={PAD_Y - 2}
-          x2={geom.last.x}
+          x2={active.x}
           y2={VH - 4}
-          stroke={stroke}
+          stroke={pointStroke}
           strokeWidth="1"
           strokeDasharray="2.5 3"
-          strokeOpacity="0.45"
+          strokeOpacity={hovering ? 0.7 : 0.45}
           vectorEffect="non-scaling-stroke"
         />
         <circle
-          cx={geom.last.x}
-          cy={geom.last.y}
-          r="3.25"
-          fill={stroke}
+          cx={active.x}
+          cy={active.y}
+          r={hovering ? 4 : 3.25}
+          fill={pointStroke}
           stroke="var(--bg-card)"
           strokeWidth="1.5"
           vectorEffect="non-scaling-stroke"

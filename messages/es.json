@@ -520,7 +520,7 @@
     "checking": "Comprobando…",
     "uptimeTrend": "Tendencia de disponibilidad",
     "uptimeLabel": "Disponibilidad",
-    "viewFullReport": "Ver informe completo",
+    "trendCheckMs": "{ms}ms",
     "moreActions": "Más acciones para {name}",
     "openSite": "Abrir sitio",
     "trendUp": "Sube {value}",

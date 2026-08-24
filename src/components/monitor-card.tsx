@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   ArrowDown,
-  ArrowRight,
   ArrowUp,
   ExternalLink,
   MoreHorizontal,
@@ -268,57 +267,51 @@ export function MonitorCard({
             </p>
           ) : null}
 
-          <div className="mt-6 flex items-end justify-between gap-4">
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
+          <div className="mt-4 flex min-w-0 items-baseline gap-2">
+            <span
+              className="font-display text-[1.5rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
+              title={formatLastChecked(lastCheckAt, tTime)}
+            >
+              {uptimePct ?? "—"}
+            </span>
+            {delta != null && delta !== 0 ? (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 text-xs font-medium tabular-nums",
+                  delta > 0 ? "text-status-up" : "text-status-down"
+                )}
+                aria-label={delta > 0 ? t("trendUp", { value: formatDelta(delta) }) : t("trendDown", { value: formatDelta(delta) })}
+              >
                 <span
-                  className="font-display text-[2.35rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
-                  title={formatLastChecked(lastCheckAt, tTime)}
+                  className={cn(
+                    "inline-flex size-3.5 items-center justify-center rounded-full",
+                    delta > 0 ? "bg-status-up/10" : "bg-status-down/10"
+                  )}
+                  aria-hidden
                 >
-                  {uptimePct ?? "—"}
+                  {delta > 0 ? (
+                    <ArrowUp className="size-2.5" strokeWidth={2.5} />
+                  ) : (
+                    <ArrowDown className="size-2.5" strokeWidth={2.5} />
+                  )}
                 </span>
-                {delta != null && delta !== 0 ? (
-                  <span
-                    className={cn(
-                      "mb-0.5 inline-flex items-center gap-1 text-[13px] font-medium tabular-nums",
-                      delta > 0 ? "text-status-up" : "text-status-down"
-                    )}
-                    aria-label={delta > 0 ? t("trendUp", { value: formatDelta(delta) }) : t("trendDown", { value: formatDelta(delta) })}
-                  >
-                    <span
-                      className={cn(
-                        "inline-flex size-4 items-center justify-center rounded-full",
-                        delta > 0 ? "bg-status-up/10" : "bg-status-down/10"
-                      )}
-                      aria-hidden
-                    >
-                      {delta > 0 ? (
-                        <ArrowUp className="size-2.5" strokeWidth={2.5} />
-                      ) : (
-                        <ArrowDown className="size-2.5" strokeWidth={2.5} />
-                      )}
-                    </span>
-                    {formatDelta(delta)}
-                  </span>
-                ) : null}
-              </div>
-              <p className="mt-1.5 text-[13px] text-text-muted">{t("uptimeLabel")}</p>
-            </div>
-            {trendResults.length > 0 ? (
-              <div className="w-[42%] max-w-40 shrink-0 self-center">
-                <MonitorCardTrend results={trendResults} tone={tone} />
-              </div>
+                {formatDelta(delta)}
+              </span>
             ) : null}
+            <span className="text-xs text-text-muted">{t("uptimeLabel")}</span>
           </div>
 
-          <div className="min-h-6 flex-1" aria-hidden />
-          <div className="flex items-center justify-between gap-2 border-t border-border/70 pt-4">
-            <span className="text-[13px] text-text-muted">{t("viewFullReport")}</span>
-            <ArrowRight
-              className="size-4 text-text-muted transition-transform duration-200 [transition-timing-function:var(--motion-ease-out-quart)] group-hover:translate-x-0.5"
-              aria-hidden
-            />
-          </div>
+          {trendResults.length > 0 ? (
+            <Link
+              href={`/monitors/${id}`}
+              tabIndex={-1}
+              className="pointer-events-auto relative z-[2] mt-3 block min-h-28 min-w-0 flex-1 rounded-md"
+            >
+              <MonitorCardTrend results={trendResults} tone={tone} />
+            </Link>
+          ) : (
+            <div className="flex-1" aria-hidden />
+          )}
         </div>
       </div>
 
