@@ -1,19 +1,28 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
-import Image from "next/image";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Pause, Play, RefreshCw } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowRight,
+  ArrowUp,
+  ExternalLink,
+  MoreHorizontal,
+  Pause,
+  Play,
+  RefreshCw,
+} from "lucide-react";
 import { toast } from "sonner";
 import { MonitorCardTrend, type TrendPoint } from "@/components/monitor-card-trend";
-import { MonitorStatusBadge } from "@/components/monitor-status-badge";
-import { MonitorStatusTopGlow } from "@/components/monitor-status-top-glow";
+import { MonitorFavicon } from "@/components/monitor-favicon";
 import { DowntimeAckBadge } from "@/components/downtime-ack-controls";
 import { SslBadge } from "@/components/ssl-badge";
 import { cn } from "@/lib/utils";
 import { getMonitorRadialKindFromLatest } from "@/lib/monitor-radial-glow";
+import { MonitorStatusTopGlow } from "@/components/monitor-status-top-glow";
+import { trendDeltaPercent, uptimePercent } from "@/lib/monitor-card-stats";
 
 type MonitorCardProps = {
   id: string;
@@ -55,6 +64,41 @@ function formatLastChecked(
   return tTime("daysAgo", { count: Math.floor(diffHr / 24) });
 }
 
+function formatDelta(value: number): string {
+  return `${Math.abs(value).toLocaleString(undefined, {
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
+  })}%`;
+}
+
+function StatusDot({
+  paused,
+  latest,
+  label,
+}: {
+  paused?: boolean | null;
+  latest: { ok: boolean } | undefined;
+  label: string;
+}) {
+  const tone = paused ? "paused" : latest?.ok ? "up" : latest ? "down" : "unknown";
+  return (
+    <span
+      className="flex size-1.5 shrink-0 items-center justify-center"
+      title={label}
+      aria-label={label}
+    >
+      <span
+        className={cn(
+          "size-1.5 rounded-full",
+          tone === "up" && "bg-status-up",
+          tone === "down" && "bg-status-down",
+          (tone === "paused" || tone === "unknown") && "bg-text-muted/70"
+        )}
+      />
+    </span>
+  );
+}
+
 export function MonitorCard({
   id,
   name,
@@ -76,19 +120,56 @@ export function MonitorCard({
   const tTime = useTranslations("time");
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const type = monitorType ?? "http";
   const favicon = getFaviconUrl(url, type);
-  const uptimePct =
-    trendResults.length > 0
-      ? Math.round(
-          (trendResults.filter((r) => r.ok).length / trendResults.length) * 100
-        )
-      : null;
+  const uptimePct = uptimePercent(trendResults);
+  const delta = trendDeltaPercent(trendResults);
+  const negative = Boolean(latest && !latest.ok) || (delta != null && delta < 0);
+  const tone = paused ? "muted" : negative ? "down" : "up";
+  const canOpenUrl = type === "http" || type === "keyword";
+  const sslDays =
+    sslExpiresAt == null
+      ? null
+      : Math.ceil((new Date(sslExpiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+  const sslIssue =
+    sslMonitoring &&
+    type !== "dns" &&
+    type !== "tcp" &&
+    sslValid !== null &&
+    (sslValid === false || (sslDays !== null && sslDays <= 7));
+  const statusLabel = paused
+    ? t("statusPaused")
+    : latest?.ok
+      ? t("statusUp")
+      : latest
+        ? t("statusDown")
+        : "—";
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    function handlePointer(event: PointerEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    }
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === "Escape") setMenuOpen(false);
+    }
+    document.addEventListener("pointerdown", handlePointer);
+    document.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("pointerdown", handlePointer);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, [menuOpen]);
 
   async function handlePauseToggle(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    setMenuOpen(false);
     setLoading(true);
     try {
       const res = await fetch(`/api/monitors/${id}`, {
@@ -111,6 +192,7 @@ export function MonitorCard({
   async function handleCheckNow(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
+    setMenuOpen(false);
     setChecking(true);
     try {
       const res = await fetch(`/api/monitors/${id}/check-now`, { method: "POST" });
@@ -133,7 +215,7 @@ export function MonitorCard({
     >
       <div
         className={cn(
-          "relative flex h-full flex-col overflow-hidden rounded-xl border bg-bg-card p-4 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99] sm:p-5",
+          "relative flex h-full flex-col overflow-hidden rounded-2xl border bg-bg-card p-5 shadow-sm transition-[transform,box-shadow,border-color,opacity] duration-240 [transition-timing-function:var(--motion-ease-out-quart)] hover:-translate-y-0.5 hover:shadow-md active:translate-y-0 active:scale-[0.99]",
           paused
             ? "border-border opacity-60"
             : latest && !latest.ok
@@ -144,143 +226,158 @@ export function MonitorCard({
         <MonitorStatusTopGlow kind={getMonitorRadialKindFromLatest(paused, latest)} />
         <Link
           href={`/monitors/${id}`}
-          className="absolute inset-0 z-0 rounded-xl outline-offset-2"
+          className="absolute inset-0 z-0 rounded-2xl outline-offset-2"
           aria-label={t("viewDetailsFor", { name })}
         />
 
         <div className="pointer-events-none relative z-[2] flex flex-1 flex-col">
-          {/* Header: favicon + name + status */}
-          <div className="flex items-start gap-3">
+          <div className="flex items-center gap-2 pr-8">
             {favicon ? (
-              <Image
-                src={favicon}
-                alt=""
-                className="mt-0.5 size-6 shrink-0 rounded-md"
-                width={24}
-                height={24}
-                unoptimized
-              />
+              <MonitorFavicon src={favicon} size="sm" />
             ) : (
               <span
-                className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md bg-bg-page text-[10px] font-semibold text-text-muted"
+                className="flex size-4 shrink-0 items-center justify-center rounded bg-bg-page text-[9px] font-semibold text-text-muted"
                 aria-hidden
               >
                 {type === "dns" ? "D" : type === "keyword" ? "K" : type === "tcp" ? "T" : "•"}
               </span>
             )}
-            <div className="min-w-0 flex-1">
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex min-w-0 items-center gap-2">
-                  <span className="truncate font-display text-[15px] font-semibold leading-snug text-text-primary">
-                    {name}
-                  </span>
-                  {type !== "http" && (
-                    <span className="shrink-0 rounded-md bg-bg-page px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
-                      {type === "dns" ? "DNS" : type === "tcp" ? "TCP" : "KW"}
-                    </span>
-                  )}
-                </div>
-                <div className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                  <MonitorStatusBadge paused={paused} latest={latest} />
-                  {downtimeAcked ? <DowntimeAckBadge /> : null}
-                </div>
-              </div>
-              {type === "dns" || type === "tcp" ? (
-                <span
-                  className="mt-1 block truncate font-mono text-xs text-text-muted/80"
-                  title={url}
-                >
-                  {url}
-                </span>
-              ) : (
-                <a
-                  href={url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="pointer-events-auto mt-1 block truncate text-xs text-text-muted/80 underline-offset-2 hover:text-text-primary hover:underline"
-                  title={url}
-                >
-                  {url}
-                </a>
-              )}
-              {latest && !latest.ok && latest.message && (
-                <p
-                  className="mt-1 truncate text-xs font-medium text-status-down"
-                  title={latest.message}
-                >
-                  {latest.message}
-                </p>
-              )}
-            </div>
+            <StatusDot paused={paused} latest={latest} label={statusLabel} />
+            <span className="min-w-0 truncate text-[13px] font-medium text-text-primary" title={url}>
+              {name}
+            </span>
+            {type !== "http" && (
+              <span className="shrink-0 rounded-md bg-bg-page px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-text-muted">
+                {type === "dns" ? "DNS" : type === "tcp" ? "TCP" : "KW"}
+              </span>
+            )}
+            {downtimeAcked ? <DowntimeAckBadge /> : null}
+            {sslIssue ? (
+              <SslBadge
+                monitoring={sslMonitoring}
+                valid={sslValid}
+                expiresAt={sslExpiresAt}
+                compact
+              />
+            ) : null}
           </div>
 
-          {/* Trend bars */}
-          {trendResults.length > 0 && (
-            <div className="mt-4">
-              <MonitorCardTrend results={trendResults} />
-            </div>
-          )}
+          {latest && !latest.ok && latest.message ? (
+            <p className="mt-1.5 truncate pr-8 text-xs font-medium text-status-down" title={latest.message}>
+              {latest.message}
+            </p>
+          ) : null}
 
-          {/* Footer: uptime % · response time · SSL | last checked */}
-          <div className="mt-3 flex items-center justify-between gap-2 text-xs text-text-muted">
-            <div className="flex items-center gap-2 tabular-nums">
-              {uptimePct !== null && (
+          <div className="mt-6 flex items-end justify-between gap-4">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
                 <span
-                  className={cn(
-                    "rounded-md px-1.5 py-0.5 text-[11px] font-semibold",
-                    uptimePct === 100
-                      ? "bg-status-up/10 text-status-up"
-                      : uptimePct >= 90
-                        ? "bg-status-warn/10 text-status-warn"
-                        : "bg-status-down/10 text-status-down"
-                  )}
+                  className="font-display text-[2.35rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
+                  title={formatLastChecked(lastCheckAt, tTime)}
                 >
-                  {uptimePct}%
+                  {uptimePct ?? "—"}
                 </span>
-              )}
-              {latest?.responseTimeMs != null && (
-                <span className="text-text-muted/80">{latest.responseTimeMs}ms</span>
-              )}
-              {sslMonitoring && type !== "dns" && type !== "tcp" && (
-                <SslBadge
-                  monitoring={sslMonitoring}
-                  valid={sslValid}
-                  expiresAt={sslExpiresAt}
-                  compact
-                />
-              )}
+                {delta != null && delta !== 0 ? (
+                  <span
+                    className={cn(
+                      "mb-0.5 inline-flex items-center gap-1 text-[13px] font-medium tabular-nums",
+                      delta > 0 ? "text-status-up" : "text-status-down"
+                    )}
+                    aria-label={delta > 0 ? t("trendUp", { value: formatDelta(delta) }) : t("trendDown", { value: formatDelta(delta) })}
+                  >
+                    <span
+                      className={cn(
+                        "inline-flex size-4 items-center justify-center rounded-full",
+                        delta > 0 ? "bg-status-up/10" : "bg-status-down/10"
+                      )}
+                      aria-hidden
+                    >
+                      {delta > 0 ? (
+                        <ArrowUp className="size-2.5" strokeWidth={2.5} />
+                      ) : (
+                        <ArrowDown className="size-2.5" strokeWidth={2.5} />
+                      )}
+                    </span>
+                    {formatDelta(delta)}
+                  </span>
+                ) : null}
+              </div>
+              <p className="mt-1.5 text-[13px] text-text-muted">{t("uptimeLabel")}</p>
             </div>
-            <span className="text-text-muted/60">{formatLastChecked(lastCheckAt, tTime)}</span>
+            {trendResults.length > 0 ? (
+              <div className="w-[42%] max-w-40 shrink-0 self-center">
+                <MonitorCardTrend results={trendResults} tone={tone} />
+              </div>
+            ) : null}
+          </div>
+
+          <div className="min-h-6 flex-1" aria-hidden />
+          <div className="flex items-center justify-between gap-2 border-t border-border/70 pt-4">
+            <span className="text-[13px] text-text-muted">{t("viewFullReport")}</span>
+            <ArrowRight
+              className="size-4 text-text-muted transition-transform duration-200 [transition-timing-function:var(--motion-ease-out-quart)] group-hover:translate-x-0.5"
+              aria-hidden
+            />
           </div>
         </div>
       </div>
 
-      {/* Quick actions */}
-      <div className="pointer-events-auto absolute bottom-3 right-3 z-[2] flex translate-y-0 gap-1 opacity-90 transition-[opacity,transform] duration-200 [transition-timing-function:var(--motion-ease-out-quart)] md:translate-y-1 md:opacity-0 md:group-hover:translate-y-0 md:group-hover:opacity-100">
+      <div className="absolute top-3.5 right-3.5 z-[3]" ref={menuRef}>
         <button
           type="button"
-          onClick={handleCheckNow}
-          title={t("checkNow")}
-          aria-label={t("checkNowFor", { name })}
-          disabled={checking || !!paused}
-          className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-bg-card/95 text-text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-border-muted hover:text-text-primary disabled:opacity-40 md:size-9"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            setMenuOpen((open) => !open);
+          }}
+          title={t("moreActions", { name })}
+          aria-label={t("moreActions", { name })}
+          aria-expanded={menuOpen}
+          aria-haspopup="menu"
+          className="flex size-8 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
         >
-          <RefreshCw className={`size-3.5 ${checking ? "motion-safe:animate-spin motion-reduce:animate-none" : ""}`} aria-hidden />
+          <MoreHorizontal className="size-4" aria-hidden />
         </button>
-        <button
-          type="button"
-          onClick={handlePauseToggle}
-          title={paused ? t("resume") : t("pause")}
-          aria-label={paused ? t("resumeMonitor", { name }) : t("pauseMonitor", { name })}
-          disabled={loading}
-          className="flex size-8 items-center justify-center rounded-lg border border-border/60 bg-bg-card/95 text-text-muted shadow-sm backdrop-blur-sm transition-colors hover:border-border-muted hover:text-text-primary disabled:opacity-40 md:size-9"
-        >
-          {paused ? (
-            <Play className="size-3.5" aria-hidden />
-          ) : (
-            <Pause className="size-3.5" aria-hidden />
-          )}
-        </button>
+        {menuOpen ? (
+          <div
+            role="menu"
+            className="absolute right-0 top-full z-50 mt-1 min-w-[11.5rem] overflow-hidden rounded-xl border border-border/60 bg-bg-card py-1 shadow-lg shadow-black/10"
+          >
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleCheckNow}
+              disabled={checking || !!paused}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary disabled:opacity-40"
+            >
+              <RefreshCw className={cn("size-3.5", checking && "motion-safe:animate-spin")} aria-hidden />
+              {t("checkNow")}
+            </button>
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handlePauseToggle}
+              disabled={loading}
+              className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary disabled:opacity-40"
+            >
+              {paused ? <Play className="size-3.5" aria-hidden /> : <Pause className="size-3.5" aria-hidden />}
+              {paused ? t("resume") : t("pause")}
+            </button>
+            {canOpenUrl ? (
+              <a
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+                role="menuitem"
+                onClick={() => setMenuOpen(false)}
+                className="flex w-full items-center gap-2.5 px-3 py-2 text-left text-[13px] text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
+              >
+                <ExternalLink className="size-3.5" aria-hidden />
+                {t("openSite")}
+              </a>
+            ) : null}
+          </div>
+        ) : null}
       </div>
     </li>
   );

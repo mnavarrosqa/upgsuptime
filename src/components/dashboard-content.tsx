@@ -161,7 +161,7 @@ function MonitorGrid({ monitors, latestByMonitor, trendByMonitor, sortBy }: Moni
     [downMonitors, pausedMonitors, [...upMonitors, ...uncheckedMonitors]].filter((g) => g.length > 0).length > 1;
 
   return (
-    <ul className="mt-5 grid gap-3 [grid-template-columns:repeat(auto-fill,minmax(min(100%,20rem),1fr))] sm:gap-4">
+    <ul className="mt-5 grid gap-4 [grid-template-columns:repeat(auto-fill,minmax(min(100%,21rem),1fr))]">
       {downMonitors.length > 0 && (
         <>
           {multipleGroups && (

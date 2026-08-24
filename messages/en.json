@@ -519,6 +519,12 @@
     "checkComplete": "Check complete",
     "checking": "Checking…",
     "uptimeTrend": "Uptime trend",
+    "uptimeLabel": "Uptime",
+    "viewFullReport": "View full report",
+    "moreActions": "More actions for {name}",
+    "openSite": "Open site",
+    "trendUp": "Up {value}",
+    "trendDown": "Down {value}",
     "searchView": "View"
   },
   "help": {

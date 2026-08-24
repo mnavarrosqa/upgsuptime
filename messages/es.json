@@ -519,6 +519,12 @@
     "checkComplete": "Comprobación lista",
     "checking": "Comprobando…",
     "uptimeTrend": "Tendencia de disponibilidad",
+    "uptimeLabel": "Disponibilidad",
+    "viewFullReport": "Ver informe completo",
+    "moreActions": "Más acciones para {name}",
+    "openSite": "Abrir sitio",
+    "trendUp": "Sube {value}",
+    "trendDown": "Baja {value}",
     "searchView": "Ver"
   },
   "help": {

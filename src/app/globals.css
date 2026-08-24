@@ -144,8 +144,6 @@
 
 @theme {
   --animate-monitor-status-ring: monitor-status-ring 1.85s cubic-bezier(0, 0, 0.2, 1) infinite;
-  --animate-monitor-trend-bar: monitor-trend-bar-in 0.36s cubic-bezier(0.22, 1, 0.36, 1) both;
-  --animate-monitor-trend-bar-new: monitor-trend-bar-new 0.58s cubic-bezier(0.25, 0.9, 0.35, 1.12) both;
   --animate-operational-badge-dot: operational-badge-dot 2.6s ease-in-out infinite;
   --animate-fade-slide-up: fade-slide-up var(--motion-duration-slow) var(--motion-ease-out-quint) both;
   --animate-soft-pop-in: soft-pop-in 320ms var(--motion-ease-out-quart) both;
@@ -223,35 +221,6 @@
     }
   }
 
-  @keyframes monitor-trend-bar-in {
-    from {
-      opacity: 0;
-      transform: scaleY(0.35);
-    }
-    to {
-      opacity: 1;
-      transform: scaleY(1);
-    }
-  }
-
-  @keyframes monitor-trend-bar-new {
-    0% {
-      opacity: 0.35;
-      transform: translateY(calc(-100% - 10px));
-    }
-    58% {
-      opacity: 1;
-      transform: translateY(2px);
-    }
-    78% {
-      transform: translateY(-1px);
-    }
-    100% {
-      opacity: 1;
-      transform: translateY(0);
-    }
-  }
-
   @keyframes fade-slide-up {
     from {
       opacity: 0;
@@ -298,18 +267,6 @@ body {
   }
 
   .animate-operational-badge-dot {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-
-  .animate-monitor-trend-bar {
-    animation: none;
-    opacity: 1;
-    transform: none;
-  }
-
-  .animate-monitor-trend-bar-new {
     animation: none;
     opacity: 1;
     transform: none;
