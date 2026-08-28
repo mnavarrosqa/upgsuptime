@@ -1,4 +1,4 @@
-/** Primary app routes shown in the top nav (Dashboard, Activity). */
+/** Primary app routes shown in the top nav (Dashboard, Recent activity). */
 export const APP_PRIMARY_NAV_LINKS = [
   { href: "/dashboard", labelKey: "dashboard" as const },
   { href: "/activity", labelKey: "activity" as const },

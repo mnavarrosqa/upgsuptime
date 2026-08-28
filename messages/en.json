@@ -345,7 +345,7 @@
     "appTitle": "UPG Monitor",
     "dashboard": "Dashboard",
     "monitors": "Monitors",
-    "activity": "Activity",
+    "activity": "Recent activity",
     "admin": "Admin",
     "account": "Account",
     "help": "Help & Support",
@@ -554,7 +554,7 @@
       "monitors": "Monitors",
       "monitorDetail": "Monitor detail",
       "alerts": "Alerts and incidents",
-      "activity": "Activity",
+      "activity": "Recent activity",
       "account": "Account",
       "dataPortability": "Export and import",
       "publicStatus": "Public status page",
@@ -569,7 +569,7 @@
         "body": [
           "UPG Monitor checks URLs, hosts, ports, DNS records, keywords, and certificates on a schedule. Each run records whether the check succeeded, how long it took, and any status details needed for later review.",
           "Your monitors are private by default. You can publish selected monitors on a read-only status page, share data through the status API, and keep operational history inside your account.",
-          "Use Dashboard for the current picture, Activity for cross-monitor events, and Help & Support when you need a reference."
+          "Use Dashboard for the current picture, Recent activity for cross-monitor events, and Help & Support when you need a reference."
         ]
       },
       "signInAndAccount": {
@@ -718,12 +718,12 @@
         ]
       },
       "activityFeed": {
-        "title": "Activity feed",
+        "title": "Recent activity",
         "summary": "Recent up and down events across monitors.",
         "body": [
-          "Activity lists recent status changes across monitors, with pagination for browsing older entries.",
-          "The Activity navigation indicator can show unread incident-related updates. Clear or dismiss controls affect what you see in the feed, not the underlying monitor configuration.",
-          "Use Activity when you need a chronological story across all monitors instead of detail for one monitor."
+          "Recent activity lists status changes across monitors, with pagination for browsing older entries.",
+          "The Recent activity navigation indicator can show unread incident-related updates. Clear or dismiss controls affect what you see in the feed, not the underlying monitor configuration.",
+          "Use Recent activity when you need a chronological story across all monitors instead of detail for one monitor."
         ]
       },
       "accountProfile": {
@@ -1257,7 +1257,7 @@
     "completeNextSteps": "Next steps",
     "completeNextStep1": "Add more monitors to track all your services",
     "completeNextStep2": "Enable email alerts to get notified of changes",
-    "completeNextStep3": "Check the Activity page to see status history",
+    "completeNextStep3": "Check Recent activity to see status history",
     "completeAccessGuide": "You can access this guide anytime from Account settings.",
     "completeClose": "Close",
     "completeDashboard": "Go to Dashboard",

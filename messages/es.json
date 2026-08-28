@@ -345,7 +345,7 @@
     "appTitle": "UPG Monitor",
     "dashboard": "Panel",
     "monitors": "Monitores",
-    "activity": "Actividad",
+    "activity": "Actividad reciente",
     "admin": "Admin",
     "account": "Cuenta",
     "help": "Ayuda y soporte",
@@ -461,7 +461,7 @@
     "sectionOperational": "{count, plural, one {# operativo} other {# operativos}}"
   },
   "activity": {
-    "title": "Actividad",
+    "title": "Actividad reciente",
     "eventCount": "{count, plural, one {# evento} other {# eventos}}",
     "clearing": "Borrando…",
     "clearAll": "Vaciar todo",
@@ -554,7 +554,7 @@
       "monitors": "Monitores",
       "monitorDetail": "Detalle del monitor",
       "alerts": "Alertas e incidentes",
-      "activity": "Actividad",
+      "activity": "Actividad reciente",
       "account": "Cuenta",
       "dataPortability": "Exportar / importar",
       "publicStatus": "Página de estado pública",
@@ -569,7 +569,7 @@
         "body": [
           "UPG Monitor revisa tus URLs cada cierto tiempo y guarda si la comprobación salió bien, cuánto tardó y el estado SSL si lo tienes activado.",
           "Tus monitores son privados. Con tu usuario puedes compartir una página de estado pública de solo lectura.",
-          "El Panel es el vistazo rápido; Actividad muestra caídas y recuperaciones."
+          "El Panel es el vistazo rápido; Actividad reciente muestra caídas y recuperaciones."
         ]
       },
       "signInAndAccount": {
@@ -711,11 +711,11 @@
         ]
       },
       "activityFeed": {
-        "title": "Actividad",
+        "title": "Actividad reciente",
         "summary": "Caídas y recuperaciones de todos los monitores.",
         "body": [
           "Lista cambios recientes (cayó, volvió) con paginación.",
-          "Vaciar todo borra lo que ves aquí. Un puntito en Actividad puede marcar cosas nuevas sin leer.",
+          "Vaciar todo borra lo que ves aquí. Un puntito en Actividad reciente puede marcar cosas nuevas sin leer.",
           "Úsala cuando quieras la línea de tiempo global, no el detalle de uno."
         ]
       },
@@ -882,7 +882,7 @@
     "screenDashboardTitle": "Panel",
     "screenDashboardBadge": "Todo bien",
     "screenDashboardStat": "5 monitores · 4 en línea · 1 caído",
-    "screenActivityTitle": "Actividad",
+    "screenActivityTitle": "Actividad reciente",
     "screenActivityCount": "8 eventos",
     "screenActivityFooter": "Últimos 7 días de cambios de estado",
     "mockStatusDown": "Caído",
@@ -1258,7 +1258,7 @@
     "completeNextSteps": "Próximos pasos",
     "completeNextStep1": "Añade más monitores para cubrir todos tus servicios",
     "completeNextStep2": "Activa alertas por correo para enterarte de los cambios",
-    "completeNextStep3": "Revisa Actividad para ver el historial de estado",
+    "completeNextStep3": "Revisa Actividad reciente para ver el historial de estado",
     "completeAccessGuide": "Puedes abrir este tour cuando quieras desde Cuenta.",
     "completeClose": "Cerrar",
     "completeDashboard": "Ir al panel",
