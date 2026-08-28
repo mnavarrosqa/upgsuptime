@@ -474,6 +474,8 @@
     "chartVolume": "Eventos de los últimos 7 días",
     "chartVolumeSub": "Días UTC — caídas, recuperaciones y alertas de lentitud.",
     "chartRecovered": "Recuperado",
+    "fleetUptime90d": "{pct}% en 90 días",
+    "uptimeAllClear": "Todos los monitores están al 100% en 90 días.",
     "attention": "Necesitan atención",
     "acked": "Reconocido",
     "degraded": "Lento",

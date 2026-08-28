@@ -1,16 +1,39 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import type { DashboardChartsProps } from "@/components/dashboard-charts";
+import type { ActivityDayPoint, FleetSlice } from "@/components/dashboard-charts";
 
-const DashboardChartsInner = dynamic(
-  () => import("@/components/dashboard-charts").then((m) => ({ default: m.DashboardCharts })),
+const FleetMixInner = dynamic(
+  () => import("@/components/dashboard-charts").then((m) => ({ default: m.FleetMix })),
   {
     ssr: false,
-    loading: () => <div className="mt-8 h-[360px] animate-pulse rounded-lg bg-border/40" />,
+    loading: () => (
+      <div className="flex items-center gap-4" aria-hidden>
+        <div className="size-[148px] animate-pulse rounded-full bg-border/40" />
+        <div className="h-16 w-28 animate-pulse rounded-md bg-border/40" />
+      </div>
+    ),
   }
 );
 
-export function DashboardChartsClient(props: DashboardChartsProps) {
-  return <DashboardChartsInner {...props} />;
+const ActivityVolumeInner = dynamic(
+  () => import("@/components/dashboard-charts").then((m) => ({ default: m.ActivityVolumeChart })),
+  {
+    ssr: false,
+    loading: () => <div className="h-[148px] animate-pulse rounded-lg bg-border/40" />,
+  }
+);
+
+export function FleetMixClient({
+  fleet,
+  totalCount,
+}: {
+  fleet: FleetSlice[];
+  totalCount: number;
+}) {
+  return <FleetMixInner fleet={fleet} totalCount={totalCount} />;
+}
+
+export function ActivityVolumeClient({ activityByDay }: { activityByDay: ActivityDayPoint[] }) {
+  return <ActivityVolumeInner activityByDay={activityByDay} />;
 }

@@ -76,6 +76,7 @@ export default async function DashboardPage() {
 
   const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null }> = {};
   const uptimeByMonitor: Record<string, number | null> = {};
+  let fleetUptimePct: number | null = null;
 
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
@@ -100,12 +101,19 @@ export default async function DashboardPage() {
         latestByMonitor[r.monitorId] = { ok: r.ok, responseTimeMs: r.responseTimeMs };
       }
     }
+    let fleetTotal = 0;
+    let fleetOk = 0;
     for (const m of monitors) {
       const counts = uptimeStats.get(m.id);
       uptimeByMonitor[m.id] = counts
         ? uptimePctFromCounts(counts.total, counts.okCount)
         : null;
+      if (counts) {
+        fleetTotal += counts.total;
+        fleetOk += counts.okCount;
+      }
     }
+    fleetUptimePct = uptimePctFromCounts(fleetTotal, fleetOk);
   }
 
   const pausedCount = monitors.filter((m) => m.paused).length;
@@ -149,8 +157,12 @@ export default async function DashboardPage() {
     })
     .slice(0, ATTENTION_LIMIT);
 
+  const hasUptimeData = monitors.some((m) => uptimeByMonitor[m.id] != null);
   const worstUptime: RankingPoint[] = monitors
-    .filter((m) => uptimeByMonitor[m.id] != null)
+    .filter((m) => {
+      const pct = uptimeByMonitor[m.id];
+      return pct != null && pct < 100;
+    })
     .sort((a, b) => (uptimeByMonitor[a.id] ?? 100) - (uptimeByMonitor[b.id] ?? 100))
     .slice(0, RANK_LIMIT)
     .map((m) => {
@@ -217,10 +229,10 @@ export default async function DashboardPage() {
     <DashboardOverview
       hasMonitors={monitors.length > 0}
       downCount={downCount}
-      upCount={upCount}
       pausedCount={pausedCount}
-      unknownCount={unknownCount}
       totalCount={monitors.length}
+      fleetUptimePct={fleetUptimePct}
+      hasUptimeData={hasUptimeData}
       allPaused={allPaused}
       checkLocation={getCheckLocationLabel()}
       username={session.user.name ?? null}

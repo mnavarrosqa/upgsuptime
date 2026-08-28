@@ -11,10 +11,10 @@ import {
   Portal as TooltipPortal,
   Content as TooltipContent,
 } from "@radix-ui/react-tooltip";
-import { CircleHelp, ExternalLink, CircleCheck, CircleX, Pause, Layers, TriangleAlert, ShieldAlert } from "lucide-react";
+import { CircleHelp, ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
-import { DashboardChartsClient } from "@/components/dashboard-charts-client";
+import { ActivityVolumeClient, FleetMixClient } from "@/components/dashboard-charts-client";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
 import { cn } from "@/lib/utils";
 import type { ActivityItem } from "@/lib/activity-item";
@@ -37,10 +37,10 @@ export type OverviewNamedStat = {
 export type DashboardOverviewProps = {
   hasMonitors: boolean;
   downCount: number;
-  upCount: number;
   pausedCount: number;
-  unknownCount: number;
   totalCount: number;
+  fleetUptimePct: number | null;
+  hasUptimeData: boolean;
   allPaused: boolean;
   checkLocation: string | null;
   username: string | null;
@@ -123,27 +123,53 @@ function StatList({ items, empty }: { items: OverviewNamedStat[]; empty: string 
   );
 }
 
-function KpiStat({
-  icon: Icon,
-  iconClass,
-  label,
-  value,
-  valueClass,
+function RankList({
+  items,
+  empty,
+  format,
+  fillFor,
+  scale,
 }: {
-  icon: React.ComponentType<{ className?: string }>;
-  iconClass: string;
-  label: string;
-  value: number;
-  valueClass: string;
+  items: RankingPoint[];
+  empty: string;
+  format: (n: number) => string;
+  fillFor: (n: number) => string;
+  scale: "pct" | "relative";
 }) {
+  if (items.length === 0) {
+    return <p className="text-sm text-text-muted">{empty}</p>;
+  }
+  const max = Math.max(...items.map((row) => row.n), 1);
   return (
-    <div className="flex items-baseline gap-1.5">
-      <dt className="inline-flex items-center gap-1.5 text-text-muted">
-        <Icon className={cn("size-3.5 shrink-0", iconClass)} aria-hidden />
-        {label}
-      </dt>
-      <dd className={cn("font-semibold", valueClass)}>{value}</dd>
-    </div>
+    <ul className="space-y-3">
+      {items.map((row) => {
+        const widthPct = scale === "pct" ? Math.min(100, row.n) : (row.n / max) * 100;
+        return (
+          <li key={row.id}>
+            <Link
+              href={row.href}
+              className="group block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+            >
+              <div className="flex items-baseline justify-between gap-3 text-sm">
+                <span className="min-w-0 truncate font-medium text-text-primary transition-colors group-hover:text-accent">
+                  {row.name}
+                </span>
+                <span className="shrink-0 tabular-nums text-text-muted">{format(row.n)}</span>
+              </div>
+              <div className="mt-1.5 h-1.5 overflow-hidden rounded-sm bg-border/70">
+                <div
+                  className="h-full rounded-sm motion-safe:transition-[width] motion-safe:duration-300 motion-safe:ease-out"
+                  style={{
+                    width: `${widthPct}%`,
+                    backgroundColor: fillFor(row.n),
+                  }}
+                />
+              </div>
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
   );
 }
 
@@ -162,10 +188,10 @@ function formatRelativeTime(iso: string): string {
 export function DashboardOverview({
   hasMonitors,
   downCount,
-  upCount,
   pausedCount,
-  unknownCount,
   totalCount,
+  fleetUptimePct,
+  hasUptimeData,
   allPaused,
   checkLocation,
   username,
@@ -215,8 +241,8 @@ export function DashboardOverview({
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-              <div className="min-w-0">
+            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
+              <div className="min-w-0 flex-1">
                 <h1
                   className={cn(
                     "flex items-start gap-2.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight",
@@ -229,6 +255,14 @@ export function DashboardOverview({
                 </h1>
                 <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted">
                   <span className="tabular-nums">{tDash("monitorCount", { count: totalCount })}</span>
+                  {fleetUptimePct != null ? (
+                    <>
+                      <span className="text-border-muted select-none" aria-hidden>
+                        ·
+                      </span>
+                      <span className="tabular-nums">{t("fleetUptime90d", { pct: fleetUptimePct })}</span>
+                    </>
+                  ) : null}
                   {pausedCount > 0 && !allPaused ? (
                     <>
                       <span className="text-border-muted select-none" aria-hidden>
@@ -281,88 +315,88 @@ export function DashboardOverview({
                       </Link>
                     </>
                   ) : null}
+                  <span className="text-border-muted select-none" aria-hidden>
+                    ·
+                  </span>
+                  <Link
+                    href="/monitors"
+                    className="text-text-primary underline-offset-4 transition-colors hover:text-text-muted hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                  >
+                    {t("seeMonitors")}
+                  </Link>
                 </p>
               </div>
-              <Link
-                href="/monitors"
-                className="shrink-0 self-start rounded-lg px-3 py-2 text-sm font-medium text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary sm:mt-1"
-              >
-                {t("seeMonitors")}
-              </Link>
+              <FleetMixClient fleet={fleet} totalCount={totalCount} />
             </div>
-
-            <dl className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm tabular-nums">
-              <KpiStat
-                icon={CircleCheck}
-                iconClass="text-status-up"
-                label={t("kpiUp")}
-                value={upCount}
-                valueClass="text-status-up"
-              />
-              <KpiStat
-                icon={CircleX}
-                iconClass={downCount > 0 ? "text-status-down" : "text-text-muted"}
-                label={t("kpiDown")}
-                value={downCount}
-                valueClass={downCount > 0 ? "text-status-down" : "text-text-primary"}
-              />
-              <KpiStat
-                icon={Pause}
-                iconClass="text-text-muted"
-                label={t("kpiPaused")}
-                value={pausedCount}
-                valueClass="text-text-primary"
-              />
-              {unknownCount > 0 ? (
-                <KpiStat
-                  icon={CircleHelp}
-                  iconClass="text-text-muted"
-                  label={t("kpiUnknown")}
-                  value={unknownCount}
-                  valueClass="text-text-primary"
-                />
-              ) : null}
-              <KpiStat
-                icon={Layers}
-                iconClass="text-accent"
-                label={t("kpiTotal")}
-                value={totalCount}
-                valueClass="text-text-primary"
-              />
-            </dl>
 
             {attention.length > 0 && (
               <section className="mt-10">
                 <SectionHeading icon={TriangleAlert}>{t("attention")}</SectionHeading>
                 <ul className="divide-y divide-border/70">
-                  {attention.map((row) => (
-                    <li key={row.id}>
-                      <Link
-                        href={`/monitors/${row.id}`}
-                        className="flex items-baseline justify-between gap-3 py-2.5 text-sm transition-colors hover:text-accent"
-                      >
-                        <span className="min-w-0 truncate font-medium text-text-primary">{row.name}</span>
-                        <span className="shrink-0 text-xs font-medium text-status-down">
-                          {row.degraded
-                            ? t("degraded")
-                            : row.acked
-                              ? t("acked")
-                              : t("down")}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
+                  {attention.map((row) => {
+                    const tone = row.degraded ? "warn" : row.acked ? "muted" : "down";
+                    const Icon = row.degraded ? Timer : row.acked ? CircleCheck : CircleX;
+                    const label = row.degraded ? t("degraded") : row.acked ? t("acked") : t("down");
+                    return (
+                      <li key={row.id}>
+                        <Link
+                          href={`/monitors/${row.id}`}
+                          className="flex items-center justify-between gap-3 py-2.5 text-sm transition-colors hover:text-accent"
+                        >
+                          <span className="min-w-0 truncate font-medium text-text-primary">{row.name}</span>
+                          <span
+                            className={cn(
+                              "inline-flex shrink-0 items-center gap-1.5 text-xs font-medium",
+                              tone === "warn" && "text-status-warn",
+                              tone === "muted" && "text-text-muted",
+                              tone === "down" && "text-status-down"
+                            )}
+                          >
+                            <Icon className="size-3.5 shrink-0" aria-hidden />
+                            {label}
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
                 </ul>
               </section>
             )}
 
-            <DashboardChartsClient
-              fleet={fleet}
-              totalCount={totalCount}
-              activityByDay={activityByDay}
-              worstUptime={worstUptime}
-              slowest={slowest}
-            />
+            <div className="mt-10">
+              <ActivityVolumeClient activityByDay={activityByDay} />
+            </div>
+
+            <div className="mt-10 grid gap-10 lg:grid-cols-2">
+              <section>
+                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
+                  {t("worstUptime")}
+                </SectionHeading>
+                <RankList
+                  items={worstUptime}
+                  empty={hasUptimeData ? t("uptimeAllClear") : t("noUptimeData")}
+                  format={(n) => `${n}%`}
+                  scale="pct"
+                  fillFor={(n) =>
+                    n < 99 ? "var(--color-status-down)" : "var(--color-status-warn)"
+                  }
+                />
+              </section>
+              <section>
+                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
+                  {t("slowest")}
+                </SectionHeading>
+                <RankList
+                  items={slowest}
+                  empty={t("noLatencyData")}
+                  format={(n) => `${n} ms`}
+                  scale="relative"
+                  fillFor={(n) =>
+                    n >= 1000 ? "var(--color-status-warn)" : "var(--color-accent)"
+                  }
+                />
+              </section>
+            </div>
 
             <div className="mt-10 grid gap-10 lg:grid-cols-2">
               <section>
