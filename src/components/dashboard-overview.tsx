@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer } from "lucide-react";
+import { toast } from "sonner";
+import { ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer, Clock, CircleDashed } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
 import { ActivityVolumeClient, FleetMixClient } from "@/components/dashboard-charts-client";
@@ -14,15 +15,20 @@ import { cn } from "@/lib/utils";
 import type { ActivityItem } from "@/lib/activity-item";
 import type { ActivityDayPoint, FleetSlice, RankingPoint } from "@/components/dashboard-charts";
 
+export type OverviewAttentionKind = "down" | "degraded" | "overdue" | "pending";
+
 export type OverviewAttentionRow = {
   id: string;
   name: string;
   url: string;
   type: string;
+  kind: OverviewAttentionKind;
   acked: boolean;
-  degraded: boolean;
   since: string | null;
   detail: string | null;
+  consecutiveFailures: number | null;
+  latestMs: number | null;
+  baselineMs: number | null;
 };
 
 export type OverviewNamedStat = {
@@ -38,6 +44,7 @@ export type DashboardOverviewProps = {
   hasMonitors: boolean;
   downCount: number;
   pausedCount: number;
+  maintenanceCount: number;
   totalCount: number;
   fleetUptimePct: number | null;
   hasUptimeData: boolean;
@@ -98,7 +105,7 @@ function MetaDot() {
   );
 }
 
-function StatusLiveDot({ tone }: { tone: "up" | "down" | "paused" }) {
+function StatusLiveDot({ tone }: { tone: "up" | "down" | "paused" | "warn" }) {
   return (
     <span className="relative mt-1.5 flex h-2 w-2 shrink-0 items-center justify-center sm:mt-2" aria-hidden>
       <span
@@ -106,10 +113,48 @@ function StatusLiveDot({ tone }: { tone: "up" | "down" | "paused" }) {
           "h-2 w-2 rounded-full",
           tone === "up" && "bg-status-up animate-operational-badge-dot",
           tone === "down" && "bg-status-down",
+          tone === "warn" && "bg-status-warn",
           tone === "paused" && "bg-text-muted/70"
         )}
       />
     </span>
+  );
+}
+
+function AttentionAckButton({ monitorId }: { monitorId: string }) {
+  const router = useRouter();
+  const t = useTranslations("overview");
+  const tAck = useTranslations("monitorDetail");
+  const tErrors = useTranslations("errors");
+  const [loading, setLoading] = useState(false);
+
+  return (
+    <button
+      type="button"
+      disabled={loading}
+      onClick={async () => {
+        setLoading(true);
+        try {
+          const res = await fetch(`/api/monitors/${encodeURIComponent(monitorId)}/ack-downtime`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ acknowledged: true }),
+          });
+          const data = (await res.json().catch(() => ({}))) as { error?: string };
+          if (!res.ok) {
+            toast.error(typeof data.error === "string" ? data.error : tErrors("fallback"));
+            return;
+          }
+          toast.success(tAck("downtimeAckToast"));
+          router.refresh();
+        } finally {
+          setLoading(false);
+        }
+      }}
+      className="text-xs font-medium text-text-muted underline-offset-4 transition-colors hover:text-text-primary hover:underline disabled:opacity-50"
+    >
+      {t("ack")}
+    </button>
   );
 }
 
@@ -232,6 +277,7 @@ export function DashboardOverview({
   hasMonitors,
   downCount,
   pausedCount,
+  maintenanceCount,
   totalCount,
   fleetUptimePct,
   hasUptimeData,
@@ -258,13 +304,17 @@ export function DashboardOverview({
   );
 
   const locationLabel = checkLocation ?? tDash("statValueLocationUnknown");
-  const statusTone = downCount > 0 ? "down" : allPaused ? "paused" : "up";
+  const overdueCount = attention.filter((row) => row.kind === "overdue").length;
+  const statusTone =
+    downCount > 0 ? "down" : overdueCount > 0 ? "warn" : allPaused ? "paused" : "up";
   const statusLabel =
     downCount > 0
       ? tDash("downCount", { count: downCount })
-      : allPaused
-        ? tDash("allPaused")
-        : tDash("allOperational");
+      : overdueCount > 0
+        ? t("overdueCount", { count: overdueCount })
+        : allPaused
+          ? tDash("allPaused")
+          : tDash("allOperational");
   const showUptime = worstUptime.length > 0 || !hasUptimeData;
   const showSlowest =
     slowest.length > 0 && Math.max(...slowest.map((row) => row.n)) >= SLOWEST_MIN_MS;
@@ -294,7 +344,11 @@ export function DashboardOverview({
                 <h1
                   className={cn(
                     "flex items-start gap-2.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight",
-                    downCount > 0 ? "text-status-down" : "text-text-primary"
+                    downCount > 0
+                      ? "text-status-down"
+                      : overdueCount > 0
+                        ? "text-status-warn"
+                        : "text-text-primary"
                   )}
                   aria-live="polite"
                 >
@@ -307,6 +361,12 @@ export function DashboardOverview({
                     <>
                       <MetaDot />
                       <span className="tabular-nums">{t("fleetUptime90d", { pct: fleetUptimePct })}</span>
+                    </>
+                  ) : null}
+                  {maintenanceCount > 0 ? (
+                    <>
+                      <MetaDot />
+                      <span className="tabular-nums">{t("maintenanceCount", { count: maintenanceCount })}</span>
                     </>
                   ) : null}
                   {pausedCount > 0 && !allPaused ? (
@@ -339,31 +399,64 @@ export function DashboardOverview({
             {attention.length > 0 && (
               <section className="mt-10">
                 <SectionHeading icon={TriangleAlert}>{t("attention")}</SectionHeading>
-                <ul className="divide-y divide-border/70">
+                <ul className="divide-y divide-border/70 text-sm">
                   {attention.map((row) => {
-                    const tone = row.degraded ? "warn" : row.acked ? "muted" : "down";
-                    const Icon = row.degraded ? Timer : row.acked ? CircleCheck : CircleX;
-                    const label = row.degraded ? t("degraded") : row.acked ? t("acked") : t("down");
+                    const tone =
+                      row.kind === "degraded" || row.kind === "overdue" || row.kind === "pending"
+                        ? "warn"
+                        : row.acked
+                          ? "muted"
+                          : "down";
+                    const Icon =
+                      row.kind === "degraded"
+                        ? Timer
+                        : row.kind === "overdue"
+                          ? Clock
+                          : row.kind === "pending"
+                            ? CircleDashed
+                            : row.acked
+                              ? CircleCheck
+                              : CircleX;
+                    const label =
+                      row.kind === "degraded"
+                        ? t("degraded")
+                        : row.kind === "overdue"
+                          ? t("overdue")
+                          : row.kind === "pending"
+                            ? t("pending")
+                            : row.acked
+                              ? t("acked")
+                              : t("down");
+                    const detail =
+                      row.kind === "pending"
+                        ? t("pendingDetail")
+                        : row.kind === "degraded" && row.latestMs != null && row.baselineMs != null
+                          ? t("degradedDetail", { recent: row.latestMs, baseline: row.baselineMs })
+                          : row.kind === "down" && row.consecutiveFailures != null && row.consecutiveFailures > 1
+                            ? [row.detail, t("failedChecks", { n: row.consecutiveFailures })]
+                                .filter(Boolean)
+                                .join(" · ")
+                            : row.detail;
                     return (
-                      <li key={row.id}>
+                      <li key={row.id} className="flex items-start gap-3 py-2.5">
                         <Link
                           href={`/monitors/${row.id}`}
-                          className="group flex items-start justify-between gap-3 py-2.5 text-sm"
+                          className="group min-w-0 flex-1"
                         >
-                          <div className="min-w-0">
-                            <SiteLabel name={row.name} url={row.url} type={row.type} />
-                            {row.detail ? (
-                              <p
-                                className="mt-0.5 truncate pl-6 text-xs text-text-muted"
-                                title={row.detail}
-                              >
-                                {row.detail}
-                              </p>
-                            ) : null}
-                          </div>
+                          <SiteLabel name={row.name} url={row.url} type={row.type} />
+                          {detail ? (
+                            <p className="mt-0.5 truncate pl-6 text-xs text-text-muted" title={detail}>
+                              {detail}
+                            </p>
+                          ) : null}
+                        </Link>
+                        <div className="mt-0.5 flex shrink-0 items-center gap-2">
+                          {row.kind === "down" && !row.acked ? (
+                            <AttentionAckButton monitorId={row.id} />
+                          ) : null}
                           <span
                             className={cn(
-                              "mt-0.5 inline-flex shrink-0 items-center gap-1.5 text-xs font-medium",
+                              "inline-flex items-center gap-1.5 text-xs font-medium",
                               tone === "warn" && "text-status-warn",
                               tone === "muted" && "text-text-muted",
                               tone === "down" && "text-status-down"
@@ -377,7 +470,7 @@ export function DashboardOverview({
                               </span>
                             ) : null}
                           </span>
-                        </Link>
+                        </div>
                       </li>
                     );
                   })}

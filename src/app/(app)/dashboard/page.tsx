@@ -10,6 +10,7 @@ import { getCheckLocationLabel } from "@/lib/check-location";
 import { loadActivityFeed } from "@/lib/activity-feed";
 import type { ActivityItem } from "@/lib/activity-item";
 import { isDowntimeAcked } from "@/lib/downtime-ack";
+import { isMaintenanceActive } from "@/lib/monitor-config";
 import { getTranslations } from "next-intl/server";
 import {
   getUptimeStats90d,
@@ -59,6 +60,16 @@ function activityByUtcDay(items: ActivityItem[]): ActivityDayPoint[] {
     else bucket.down += 1;
   }
   return days;
+}
+
+function isCheckOverdue(
+  lastCheckAt: Date | null | undefined,
+  intervalMinutes: number,
+  nowMs: number
+): boolean {
+  if (!lastCheckAt) return false;
+  const intervalMs = Math.max(intervalMinutes, 1) * 60 * 1000;
+  return nowMs > lastCheckAt.getTime() + intervalMs * 2;
 }
 
 export default async function DashboardPage() {
@@ -121,6 +132,9 @@ export default async function DashboardPage() {
     fleetUptimePct = uptimePctFromCounts(fleetTotal, fleetOk);
   }
 
+  // Server snapshot: overdue checks vs this request, not a client re-render clock.
+  // eslint-disable-next-line react-hooks/purity -- RSC request time
+  const nowMs = Date.now();
   const pausedCount = monitors.filter((m) => m.paused).length;
   const downCount = monitors.filter((m) => {
     if (m.paused) return false;
@@ -134,6 +148,9 @@ export default async function DashboardPage() {
     if (m.paused) return false;
     return isLatestOk(m.id, m.currentStatus, latestByMonitor) === null;
   }).length;
+  const maintenanceCount = monitors.filter((m) =>
+    isMaintenanceActive(m, new Date(nowMs))
+  ).length;
   const allPaused = monitors.length > 0 && pausedCount === monitors.length;
   const fleet: FleetSlice[] = [
     { key: "up", value: upCount },
@@ -147,29 +164,51 @@ export default async function DashboardPage() {
       if (m.paused) return [];
       const ok = isLatestOk(m.id, m.currentStatus, latestByMonitor);
       const down = ok === false;
+      const latest = latestByMonitor[m.id];
+      const overdue = isCheckOverdue(m.lastCheckAt, m.intervalMinutes, nowMs);
+      const pending = m.lastCheckAt == null;
       const degraded =
         ok === true &&
         ((m.consecutiveDegradedChecks ?? 0) > 0 || m.degradingAlertSentAt != null);
-      if (!down && !degraded) return [];
+      const kind = down
+        ? ("down" as const)
+        : overdue
+          ? ("overdue" as const)
+          : pending
+            ? ("pending" as const)
+            : degraded
+              ? ("degraded" as const)
+              : null;
+      if (!kind) return [];
       return [
         {
           id: m.id,
           name: m.name,
           url: m.url,
           type: m.type,
+          kind,
           acked: down && isDowntimeAcked(m),
-          degraded: !down && degraded,
           since:
-            down && m.lastStatusChangedAt
+            kind === "down" && m.lastStatusChangedAt
               ? new Date(m.lastStatusChangedAt).toISOString()
-              : null,
-          detail: down ? (latestByMonitor[m.id]?.message ?? null) : null,
+              : kind === "overdue" && m.lastCheckAt
+                ? new Date(m.lastCheckAt).toISOString()
+                : null,
+          detail: down ? (latest?.message ?? null) : null,
+          consecutiveFailures: down ? (m.consecutiveFailures ?? null) : null,
+          latestMs: kind === "degraded" ? (latest?.responseTimeMs ?? null) : null,
+          baselineMs: kind === "degraded" ? (m.baselineP75Ms ?? null) : null,
         },
       ];
     })
     .sort((a, b) => {
-      const rank = (r: { degraded: boolean; acked: boolean }) =>
-        r.degraded ? 1 : r.acked ? 2 : 0;
+      const rank = (r: { kind: string; acked: boolean }) => {
+        if (r.kind === "down" && !r.acked) return 0;
+        if (r.kind === "overdue") return 1;
+        if (r.kind === "pending") return 2;
+        if (r.kind === "degraded") return 3;
+        return 4;
+      };
       return rank(a) - rank(b);
     })
     .slice(0, ATTENTION_LIMIT);
@@ -253,6 +292,7 @@ export default async function DashboardPage() {
       hasMonitors={monitors.length > 0}
       downCount={downCount}
       pausedCount={pausedCount}
+      maintenanceCount={maintenanceCount}
       totalCount={monitors.length}
       fleetUptimePct={fleetUptimePct}
       hasUptimeData={hasUptimeData}
