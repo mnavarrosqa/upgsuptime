@@ -226,17 +226,28 @@ export function MonitorCardTrend({
         />
       </svg>
       <span
-        className={cn(
-          "pointer-events-none absolute z-[1] -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-bg-card",
-          hovering ? "size-2.5" : "size-2"
-        )}
+        className="pointer-events-none absolute z-[1] -translate-x-1/2 -translate-y-1/2"
         style={{
           left: `${(active.x / VW) * 100}%`,
           top: `${(active.y / VH) * 100}%`,
-          backgroundColor: pointStroke,
         }}
         aria-hidden
-      />
+      >
+        <span
+          className={cn(
+            "relative flex items-center justify-center overflow-visible",
+            hovering ? "size-2.5" : "size-2"
+          )}
+        >
+          {!hovering && tone === "up" ? (
+            <span className="absolute inset-0 rounded-full bg-status-up/40 motion-safe:animate-monitor-status-ring" />
+          ) : null}
+          <span
+            className="relative z-[1] size-full rounded-full border-2 border-bg-card"
+            style={{ backgroundColor: pointStroke }}
+          />
+        </span>
+      </span>
     </div>
   );
 }
