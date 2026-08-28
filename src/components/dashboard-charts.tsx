@@ -32,6 +32,8 @@ export type RankingPoint = {
   name: string;
   n: number;
   href: string;
+  url: string;
+  type: string;
 };
 
 const SLICE_FILL: Record<FleetSlice["key"], string> = {
@@ -198,7 +200,6 @@ export function FleetMix({
 export function ActivityVolumeChart({ activityByDay }: { activityByDay: ActivityDayPoint[] }) {
   const t = useTranslations("overview");
   const locale = useLocale();
-  const uid = useId().replace(/:/g, "");
   const volumeHasEvents = activityByDay.some((d) => d.down + d.recovered + d.degraded > 0);
 
   const legend = [
@@ -207,92 +208,81 @@ export function ActivityVolumeChart({ activityByDay }: { activityByDay: Activity
     { key: "degraded", label: t("degraded"), fill: "var(--color-status-warn)" },
   ] as const;
 
+  if (!volumeHasEvents) return null;
+
   return (
-    <section aria-labelledby={`${uid}-volume`}>
-      <h2
-        id={`${uid}-volume`}
-        className="text-xs font-semibold uppercase tracking-wider text-text-muted"
-      >
-        {t("chartVolume")}
-      </h2>
-      <p className="mt-0.5 text-[11px] text-text-muted">{t("chartVolumeSub")}</p>
-      {!volumeHasEvents ? (
-        <p className="mt-3 text-sm text-text-muted">{t("activityEmpty")}</p>
-      ) : (
-        <>
-          <div className="mt-2 h-[148px] w-full" role="img" aria-label={t("chartVolume")}>
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={activityByDay}
-                margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
-                barCategoryGap="28%"
-              >
-                <CartesianGrid
-                  strokeDasharray="3 3"
-                  stroke="var(--color-border)"
-                  vertical={false}
+    <>
+      <div className="h-[148px] w-full" role="img" aria-label={t("chartVolume")}>
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart
+            data={activityByDay}
+            margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+            barCategoryGap="28%"
+          >
+            <CartesianGrid
+              strokeDasharray="3 3"
+              stroke="var(--color-border)"
+              vertical={false}
+            />
+            <XAxis
+              dataKey="day"
+              tickFormatter={(d) => formatDayTick(d, locale)}
+              tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis
+              allowDecimals={false}
+              width={28}
+              tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <Tooltip
+              content={
+                <VolumeTooltip
+                  locale={locale}
+                  tDown={t("down")}
+                  tRecovered={t("chartRecovered")}
+                  tDegraded={t("degraded")}
                 />
-                <XAxis
-                  dataKey="day"
-                  tickFormatter={(d) => formatDayTick(d, locale)}
-                  tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  width={28}
-                  tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                  axisLine={false}
-                  tickLine={false}
-                />
-                <Tooltip
-                  content={
-                    <VolumeTooltip
-                      locale={locale}
-                      tDown={t("down")}
-                      tRecovered={t("chartRecovered")}
-                      tDegraded={t("degraded")}
-                    />
-                  }
-                  cursor={{ fill: "var(--color-border)", opacity: 0.4 }}
-                />
-                <Bar
-                  dataKey="down"
-                  stackId="evt"
-                  fill="var(--color-status-down)"
-                  isAnimationActive={false}
-                />
-                <Bar
-                  dataKey="recovered"
-                  stackId="evt"
-                  fill="var(--color-status-up)"
-                  isAnimationActive={false}
-                />
-                <Bar
-                  dataKey="degraded"
-                  stackId="evt"
-                  fill="var(--color-status-warn)"
-                  radius={[3, 3, 0, 0]}
-                  isAnimationActive={false}
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-          <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted">
-            {legend.map((item) => (
-              <li key={item.key} className="inline-flex items-center gap-1.5">
-                <span
-                  className="size-2 shrink-0 rounded-sm"
-                  style={{ backgroundColor: item.fill }}
-                  aria-hidden
-                />
-                {item.label}
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </section>
+              }
+              cursor={{ fill: "var(--color-border)", opacity: 0.4 }}
+            />
+            <Bar
+              dataKey="down"
+              stackId="evt"
+              fill="var(--color-status-down)"
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="recovered"
+              stackId="evt"
+              fill="var(--color-status-up)"
+              isAnimationActive={false}
+            />
+            <Bar
+              dataKey="degraded"
+              stackId="evt"
+              fill="var(--color-status-warn)"
+              radius={[3, 3, 0, 0]}
+              isAnimationActive={false}
+            />
+          </BarChart>
+        </ResponsiveContainer>
+      </div>
+      <ul className="mt-2.5 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted">
+        {legend.map((item) => (
+          <li key={item.key} className="inline-flex items-center gap-1.5">
+            <span
+              className="size-2 shrink-0 rounded-sm"
+              style={{ backgroundColor: item.fill }}
+              aria-hidden
+            />
+            {item.label}
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }

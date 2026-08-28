@@ -35,5 +35,7 @@ export function FleetMixClient({
 }
 
 export function ActivityVolumeClient({ activityByDay }: { activityByDay: ActivityDayPoint[] }) {
+  const hasEvents = activityByDay.some((d) => d.down + d.recovered + d.degraded > 0);
+  if (!hasEvents) return null;
   return <ActivityVolumeInner activityByDay={activityByDay} />;
 }

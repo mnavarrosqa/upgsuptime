@@ -150,10 +150,21 @@ export default async function DashboardPage() {
         {
           id: m.id,
           name: m.name,
+          url: m.url,
+          type: m.type,
           acked: down && isDowntimeAcked(m),
           degraded: !down && degraded,
+          since:
+            down && m.lastStatusChangedAt
+              ? new Date(m.lastStatusChangedAt).toISOString()
+              : null,
         },
       ];
+    })
+    .sort((a, b) => {
+      const rank = (r: { degraded: boolean; acked: boolean }) =>
+        r.degraded ? 1 : r.acked ? 2 : 0;
+      return rank(a) - rank(b);
     })
     .slice(0, ATTENTION_LIMIT);
 
@@ -172,6 +183,8 @@ export default async function DashboardPage() {
         name: m.name,
         n: Math.round(pct * 10) / 10,
         href: `/monitors/${m.id}`,
+        url: m.url,
+        type: m.type,
       };
     });
 
@@ -191,6 +204,8 @@ export default async function DashboardPage() {
       name: m.name,
       n: latestByMonitor[m.id]!.responseTimeMs!,
       href: `/monitors/${m.id}`,
+      url: m.url,
+      type: m.type,
     }));
 
   const tOverview = await getTranslations("overview");
@@ -215,6 +230,8 @@ export default async function DashboardPage() {
           days: days ?? (invalid ? -999 : 999),
           invalid,
           href: `/monitors/${m.id}`,
+          url: m.url,
+          type: m.type,
         },
       ];
     })
@@ -223,7 +240,7 @@ export default async function DashboardPage() {
       return a.days - b.days;
     })
     .slice(0, RANK_LIMIT)
-    .map(({ id, name, value, href }) => ({ id, name, value, href }));
+    .map(({ id, name, value, href, url, type }) => ({ id, name, value, href, url, type }));
 
   return (
     <DashboardOverview

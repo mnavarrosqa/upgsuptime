@@ -16,6 +16,7 @@ import { AutoRefresh } from "@/components/auto-refresh";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
 import { ActivityVolumeClient, FleetMixClient } from "@/components/dashboard-charts-client";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
+import { MonitorFavicon } from "@/components/monitor-favicon";
 import { cn } from "@/lib/utils";
 import type { ActivityItem } from "@/lib/activity-item";
 import type { ActivityDayPoint, FleetSlice, RankingPoint } from "@/components/dashboard-charts";
@@ -23,8 +24,11 @@ import type { ActivityDayPoint, FleetSlice, RankingPoint } from "@/components/da
 export type OverviewAttentionRow = {
   id: string;
   name: string;
+  url: string;
+  type: string;
   acked: boolean;
   degraded: boolean;
+  since: string | null;
 };
 
 export type OverviewNamedStat = {
@@ -32,6 +36,8 @@ export type OverviewNamedStat = {
   name: string;
   value: string;
   href: string;
+  url: string;
+  type: string;
 };
 
 export type DashboardOverviewProps = {
@@ -57,6 +63,36 @@ export type DashboardOverviewProps = {
   };
   userId: string;
 };
+
+function faviconSrc(url: string, type?: string | null): string {
+  if (type === "dns" || type === "tcp") return "";
+  try {
+    return `/api/favicon?domain=${new URL(url).hostname}`;
+  } catch {
+    return "";
+  }
+}
+
+function SiteLabel({
+  name,
+  url,
+  type,
+  className,
+}: {
+  name: string;
+  url: string;
+  type?: string | null;
+  className?: string;
+}) {
+  return (
+    <span className={cn("flex min-w-0 items-center gap-2", className)}>
+      <MonitorFavicon src={faviconSrc(url, type)} size="sm" />
+      <span className="min-w-0 truncate font-medium text-text-primary group-hover:text-accent">
+        {name}
+      </span>
+    </span>
+  );
+}
 
 function StatusLiveDot({ tone }: { tone: "up" | "down" | "paused" }) {
   return (
@@ -112,9 +148,9 @@ function StatList({ items, empty }: { items: OverviewNamedStat[]; empty: string 
         <li key={row.id}>
           <Link
             href={row.href}
-            className="flex items-baseline justify-between gap-3 py-2.5 text-sm transition-colors hover:text-accent"
+            className="group flex items-center justify-between gap-3 py-2.5 text-sm"
           >
-            <span className="min-w-0 truncate font-medium text-text-primary">{row.name}</span>
+            <SiteLabel name={row.name} url={row.url} type={row.type} />
             <span className="shrink-0 tabular-nums text-text-muted">{row.value}</span>
           </Link>
         </li>
@@ -150,10 +186,13 @@ function RankList({
               href={row.href}
               className="group block rounded-md focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
             >
-              <div className="flex items-baseline justify-between gap-3 text-sm">
-                <span className="min-w-0 truncate font-medium text-text-primary transition-colors group-hover:text-accent">
-                  {row.name}
-                </span>
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <SiteLabel
+                  name={row.name}
+                  url={row.url}
+                  type={row.type}
+                  className="transition-colors group-hover:text-accent"
+                />
                 <span className="shrink-0 tabular-nums text-text-muted">{format(row.n)}</span>
               </div>
               <div className="mt-1.5 h-1.5 overflow-hidden rounded-sm bg-border/70">
@@ -341,9 +380,9 @@ export function DashboardOverview({
                       <li key={row.id}>
                         <Link
                           href={`/monitors/${row.id}`}
-                          className="flex items-center justify-between gap-3 py-2.5 text-sm transition-colors hover:text-accent"
+                          className="group flex items-center justify-between gap-3 py-2.5 text-sm"
                         >
-                          <span className="min-w-0 truncate font-medium text-text-primary">{row.name}</span>
+                          <SiteLabel name={row.name} url={row.url} type={row.type} />
                           <span
                             className={cn(
                               "inline-flex shrink-0 items-center gap-1.5 text-xs font-medium",
@@ -354,6 +393,11 @@ export function DashboardOverview({
                           >
                             <Icon className="size-3.5 shrink-0" aria-hidden />
                             {label}
+                            {row.since ? (
+                              <span className="tabular-nums text-text-muted">
+                                · {formatRelativeTime(row.since)}
+                              </span>
+                            ) : null}
                           </span>
                         </Link>
                       </li>
@@ -363,9 +407,43 @@ export function DashboardOverview({
               </section>
             )}
 
-            <div className="mt-10">
+            <section className="mt-10">
+              <SectionHeading href="/activity" hrefLabel={t("viewAll")}>
+                {t("recentActivity")}
+              </SectionHeading>
+              <p className="mb-3 text-[11px] text-text-muted">{t("chartVolumeSub")}</p>
               <ActivityVolumeClient activityByDay={activityByDay} />
-            </div>
+              {activity.length === 0 ? (
+                <p className="mt-3 text-sm text-text-muted">{t("activityEmpty")}</p>
+              ) : (
+                <ul className="mt-4 divide-y divide-border/70">
+                  {activity.map((item) => {
+                    const label =
+                      item.kind === "degradation"
+                        ? tActivity("degradationBadge")
+                        : item.recovered
+                          ? tActivity("recovered")
+                          : tActivity("wentDown");
+                    return (
+                      <li key={`${item.kind}-${item.id}`}>
+                        <Link
+                          href={`/monitors/${item.monitorId}`}
+                          className="group flex items-center justify-between gap-3 py-2.5 text-sm"
+                        >
+                          <SiteLabel name={item.name} url={item.url} />
+                          <span className="flex shrink-0 items-center gap-2 text-xs text-text-muted">
+                            <span>{label}</span>
+                            <time dateTime={item.at} className="tabular-nums">
+                              {formatRelativeTime(item.at)}
+                            </time>
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </section>
 
             <div className="mt-10 grid gap-10 lg:grid-cols-2">
               <section>
@@ -398,53 +476,12 @@ export function DashboardOverview({
               </section>
             </div>
 
-            <div className="mt-10 grid gap-10 lg:grid-cols-2">
-              <section>
-                <SectionHeading href="/activity" hrefLabel={t("viewAll")}>
-                  {t("recentActivity")}
-                </SectionHeading>
-                {activity.length === 0 ? (
-                  <p className="text-sm text-text-muted">{t("activityEmpty")}</p>
-                ) : (
-                  <ul className="divide-y divide-border/70">
-                    {activity.map((item) => {
-                      const label =
-                        item.kind === "degradation"
-                          ? tActivity("degradationBadge")
-                          : item.recovered
-                            ? tActivity("recovered")
-                            : tActivity("wentDown");
-                      return (
-                        <li key={`${item.kind}-${item.id}`}>
-                          <Link
-                            href={`/monitors/${item.monitorId}`}
-                            className="flex items-baseline justify-between gap-3 py-2.5 text-sm transition-colors hover:text-accent"
-                          >
-                            <span className="min-w-0 truncate">
-                              <span className="font-medium text-text-primary">{item.name}</span>
-                              <span className="ml-2 text-xs text-text-muted">{label}</span>
-                            </span>
-                            <time
-                              dateTime={item.at}
-                              className="shrink-0 tabular-nums text-xs text-text-muted"
-                            >
-                              {formatRelativeTime(item.at)}
-                            </time>
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </section>
-
-              <section>
-                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={ShieldAlert}>
-                  {t("ssl")}
-                </SectionHeading>
-                <StatList items={ssl} empty={t("sslClear")} />
-              </section>
-            </div>
+            <section className="mt-10 max-w-xl">
+              <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={ShieldAlert}>
+                {t("ssl")}
+              </SectionHeading>
+              <StatList items={ssl} empty={t("sslClear")} />
+            </section>
           </>
         )}
       </div>
