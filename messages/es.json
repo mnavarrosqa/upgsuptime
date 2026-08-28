@@ -251,7 +251,7 @@
     "statusPageMonitorsHeading": "Monitores visibles",
     "statusPageMonitorsSubtitle": "Solo los marcados salen en tu página pública. El resto siguen en tu cuenta.",
     "statusPageMonitorsEmpty": "Todavía no tienes monitores.",
-    "statusPageMonitorsGoToMonitors": "Ir al panel",
+    "statusPageMonitorsGoToMonitors": "Ir a monitores",
     "statusPageMonitorShowLabel": "Mostrar en página pública",
     "statusPageMonitorShowAria": "Mostrar {name} en la página de estado pública",
     "statusPageUrlLabel": "URL pública",
@@ -343,7 +343,7 @@
   },
   "nav": {
     "appTitle": "UPG Monitor",
-    "dashboard": "Panel",
+    "dashboard": "Dashboard",
     "monitors": "Monitores",
     "activity": "Actividad reciente",
     "admin": "Admin",
@@ -440,7 +440,7 @@
     "descending": "Descendente"
   },
   "dashboard": {
-    "title": "Panel",
+    "title": "Monitores",
     "allOperational": "Todo bien",
     "allPaused": "Todos en pausa",
     "downCount": "{count, plural, one {# caído} other {# caídos}}",
@@ -459,6 +459,31 @@
     "sectionIssues": "{count, plural, one {# problema} other {# problemas}}",
     "sectionPaused": "{count, plural, one {# en pausa} other {# en pausa}}",
     "sectionOperational": "{count, plural, one {# operativo} other {# operativos}}"
+  },
+  "overview": {
+    "emptyTitle": "Todavía no hay monitores",
+    "emptyBody": "Añade un monitor para ver salud de la flota, incidentes, latencia y riesgo SSL en un solo lugar.",
+    "seeMonitors": "Ver monitores",
+    "kpiUp": "En línea",
+    "kpiDown": "Caídos",
+    "kpiPaused": "En pausa",
+    "kpiTotal": "Total",
+    "attention": "Necesitan atención",
+    "acked": "Reconocido",
+    "degraded": "Lento",
+    "down": "Caído",
+    "recentActivity": "Actividad reciente",
+    "activityEmpty": "Sin eventos en los últimos 7 días.",
+    "viewAll": "Ver todo",
+    "worstUptime": "Peor disponibilidad 90d",
+    "slowest": "Última comprobación más lenta",
+    "ssl": "SSL en riesgo",
+    "sslInvalid": "Inválido",
+    "sslExpired": "Caducado",
+    "sslDays": "{n, plural, one {# día} other {# días}}",
+    "noUptimeData": "Aún no hay comprobaciones suficientes para 90 días.",
+    "noLatencyData": "No hay comprobaciones correctas recientes para ordenar.",
+    "sslClear": "Ningún certificado inválido o por vencer en 30 días."
   },
   "activity": {
     "title": "Actividad reciente",
@@ -550,7 +575,7 @@
     },
     "categories": {
       "gettingStarted": "Primeros pasos",
-      "dashboard": "Panel",
+      "dashboard": "Dashboard",
       "monitors": "Monitores",
       "monitorDetail": "Detalle del monitor",
       "alerts": "Alertas e incidentes",
@@ -569,7 +594,7 @@
         "body": [
           "UPG Monitor revisa tus URLs cada cierto tiempo y guarda si la comprobación salió bien, cuánto tardó y el estado SSL si lo tienes activado.",
           "Tus monitores son privados. Con tu usuario puedes compartir una página de estado pública de solo lectura.",
-          "El Panel es el vistazo rápido; Actividad reciente muestra caídas y recuperaciones."
+          "El Dashboard resume la flota; Monitores es la lista; Actividad reciente muestra caídas y recuperaciones."
         ]
       },
       "signInAndAccount": {
@@ -589,33 +614,33 @@
         ]
       },
       "dashboardOverview": {
-        "title": "El panel en pocas palabras",
-        "summary": "Resumen y lista de monitores.",
+        "title": "El dashboard en pocas palabras",
+        "summary": "Salud de la flota, incidentes y riesgo sin abrir cada monitor.",
         "body": [
-          "Ves cuántos monitores van en línea, caídos o en pausa, y el estado de cada uno.",
-          "En pausa = no se checan hasta que los reanudes en el Panel.",
-          "Si no tienes ninguno, el Panel te empuja a añadir el primero."
+          "El Dashboard resume tus monitores: cuántos van en línea, caídos o en pausa, cuáles necesitan atención, incidentes recientes, peor disponibilidad a 90 días, comprobaciones más lentas y certificados SSL en riesgo.",
+          "Abre una fila para ver ese monitor, o ve a Monitores para la lista completa, búsqueda y tendencias.",
+          "En pausa = no se checan hasta que los reanudes en Monitores. Si no tienes ninguno, el Dashboard te empuja a añadir el primero."
         ]
       },
       "dashboardSearchAndStatusLink": {
-        "title": "Buscar en el panel y tu página pública",
+        "title": "Buscar monitores y tu página pública",
         "summary": "Filtrar y abrir /status/tu-usuario.",
         "body": [
-          "Busca por nombre o URL. Quita el filtro para ver todo otra vez.",
+          "En Monitores busca por nombre o URL. Quita el filtro para ver todo otra vez.",
           "El enlace de estado abre /status/tu-usuario para ver lo mismo que un visitante."
         ]
       },
       "dashboardTrends": {
-        "title": "Tendencias en el panel",
-        "summary": "Historial reciente sin abrir el detalle.",
+        "title": "Tendencias en monitores",
+        "summary": "Historial reciente en cada tarjeta.",
         "body": [
-          "Cada tarjeta puede enseñar una mini tendencia de comprobaciones para ver si algo va inestable.",
+          "Cada tarjeta en Monitores puede enseñar una mini tendencia de comprobaciones para ver si algo va inestable.",
           "Si el monitor es nuevo, al principio hay pocos puntos hasta que corran más comprobaciones."
         ]
       },
       "addingMonitors": {
         "title": "Añadir un monitor",
-        "summary": "Nueva comprobación desde el Panel.",
+        "summary": "Nueva comprobación desde Monitores.",
         "body": [
           "Pulsa Añadir monitor, pon nombre y la URL entera (con https://). La app la pide según el intervalo.",
           "Puedes meter todos los que quieras; cada uno va por su lado."
@@ -657,7 +682,7 @@
         "title": "Detalle del monitor",
         "summary": "Historial, gráficos, comprobar ahora, editar, borrar.",
         "body": [
-          "Desde el Panel abres el detalle: historial, tiempos, SSL si aplica.",
+          "Desde Monitores abres el detalle: historial, tiempos, SSL si aplica.",
           "Comprobar ahora fuerza una comprobación fuera de turno. Editar/Borrar es solo de ese monitor.",
           "Incidentes y resultados cuentan cuándo empezó y acabó el lío."
         ]
@@ -754,10 +779,10 @@
       },
       "monitorExportImport": {
         "title": "Mover monitores entre cuentas",
-        "summary": "Copia de cuenta y alta masiva desde el Panel.",
+        "summary": "Copia de cuenta y alta masiva desde Monitores.",
         "body": [
           "Para copiar un conjunto de monitores, usa exportar/importar en Cuenta. Esa copia incluye las definiciones y, si quieres, el historial.",
-          "Para añadir muchos sitios HTTP de una vez en esta cuenta, usa Añadir monitor en el Panel y elige importación masiva (pegar URLs o subir un archivo)."
+          "Para añadir muchos sitios HTTP de una vez en esta cuenta, usa Añadir monitor en Monitores y elige importación masiva (pegar URLs o subir un archivo)."
         ]
       },
       "publicStatusPage": {
@@ -807,7 +832,7 @@
         "title": "Tema e idioma",
         "summary": "Claro, oscuro e idioma.",
         "body": [
-          "El tema va en la cabecera; el navegador se acuerda en este cacharro.",
+          "El tema va en la barra lateral; el navegador se acuerda en este cacharro.",
           "El idioma lo pones en Cuenta y aplica a toda la app con sesión."
         ]
       },
@@ -879,7 +904,7 @@
     "why3Body": "No arreglas lo que no sabes que está roto. Cuanto antes te llegue el aviso, antes vuelve todo a la normalidad — y menos quejas que explicar.",
     "screensEyebrow": "Dentro de la app",
     "screensTitle": "Del resumen al detalle",
-    "screenDashboardTitle": "Panel",
+    "screenDashboardTitle": "Monitores",
     "screenDashboardBadge": "Todo bien",
     "screenDashboardStat": "5 monitores · 4 en línea · 1 caído",
     "screenActivityTitle": "Actividad reciente",
@@ -904,7 +929,7 @@
   "monitorDetail": {
     "heroEyebrow": "Vista del monitor",
     "statsHeading": "Métricas",
-    "breadcrumb": "Panel",
+    "breadcrumb": "Monitores",
     "statusUp": "En línea",
     "statusDown": "Caído",
     "nextCheckPaused": "Siguiente comprobación: en pausa — nada programado",
@@ -1261,7 +1286,7 @@
     "completeNextStep3": "Revisa Actividad reciente para ver el historial de estado",
     "completeAccessGuide": "Puedes abrir este tour cuando quieras desde Cuenta.",
     "completeClose": "Cerrar",
-    "completeDashboard": "Ir al panel",
+    "completeDashboard": "Ir al dashboard",
     "skipConfirmTitle": "¿Saltar el tour?",
     "skipConfirmBody": "Puedes abrir el tour cuando quieras desde Cuenta.",
     "skipConfirmCancel": "Cancelar",

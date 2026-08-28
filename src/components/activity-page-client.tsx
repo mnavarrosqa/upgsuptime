@@ -12,6 +12,7 @@ import {
   statusSoftUpClass,
   statusSoftWarnClass,
 } from "@/lib/monitor-ui";
+import type { ActivityItem } from "@/lib/activity-item";
 import {
   Activity,
   AlertTriangle,
@@ -22,26 +23,7 @@ import {
   X,
 } from "lucide-react";
 
-export type ActivityItem =
-  | {
-      kind: "status";
-      id: string;
-      monitorId: string;
-      name: string;
-      url: string;
-      recovered: boolean;
-      at: string;
-    }
-  | {
-      kind: "degradation";
-      id: string;
-      monitorId: string;
-      name: string;
-      url: string;
-      recentAvgMs: number;
-      baselineP75Ms: number;
-      at: string;
-    };
+export type { ActivityItem };
 
 function formatFullTimestamp(iso: string, locale: string): string {
   const d = new Date(iso);

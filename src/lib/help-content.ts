@@ -24,8 +24,6 @@ export const HELP_CATEGORIES: HelpCategoryMeta[] = [
     id: "dashboard",
     articles: [
       { id: "dashboardOverview" },
-      { id: "dashboardSearchAndStatusLink" },
-      { id: "dashboardTrends" },
     ],
   },
   {
@@ -35,6 +33,8 @@ export const HELP_CATEGORIES: HelpCategoryMeta[] = [
       { id: "monitorTypes" },
       { id: "monitorSettings" },
       { id: "advancedRequestSettings" },
+      { id: "dashboardSearchAndStatusLink" },
+      { id: "dashboardTrends" },
     ],
   },
   {

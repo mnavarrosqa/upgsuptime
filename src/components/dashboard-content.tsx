@@ -218,6 +218,7 @@ export function DashboardContent({
 }: DashboardContentProps) {
   const router = useRouter();
   const t = useTranslations("dashboard");
+  const tNav = useTranslations("nav");
   const tSort = useTranslations("sort");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<{ field: string; direction: "asc" | "desc" }>({
@@ -282,9 +283,12 @@ export function DashboardContent({
         <div className="min-w-0">
           {hasMonitors ? (
             <>
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+                {tNav("monitors")}
+              </p>
               <h1
                 className={cn(
-                  "flex items-start gap-2.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight",
+                  "mt-1.5 flex items-start gap-2.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight",
                   downCount > 0 ? "text-status-down" : "text-text-primary"
                 )}
                 aria-live="polite"
@@ -350,7 +354,10 @@ export function DashboardContent({
             </>
           ) : (
             <>
-              <h1 className="font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight text-text-primary">
+              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+                {tNav("monitors")}
+              </p>
+              <h1 className="mt-1.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight text-text-primary">
                 {t("emptyTitle")}
               </h1>
               <p className="mt-2.5 max-w-md text-sm text-text-muted">{t("emptyBody")}</p>

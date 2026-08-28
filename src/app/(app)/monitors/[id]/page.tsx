@@ -115,7 +115,7 @@ export default async function MonitorDetailPage({
 
       {/* Back link */}
       <Link
-        href="/dashboard"
+        href="/monitors"
         className="inline-flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[13px] font-medium text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
       >
         <ArrowLeft className="size-3.5 shrink-0" aria-hidden />

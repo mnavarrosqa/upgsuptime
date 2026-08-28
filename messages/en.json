@@ -251,7 +251,7 @@
     "statusPageMonitorsHeading": "Visible monitors",
     "statusPageMonitorsSubtitle": "Only checked monitors appear on your public page. Others stay in your account only.",
     "statusPageMonitorsEmpty": "You don’t have any monitors yet.",
-    "statusPageMonitorsGoToMonitors": "Go to Dashboard",
+    "statusPageMonitorsGoToMonitors": "Go to Monitors",
     "statusPageMonitorShowLabel": "Show on public page",
     "statusPageMonitorShowAria": "Show {name} on public status page",
     "statusPageUrlLabel": "Public URL",
@@ -440,7 +440,7 @@
     "descending": "Descending"
   },
   "dashboard": {
-    "title": "Dashboard",
+    "title": "Monitors",
     "allOperational": "All systems operational",
     "allPaused": "All monitors paused",
     "downCount": "{count, plural, one {# down} other {# down}}",
@@ -452,13 +452,38 @@
     "statusPageLink": "Public status page",
     "searchPlaceholder": "Search by name or URL…",
     "emptyTitle": "No monitors yet",
-    "emptyBody": "Add your first monitor to track uptime and response time from this dashboard.",
+    "emptyBody": "Add your first monitor to track uptime and response time.",
     "noSearchTitle": "No matches",
     "noSearchMatch": "No monitors match your search.",
     "clearSearch": "Clear search",
     "sectionIssues": "{count, plural, one {# issue} other {# issues}}",
     "sectionPaused": "{count, plural, one {# paused} other {# paused}}",
     "sectionOperational": "{count, plural, one {# operational} other {# operational}}"
+  },
+  "overview": {
+    "emptyTitle": "No monitors yet",
+    "emptyBody": "Add a monitor to see fleet health, incidents, latency, and SSL risk in one place.",
+    "seeMonitors": "View monitors",
+    "kpiUp": "Up",
+    "kpiDown": "Down",
+    "kpiPaused": "Paused",
+    "kpiTotal": "Total",
+    "attention": "Needs attention",
+    "acked": "Acknowledged",
+    "degraded": "Slow",
+    "down": "Down",
+    "recentActivity": "Recent activity",
+    "activityEmpty": "No events in the last 7 days.",
+    "viewAll": "View all",
+    "worstUptime": "Lowest 90-day uptime",
+    "slowest": "Slowest last check",
+    "ssl": "SSL at risk",
+    "sslInvalid": "Invalid",
+    "sslExpired": "Expired",
+    "sslDays": "{n, plural, one {# day} other {# days}}",
+    "noUptimeData": "Not enough checks yet for a 90-day picture.",
+    "noLatencyData": "No recent successful checks to rank.",
+    "sslClear": "No certificates invalid or expiring within 30 days."
   },
   "activity": {
     "title": "Recent Activity",
@@ -569,7 +594,7 @@
         "body": [
           "UPG Monitor checks URLs, hosts, ports, DNS records, keywords, and certificates on a schedule. Each run records whether the check succeeded, how long it took, and any status details needed for later review.",
           "Your monitors are private by default. You can publish selected monitors on a read-only status page, share data through the status API, and keep operational history inside your account.",
-          "Use Dashboard for the current picture, Recent activity for cross-monitor events, and Help & Support when you need a reference."
+          "Use Dashboard for the fleet summary, Monitors for the full list, Recent activity for cross-monitor events, and Help & Support when you need a reference."
         ]
       },
       "signInAndAccount": {
@@ -597,33 +622,33 @@
         ]
       },
       "dashboardOverview": {
-        "title": "Dashboard overview",
-        "summary": "Summary cards and monitor status at a glance.",
+        "title": "Dashboard at a glance",
+        "summary": "Fleet health, incidents, and risk without opening every monitor.",
         "body": [
-          "The Dashboard shows how many monitors are up, down, or paused, and lists each monitor with its current state.",
-          "Paused monitors are not checked until you resume them from the Dashboard. New accounts see an empty state that points to adding the first monitor.",
-          "Dashboard data comes from stored monitor and check results, so it is the best first place to confirm what is happening right now."
+          "The Dashboard summarizes your monitors: how many are up, down, or paused, which sites need attention, recent incidents, weakest 90-day uptime, slowest checks, and SSL certificates at risk.",
+          "Open a row to inspect that monitor, or go to Monitors for the full list, search, and trends.",
+          "Paused monitors are not checked until you resume them from Monitors. An empty account points you to add the first monitor."
         ]
       },
       "dashboardSearchAndStatusLink": {
-        "title": "Dashboard search and status page link",
+        "title": "Search monitors and your public page",
         "summary": "Find monitors quickly and open your public page.",
         "body": [
-          "Use the search field to filter monitors by name or URL. Clear the search to return to the full list.",
+          "On Monitors, use the search field to filter by name or URL. Clear the search to return to the full list.",
           "If your account has a username, the status page link opens /status/your-username so you can review what visitors see."
         ]
       },
       "dashboardTrends": {
         "title": "Trend charts",
-        "summary": "Recent check history on the Dashboard.",
+        "summary": "Recent check history on each monitor card.",
         "body": [
-          "Trend charts show recent response patterns without opening the full monitor detail page. They help you spot flapping, slowdowns, or a sudden run of failed checks.",
+          "Trend charts on Monitors show recent response patterns without opening the full monitor detail page. They help you spot flapping, slowdowns, or a sudden run of failed checks.",
           "New monitors may have sparse charts until enough scheduled or manual checks have been recorded."
         ]
       },
       "addingMonitors": {
         "title": "Adding a monitor",
-        "summary": "Create a new check from the Dashboard.",
+        "summary": "Create a new check from Monitors.",
         "body": [
           "Choose Add monitor, enter a clear name, and provide the target details for the monitor type. HTTP and keyword monitors use a full HTTP or HTTPS URL; DNS and TCP monitors use host-oriented fields.",
           "Each monitor runs independently on its configured interval. You can later edit the schedule, timeout, notifications, status page visibility, and advanced request behavior."
@@ -664,7 +689,7 @@
         "title": "Monitor detail page",
         "summary": "History, charts, check now, edit, and delete.",
         "body": [
-          "Open a monitor from the Dashboard to inspect detailed history, response times, SSL information, incident context, and configuration actions.",
+          "Open a monitor from Monitors to inspect detailed history, response times, SSL information, incident context, and configuration actions.",
           "Check now runs an immediate check outside the normal schedule. Edit and Delete apply only to the current monitor.",
           "Use the detail page when a summary status is not enough and you need exact timing, response, or certificate evidence."
         ]
@@ -753,10 +778,10 @@
       },
       "monitorExportImport": {
         "title": "Moving monitors between accounts",
-        "summary": "Account backup and Dashboard bulk add.",
+        "summary": "Account backup and Monitors bulk add.",
         "body": [
           "To copy an existing set of monitors, use Account export/import. That backup includes monitor definitions and, optionally, check history.",
-          "To add many HTTP sites at once on this account, use Add monitor on the Dashboard and choose bulk import (paste URLs or upload a file)."
+          "To add many HTTP sites at once on this account, use Add monitor on Monitors and choose bulk import (paste URLs or upload a file)."
         ]
       },
       "publicStatusPage": {
@@ -806,7 +831,7 @@
         "title": "Theme and language",
         "summary": "Light, dark, and locale.",
         "body": [
-          "Use the theme control in the header to switch light and dark mode. Your choice is remembered on this device.",
+          "Use the theme control in the sidebar to switch light and dark mode. Your choice is remembered on this device.",
           "Interface language is set on the Account page and applies across the signed-in experience."
         ]
       },
@@ -878,7 +903,7 @@
     "why3Body": "You can’t fix what you don’t know is broken. The faster the alert reaches you, the faster your users get back on track — and the less damage there is to explain.",
     "screensEyebrow": "A look inside",
     "screensTitle": "From overview to detail",
-    "screenDashboardTitle": "Dashboard",
+    "screenDashboardTitle": "Monitors",
     "screenDashboardBadge": "All operational",
     "screenDashboardStat": "5 monitors · 4 up · 1 down",
     "screenActivityTitle": "Recent activity",
@@ -903,7 +928,7 @@
   "monitorDetail": {
     "heroEyebrow": "Monitor overview",
     "statsHeading": "Metrics",
-    "breadcrumb": "Dashboard",
+    "breadcrumb": "Monitors",
     "statusUp": "Up",
     "statusDown": "Down",
     "nextCheckPaused": "Next check: paused — no scheduled runs",

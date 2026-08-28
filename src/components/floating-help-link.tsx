@@ -54,7 +54,7 @@ export function FloatingHelpLink() {
 
   return (
     <aside
-      className="fixed bottom-6 left-4 z-30 flex max-w-[calc(100vw-2rem)] items-end gap-3 sm:left-6"
+      className="fixed bottom-6 left-4 z-30 flex max-w-[calc(100vw-2rem)] items-end gap-3 sm:left-6 md:left-[calc(15rem+1.5rem)]"
       aria-label={t("floatingHelpRegion")}
     >
       <Link

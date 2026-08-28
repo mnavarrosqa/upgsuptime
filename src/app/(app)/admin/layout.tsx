@@ -25,16 +25,9 @@ export default async function AdminLayout({
       >
         {t("overview.heading")}
       </h1>
-      <p className="mt-1 text-sm text-text-muted">
-        {t("overview.subtitle")}
-      </p>
-
-      <div className="mt-8 flex flex-col md:flex-row md:gap-8 lg:gap-10">
-        <AdminSubNav />
-        <div className="mt-6 min-w-0 flex-1 md:mt-0">
-          {children}
-        </div>
-      </div>
+      <p className="mt-1 text-sm text-text-muted">{t("overview.subtitle")}</p>
+      <AdminSubNav />
+      <div className="mt-6 md:mt-8">{children}</div>
     </div>
   );
 }

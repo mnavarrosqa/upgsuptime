@@ -26,7 +26,7 @@ export function DeleteMonitorButton({
       const res = await fetch(`/api/monitors/${monitorId}`, { method: "DELETE" });
       if (res.ok) {
         toast.success(t("deleteSuccessSingle", { name: monitorName }));
-        router.replace("/dashboard");
+        router.replace("/monitors");
         router.refresh();
       } else {
         const data = await res.json().catch(() => ({}));
