@@ -4,14 +4,7 @@ import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  Provider as TooltipProvider,
-  Root as TooltipRoot,
-  Trigger as TooltipTrigger,
-  Portal as TooltipPortal,
-  Content as TooltipContent,
-} from "@radix-ui/react-tooltip";
-import { CircleHelp, ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer } from "lucide-react";
+import { ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
 import { ActivityVolumeClient, FleetMixClient } from "@/components/dashboard-charts-client";
@@ -29,6 +22,7 @@ export type OverviewAttentionRow = {
   acked: boolean;
   degraded: boolean;
   since: string | null;
+  detail: string | null;
 };
 
 export type OverviewNamedStat = {
@@ -90,6 +84,16 @@ function SiteLabel({
       <span className="min-w-0 truncate font-medium text-text-primary group-hover:text-accent">
         {name}
       </span>
+    </span>
+  );
+}
+
+const SLOWEST_MIN_MS = 300;
+
+function MetaDot() {
+  return (
+    <span className="text-border-muted select-none" aria-hidden>
+      ·
     </span>
   );
 }
@@ -261,6 +265,11 @@ export function DashboardOverview({
       : allPaused
         ? tDash("allPaused")
         : tDash("allOperational");
+  const showUptime = worstUptime.length > 0 || !hasUptimeData;
+  const showSlowest =
+    slowest.length > 0 && Math.max(...slowest.map((row) => row.n)) >= SLOWEST_MIN_MS;
+  const showSsl = ssl.length > 0;
+  const rankCount = Number(showUptime) + Number(showSlowest) + Number(showSsl);
 
   return (
     <>
@@ -296,53 +305,21 @@ export function DashboardOverview({
                   <span className="tabular-nums">{tDash("monitorCount", { count: totalCount })}</span>
                   {fleetUptimePct != null ? (
                     <>
-                      <span className="text-border-muted select-none" aria-hidden>
-                        ·
-                      </span>
+                      <MetaDot />
                       <span className="tabular-nums">{t("fleetUptime90d", { pct: fleetUptimePct })}</span>
                     </>
                   ) : null}
                   {pausedCount > 0 && !allPaused ? (
                     <>
-                      <span className="text-border-muted select-none" aria-hidden>
-                        ·
-                      </span>
+                      <MetaDot />
                       <span className="tabular-nums">{tDash("pausedCountMeta", { count: pausedCount })}</span>
                     </>
                   ) : null}
-                  <span className="text-border-muted select-none" aria-hidden>
-                    ·
-                  </span>
-                  <span className="inline-flex min-w-0 items-center gap-1">
-                    <span className="truncate">{tDash("checksFrom", { location: locationLabel })}</span>
-                    <TooltipProvider delayDuration={140}>
-                      <TooltipRoot>
-                        <TooltipTrigger asChild>
-                          <button
-                            type="button"
-                            className="inline-flex size-7 items-center justify-center rounded-md text-text-muted/90 transition-colors hover:text-text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60"
-                            aria-label={tDash("statLocationTooltip")}
-                          >
-                            <CircleHelp className="size-3.5 shrink-0" aria-hidden />
-                          </button>
-                        </TooltipTrigger>
-                        <TooltipPortal>
-                          <TooltipContent
-                            side="top"
-                            sideOffset={6}
-                            className="z-50 max-w-[20rem] rounded-md border border-border bg-bg-card px-2.5 py-2 text-[11px] font-medium text-text-primary shadow-md"
-                          >
-                            {tDash("statLocationTooltip")}
-                          </TooltipContent>
-                        </TooltipPortal>
-                      </TooltipRoot>
-                    </TooltipProvider>
-                  </span>
+                  <MetaDot />
+                  <span className="truncate">{tDash("checksFrom", { location: locationLabel })}</span>
                   {username ? (
                     <>
-                      <span className="text-border-muted select-none" aria-hidden>
-                        ·
-                      </span>
+                      <MetaDot />
                       <Link
                         href={`/status/${username}`}
                         target="_blank"
@@ -354,15 +331,6 @@ export function DashboardOverview({
                       </Link>
                     </>
                   ) : null}
-                  <span className="text-border-muted select-none" aria-hidden>
-                    ·
-                  </span>
-                  <Link
-                    href="/monitors"
-                    className="text-text-primary underline-offset-4 transition-colors hover:text-text-muted hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                  >
-                    {t("seeMonitors")}
-                  </Link>
                 </p>
               </div>
               <FleetMixClient fleet={fleet} totalCount={totalCount} />
@@ -380,12 +348,22 @@ export function DashboardOverview({
                       <li key={row.id}>
                         <Link
                           href={`/monitors/${row.id}`}
-                          className="group flex items-center justify-between gap-3 py-2.5 text-sm"
+                          className="group flex items-start justify-between gap-3 py-2.5 text-sm"
                         >
-                          <SiteLabel name={row.name} url={row.url} type={row.type} />
+                          <div className="min-w-0">
+                            <SiteLabel name={row.name} url={row.url} type={row.type} />
+                            {row.detail ? (
+                              <p
+                                className="mt-0.5 truncate pl-6 text-xs text-text-muted"
+                                title={row.detail}
+                              >
+                                {row.detail}
+                              </p>
+                            ) : null}
+                          </div>
                           <span
                             className={cn(
-                              "inline-flex shrink-0 items-center gap-1.5 text-xs font-medium",
+                              "mt-0.5 inline-flex shrink-0 items-center gap-1.5 text-xs font-medium",
                               tone === "warn" && "text-status-warn",
                               tone === "muted" && "text-text-muted",
                               tone === "down" && "text-status-down"
@@ -445,43 +423,50 @@ export function DashboardOverview({
               )}
             </section>
 
-            <div className="mt-10 grid gap-10 lg:grid-cols-2">
-              <section>
-                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
-                  {t("worstUptime")}
-                </SectionHeading>
-                <RankList
-                  items={worstUptime}
-                  empty={hasUptimeData ? t("uptimeAllClear") : t("noUptimeData")}
-                  format={(n) => `${n}%`}
-                  scale="pct"
-                  fillFor={(n) =>
-                    n < 99 ? "var(--color-status-down)" : "var(--color-status-warn)"
-                  }
-                />
-              </section>
-              <section>
-                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
-                  {t("slowest")}
-                </SectionHeading>
-                <RankList
-                  items={slowest}
-                  empty={t("noLatencyData")}
-                  format={(n) => `${n} ms`}
-                  scale="relative"
-                  fillFor={(n) =>
-                    n >= 1000 ? "var(--color-status-warn)" : "var(--color-accent)"
-                  }
-                />
-              </section>
-            </div>
-
-            <section className="mt-10 max-w-xl">
-              <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={ShieldAlert}>
-                {t("ssl")}
-              </SectionHeading>
-              <StatList items={ssl} empty={t("sslClear")} />
-            </section>
+            {rankCount > 0 ? (
+              <div className={cn("mt-10 grid gap-10", rankCount > 1 && "lg:grid-cols-2")}>
+                {showUptime ? (
+                  <section>
+                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
+                      {t("worstUptime")}
+                    </SectionHeading>
+                    <RankList
+                      items={worstUptime}
+                      empty={t("noUptimeData")}
+                      format={(n) => `${n}%`}
+                      scale="pct"
+                      fillFor={(n) =>
+                        n < 99 ? "var(--color-status-down)" : "var(--color-status-warn)"
+                      }
+                    />
+                  </section>
+                ) : null}
+                {showSlowest ? (
+                  <section>
+                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
+                      {t("slowest")}
+                    </SectionHeading>
+                    <RankList
+                      items={slowest}
+                      empty={t("noLatencyData")}
+                      format={(n) => `${n} ms`}
+                      scale="relative"
+                      fillFor={(n) =>
+                        n >= 1000 ? "var(--color-status-warn)" : "var(--color-accent)"
+                      }
+                    />
+                  </section>
+                ) : null}
+                {showSsl ? (
+                  <section>
+                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={ShieldAlert}>
+                      {t("ssl")}
+                    </SectionHeading>
+                    <StatList items={ssl} empty={t("sslClear")} />
+                  </section>
+                ) : null}
+              </div>
+            ) : null}
           </>
         )}
       </div>

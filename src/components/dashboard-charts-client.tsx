@@ -31,6 +31,7 @@ export function FleetMixClient({
   fleet: FleetSlice[];
   totalCount: number;
 }) {
+  if (fleet.filter((s) => s.value > 0).length <= 1) return null;
   return <FleetMixInner fleet={fleet} totalCount={totalCount} />;
 }
 

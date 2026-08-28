@@ -30,7 +30,7 @@ function sslDaysUntil(expiresAt: Date | string | null | undefined): number | nul
 function isLatestOk(
   monitorId: string,
   currentStatus: boolean | null,
-  latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null }>
+  latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }>
 ): boolean | null {
   const latest = latestByMonitor[monitorId];
   if (latest) return latest.ok;
@@ -74,7 +74,7 @@ export default async function DashboardPage() {
     loadActivityFeed(session.user.id),
   ]);
 
-  const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null }> = {};
+  const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }> = {};
   const uptimeByMonitor: Record<string, number | null> = {};
   let fleetUptimePct: number | null = null;
 
@@ -88,6 +88,7 @@ export default async function DashboardPage() {
           monitorId: checkResult.monitorId,
           ok: checkResult.ok,
           responseTimeMs: checkResult.responseTimeMs,
+          message: checkResult.message,
         })
         .from(checkResult)
         .where(inArray(checkResult.monitorId, monitorIds))
@@ -98,7 +99,11 @@ export default async function DashboardPage() {
 
     for (const r of recentResults) {
       if (!(r.monitorId in latestByMonitor)) {
-        latestByMonitor[r.monitorId] = { ok: r.ok, responseTimeMs: r.responseTimeMs };
+        latestByMonitor[r.monitorId] = {
+          ok: r.ok,
+          responseTimeMs: r.responseTimeMs,
+          message: r.message,
+        };
       }
     }
     let fleetTotal = 0;
@@ -158,6 +163,7 @@ export default async function DashboardPage() {
             down && m.lastStatusChangedAt
               ? new Date(m.lastStatusChangedAt).toISOString()
               : null,
+          detail: down ? (latestByMonitor[m.id]?.message ?? null) : null,
         },
       ];
     })
