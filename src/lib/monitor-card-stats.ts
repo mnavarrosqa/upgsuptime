@@ -34,21 +34,20 @@ export function trendDeltaPercent(results: TrendPoint[]): number | null {
   return round1(uptimeDelta);
 }
 
-export function sparklineHealthValues(points: TrendPoint[]): number[] {
-  return points.map((p) => {
-    if (!p.ok) return 0.12;
-    if (p.responseTimeMs == null) return 0.72;
-    const ms = Math.max(p.responseTimeMs, 1);
-    return 0.22 + 0.78 / (1 + ms / 400);
+/**
+ * 0–1 sparkline height from response time. Higher ms sits higher on the
+ * chart (same orientation as the detail latency chart). Domain is 0…max
+ * ms in the window so a 2s spike is ~10× a 200ms check, not a “health dip”.
+ * Down checks with no timing plot at the top.
+ */
+export function sparklineChartValues(points: TrendPoint[]): number[] {
+  const ms = points.map((p) => {
+    if (p.responseTimeMs != null && p.responseTimeMs > 0) return p.responseTimeMs;
+    return p.ok ? 0 : null;
   });
-}
-
-export function normalizeSparklineValues(values: number[]): number[] {
-  if (values.length === 0) return [];
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  if (max - min < 0.04) return values.map(() => 0.62);
-  return values.map((v) => 0.12 + ((v - min) / (max - min)) * 0.76);
+  const maxMs = Math.max(1, ...ms.filter((v): v is number => v != null));
+  const domain = ms.includes(null) ? maxMs / 0.8 : maxMs; // untimed down sits above timed checks
+  return ms.map((v) => (v == null ? 1 : v / domain));
 }
 
 function round1(n: number): number {

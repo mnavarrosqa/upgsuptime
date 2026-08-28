@@ -4,8 +4,7 @@ import { useId, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   chronologicalTrend,
-  normalizeSparklineValues,
-  sparklineHealthValues,
+  sparklineChartValues,
   sparklineIndexFromViewX,
   type TrendPoint,
 } from "@/lib/monitor-card-stats";
@@ -71,7 +70,7 @@ export function MonitorCardTrend({
   const geom = useMemo(() => {
     const chrono = chronologicalTrend(results);
     if (chrono.length === 0) return null;
-    const values = normalizeSparklineValues(sparklineHealthValues(chrono));
+    const values = sparklineChartValues(chrono);
     const spanX = VW - PAD_X - PAD_RIGHT;
     const spanY = VH - PAD_Y * 2;
     const yBottom = PAD_Y + spanY;

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chronologicalTrend,
-  sparklineHealthValues,
+  sparklineChartValues,
   trendDeltaPercent,
   uptimePercent,
   sparklineIndexFromViewX,
@@ -41,9 +41,21 @@ describe("monitor-card-stats", () => {
     expect(trendDeltaPercent([...newer, ...older])).toBe(0);
   });
 
-  it("sparklineHealthValues dip on failed checks", () => {
-    const values = sparklineHealthValues([pt(true, 80), pt(false, null)]);
-    expect(values[1]).toBeLessThan(values[0]!);
+  it("sparklineChartValues put slower checks higher", () => {
+    const values = sparklineChartValues([pt(true, 80), pt(true, 400)]);
+    expect(values).toEqual([0.2, 1]);
+  });
+
+  it("sparklineChartValues put untimed failures at the top", () => {
+    const values = sparklineChartValues([pt(true, 80), pt(false, null)]);
+    expect(values[1]).toBe(1);
+    expect(values[0]).toBe(0.8);
+  });
+
+  it("sparklineChartValues scale failed timeouts against real ms", () => {
+    const values = sparklineChartValues([pt(true, 100), pt(false, 5000)]);
+    expect(values[0]).toBe(0.02);
+    expect(values[1]).toBe(1);
   });
 
   it("sparklineIndexFromViewX maps x to the nearest check", () => {
