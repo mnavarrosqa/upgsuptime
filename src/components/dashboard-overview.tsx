@@ -11,12 +11,14 @@ import {
   Portal as TooltipPortal,
   Content as TooltipContent,
 } from "@radix-ui/react-tooltip";
-import { CircleHelp, ExternalLink } from "lucide-react";
+import { CircleHelp, ExternalLink, CircleCheck, CircleX, Pause, Layers, TriangleAlert, ShieldAlert } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
+import { DashboardChartsClient } from "@/components/dashboard-charts-client";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
 import { cn } from "@/lib/utils";
 import type { ActivityItem } from "@/lib/activity-item";
+import type { ActivityDayPoint, FleetSlice, RankingPoint } from "@/components/dashboard-charts";
 
 export type OverviewAttentionRow = {
   id: string;
@@ -37,14 +39,17 @@ export type DashboardOverviewProps = {
   downCount: number;
   upCount: number;
   pausedCount: number;
+  unknownCount: number;
   totalCount: number;
   allPaused: boolean;
   checkLocation: string | null;
   username: string | null;
   attention: OverviewAttentionRow[];
   activity: ActivityItem[];
-  worstUptime: OverviewNamedStat[];
-  slowest: OverviewNamedStat[];
+  fleet: FleetSlice[];
+  activityByDay: ActivityDayPoint[];
+  worstUptime: RankingPoint[];
+  slowest: RankingPoint[];
   ssl: OverviewNamedStat[];
   onboarding?: {
     onboardingCompleted?: boolean | null;
@@ -72,14 +77,19 @@ function SectionHeading({
   children,
   href,
   hrefLabel,
+  icon: Icon,
 }: {
   children: React.ReactNode;
   href?: string;
   hrefLabel?: string;
+  icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="mb-3 flex items-baseline justify-between gap-3">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">{children}</h2>
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <h2 className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted">
+        {Icon ? <Icon className="size-3.5 shrink-0" aria-hidden /> : null}
+        {children}
+      </h2>
       {href && hrefLabel ? (
         <Link
           href={href}
@@ -113,6 +123,30 @@ function StatList({ items, empty }: { items: OverviewNamedStat[]; empty: string 
   );
 }
 
+function KpiStat({
+  icon: Icon,
+  iconClass,
+  label,
+  value,
+  valueClass,
+}: {
+  icon: React.ComponentType<{ className?: string }>;
+  iconClass: string;
+  label: string;
+  value: number;
+  valueClass: string;
+}) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      <dt className="inline-flex items-center gap-1.5 text-text-muted">
+        <Icon className={cn("size-3.5 shrink-0", iconClass)} aria-hidden />
+        {label}
+      </dt>
+      <dd className={cn("font-semibold", valueClass)}>{value}</dd>
+    </div>
+  );
+}
+
 function formatRelativeTime(iso: string): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return iso;
@@ -130,12 +164,15 @@ export function DashboardOverview({
   downCount,
   upCount,
   pausedCount,
+  unknownCount,
   totalCount,
   allPaused,
   checkLocation,
   username,
   attention,
   activity,
+  fleet,
+  activityByDay,
   worstUptime,
   slowest,
   ssl,
@@ -255,29 +292,48 @@ export function DashboardOverview({
             </div>
 
             <dl className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm tabular-nums">
-              <div className="flex items-baseline gap-1.5">
-                <dt className="text-text-muted">{t("kpiUp")}</dt>
-                <dd className="font-semibold text-status-up">{upCount}</dd>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <dt className="text-text-muted">{t("kpiDown")}</dt>
-                <dd className={cn("font-semibold", downCount > 0 ? "text-status-down" : "text-text-primary")}>
-                  {downCount}
-                </dd>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <dt className="text-text-muted">{t("kpiPaused")}</dt>
-                <dd className="font-semibold text-text-primary">{pausedCount}</dd>
-              </div>
-              <div className="flex items-baseline gap-1.5">
-                <dt className="text-text-muted">{t("kpiTotal")}</dt>
-                <dd className="font-semibold text-text-primary">{totalCount}</dd>
-              </div>
+              <KpiStat
+                icon={CircleCheck}
+                iconClass="text-status-up"
+                label={t("kpiUp")}
+                value={upCount}
+                valueClass="text-status-up"
+              />
+              <KpiStat
+                icon={CircleX}
+                iconClass={downCount > 0 ? "text-status-down" : "text-text-muted"}
+                label={t("kpiDown")}
+                value={downCount}
+                valueClass={downCount > 0 ? "text-status-down" : "text-text-primary"}
+              />
+              <KpiStat
+                icon={Pause}
+                iconClass="text-text-muted"
+                label={t("kpiPaused")}
+                value={pausedCount}
+                valueClass="text-text-primary"
+              />
+              {unknownCount > 0 ? (
+                <KpiStat
+                  icon={CircleHelp}
+                  iconClass="text-text-muted"
+                  label={t("kpiUnknown")}
+                  value={unknownCount}
+                  valueClass="text-text-primary"
+                />
+              ) : null}
+              <KpiStat
+                icon={Layers}
+                iconClass="text-accent"
+                label={t("kpiTotal")}
+                value={totalCount}
+                valueClass="text-text-primary"
+              />
             </dl>
 
             {attention.length > 0 && (
               <section className="mt-10">
-                <SectionHeading>{t("attention")}</SectionHeading>
+                <SectionHeading icon={TriangleAlert}>{t("attention")}</SectionHeading>
                 <ul className="divide-y divide-border/70">
                   {attention.map((row) => (
                     <li key={row.id}>
@@ -299,6 +355,14 @@ export function DashboardOverview({
                 </ul>
               </section>
             )}
+
+            <DashboardChartsClient
+              fleet={fleet}
+              totalCount={totalCount}
+              activityByDay={activityByDay}
+              worstUptime={worstUptime}
+              slowest={slowest}
+            />
 
             <div className="mt-10 grid gap-10 lg:grid-cols-2">
               <section>
@@ -341,21 +405,7 @@ export function DashboardOverview({
               </section>
 
               <section>
-                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
-                  {t("worstUptime")}
-                </SectionHeading>
-                <StatList items={worstUptime} empty={t("noUptimeData")} />
-              </section>
-
-              <section>
-                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
-                  {t("slowest")}
-                </SectionHeading>
-                <StatList items={slowest} empty={t("noLatencyData")} />
-              </section>
-
-              <section>
-                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
+                <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={ShieldAlert}>
                   {t("ssl")}
                 </SectionHeading>
                 <StatList items={ssl} empty={t("sslClear")} />
