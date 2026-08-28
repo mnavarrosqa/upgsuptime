@@ -24,7 +24,7 @@ export function AppShell({
   const pathname = usePathname();
   const t = useTranslations("nav");
   const buttonRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
   const drawerId = useId();
   const [openedAtPath, setOpenedAtPath] = useState(pathname);
   const visible = open && pathname === openedAtPath;
@@ -65,7 +65,7 @@ export function AppShell({
     document.body.style.overflow = "hidden";
     requestAnimationFrame(() => {
       const firstItem = drawerRef.current?.querySelector<HTMLElement>(
-        'a[href], button:not([disabled])'
+        "a[href], button:not([disabled])"
       );
       firstItem?.focus();
     });
@@ -75,45 +75,40 @@ export function AppShell({
     };
   }, [close, visible]);
 
-  const sidebarProps = { role, email, name };
-
   return (
     <div className="min-h-svh bg-bg-page text-text-primary md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="sticky top-0 hidden h-svh flex-col border-r border-border/60 bg-bg-card md:flex">
-        <AppSidebar {...sidebarProps} />
-      </aside>
-
-      <div
+      <button
+        type="button"
+        tabIndex={visible ? 0 : -1}
+        aria-label={t("closeMenu")}
         className={cn(
-          "fixed inset-0 z-40 md:hidden",
-          visible ? "pointer-events-auto" : "pointer-events-none"
+          "fixed inset-0 z-40 bg-black/40 md:hidden motion-safe:transition-opacity motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]",
+          visible ? "opacity-100" : "pointer-events-none opacity-0"
+        )}
+        onClick={() => close()}
+      />
+      <aside
+        id={drawerId}
+        ref={drawerRef}
+        role={visible ? "dialog" : undefined}
+        aria-modal={visible ? true : undefined}
+        aria-label={t("navMenu")}
+        className={cn(
+          "flex flex-col border-r border-border/60 bg-bg-card max-md:safe-top",
+          "fixed inset-y-0 left-0 z-50 w-60 max-w-[min(100vw-3rem,16rem)] shadow-xl",
+          "motion-safe:transition-transform motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]",
+          "md:static md:z-auto md:h-svh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none",
+          visible ? "translate-x-0" : "-translate-x-full md:translate-x-0",
+          !visible && "max-md:invisible max-md:pointer-events-none"
         )}
       >
-        <button
-          type="button"
-          tabIndex={visible ? 0 : -1}
-          aria-label={t("closeMenu")}
-          className={cn(
-            "absolute inset-0 bg-black/40 transition-opacity duration-200 [transition-timing-function:var(--motion-ease-out-quart)]",
-            visible ? "opacity-100" : "opacity-0"
-          )}
-          onClick={() => close()}
+        <AppSidebar
+          role={role}
+          email={email}
+          name={name}
+          onNavigate={() => close()}
         />
-        <div
-          id={drawerId}
-          ref={drawerRef}
-          role="dialog"
-          aria-modal={visible ? true : undefined}
-          aria-hidden={!visible}
-          aria-label={t("navMenu")}
-          className={cn(
-            "safe-top absolute inset-y-0 left-0 flex w-60 max-w-[min(100vw-3rem,16rem)] flex-col bg-bg-card shadow-xl motion-safe:transition-transform motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]",
-            visible ? "translate-x-0" : "-translate-x-full"
-          )}
-        >
-          <AppSidebar {...sidebarProps} onNavigate={() => close()} showClose />
-        </div>
-      </div>
+      </aside>
 
       <div className="flex min-w-0 flex-col">
         <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-bg-card/80 backdrop-blur-xl md:hidden">

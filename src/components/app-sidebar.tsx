@@ -63,13 +63,11 @@ export function AppSidebar({
   email,
   name,
   onNavigate,
-  showClose,
 }: {
   role?: string | null;
   email: string;
   name?: string | null;
   onNavigate?: () => void;
-  showClose?: boolean;
 }) {
   const pathname = usePathname();
   const { unreadCount } = useActivity();
@@ -86,7 +84,7 @@ export function AppSidebar({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <div className="flex shrink-0 items-center gap-2 pr-3">
+      <div className="flex shrink-0 items-center gap-2 pr-3 md:pr-0">
         <Link
           href="/dashboard"
           onClick={onNavigate}
@@ -96,16 +94,14 @@ export function AppSidebar({
           <BrandMark className="size-5 shrink-0" />
           <span className="truncate">{t("appTitle")}</span>
         </Link>
-        {showClose ? (
-          <button
-            type="button"
-            onClick={onNavigate}
-            className="flex size-11 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
-            aria-label={t("closeMenu")}
-          >
-            <X className="size-5" aria-hidden />
-          </button>
-        ) : null}
+        <button
+          type="button"
+          onClick={onNavigate}
+          className="flex size-11 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary md:hidden"
+          aria-label={t("closeMenu")}
+        >
+          <X className="size-5" aria-hidden />
+        </button>
       </div>
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-3 pb-3" aria-label={t("mainNav")}>

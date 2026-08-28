@@ -124,7 +124,7 @@ export default function GlobalError({
               color: "var(--text-muted)",
               marginBottom: "2rem",
             }}>
-              Ocurrió un error inesperado. Puedes intentar recargar o volver al panel.
+              Ocurrió un error inesperado. Puedes intentar recargar o volver al dashboard.
             </p>
 
             {/* Card */}
@@ -179,7 +179,7 @@ export default function GlobalError({
                   textDecoration: "none",
                 }}
               >
-                Ir al panel
+                Ir al dashboard
               </a>
             </div>
 

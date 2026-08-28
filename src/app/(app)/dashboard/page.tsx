@@ -17,11 +17,23 @@ import {
 
 const ACTIVITY_SNIPPET = 5;
 const RANK_LIMIT = 5;
+const ATTENTION_LIMIT = 8;
 const SSL_WARN_DAYS = 30;
 
 function sslDaysUntil(expiresAt: Date | string | null | undefined): number | null {
   if (expiresAt == null) return null;
   return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+}
+
+function isLatestOk(
+  monitorId: string,
+  currentStatus: boolean | null,
+  latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null }>
+): boolean | null {
+  const latest = latestByMonitor[monitorId];
+  if (latest) return latest.ok;
+  if (currentStatus == null) return null;
+  return currentStatus;
 }
 
 export default async function DashboardPage() {
@@ -73,32 +85,34 @@ export default async function DashboardPage() {
 
   const pausedCount = monitors.filter((m) => m.paused).length;
   const downCount = monitors.filter((m) => {
-    const latest = latestByMonitor[m.id];
-    return !m.paused && latest && !latest.ok;
+    if (m.paused) return false;
+    return isLatestOk(m.id, m.currentStatus, latestByMonitor) === false;
   }).length;
   const upCount = monitors.filter((m) => {
-    const latest = latestByMonitor[m.id];
-    return !m.paused && latest?.ok === true;
+    if (m.paused) return false;
+    return isLatestOk(m.id, m.currentStatus, latestByMonitor) === true;
   }).length;
   const allPaused = monitors.length > 0 && pausedCount === monitors.length;
 
-  const attention = monitors.flatMap((m) => {
-    if (m.paused) return [];
-    const latest = latestByMonitor[m.id];
-    const down = Boolean(latest && !latest.ok);
-    const degraded =
-      Boolean(latest?.ok) &&
-      ((m.consecutiveDegradedChecks ?? 0) > 0 || m.degradingAlertSentAt != null);
-    if (!down && !degraded) return [];
-    return [
-      {
-        id: m.id,
-        name: m.name,
-        acked: down && isDowntimeAcked(m),
-        degraded: !down && degraded,
-      },
-    ];
-  });
+  const attention = monitors
+    .flatMap((m) => {
+      if (m.paused) return [];
+      const ok = isLatestOk(m.id, m.currentStatus, latestByMonitor);
+      const down = ok === false;
+      const degraded =
+        ok === true &&
+        ((m.consecutiveDegradedChecks ?? 0) > 0 || m.degradingAlertSentAt != null);
+      if (!down && !degraded) return [];
+      return [
+        {
+          id: m.id,
+          name: m.name,
+          acked: down && isDowntimeAcked(m),
+          degraded: !down && degraded,
+        },
+      ];
+    })
+    .slice(0, ATTENTION_LIMIT);
 
   const worstUptime = monitors
     .filter((m) => uptimeByMonitor[m.id] != null)
@@ -133,6 +147,7 @@ export default async function DashboardPage() {
 
   const ssl = monitors
     .flatMap((m) => {
+      if (m.sslMonitoring !== true) return [];
       const days = sslDaysUntil(m.sslExpiresAt);
       const invalid = m.sslValid === false;
       const expiring = days != null && days <= SSL_WARN_DAYS;
