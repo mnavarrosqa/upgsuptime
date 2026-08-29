@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { monitor, checkResult, user } from "@/db/schema";
 import { eq, desc, inArray } from "drizzle-orm";
-import type { ActivityDayPoint, FleetSlice, RankingPoint } from "@/components/dashboard-charts";
+import type { ActivityDayPoint, FleetSlice, FleetTrendPoint, RankingPoint } from "@/components/dashboard-charts";
 import { DashboardOverview } from "@/components/dashboard-overview";
 import { getCheckLocationLabel } from "@/lib/check-location";
 import { loadActivityFeed } from "@/lib/activity-feed";
@@ -13,9 +13,12 @@ import { isDowntimeAcked } from "@/lib/downtime-ack";
 import { isMaintenanceActive } from "@/lib/monitor-config";
 import { getTranslations } from "next-intl/server";
 import {
+  fillFleetDayTrend,
+  getFleetDailyStats,
   getUptimeStats90d,
   ninetyDaysAgoFrom,
   uptimePctFromCounts,
+  utcDaysBack,
 } from "@/lib/monitor-public-status";
 
 const ACTIVITY_SNIPPET = 5;
@@ -39,15 +42,10 @@ function isLatestOk(
   return currentStatus;
 }
 
-function activityByUtcDay(items: ActivityItem[]): ActivityDayPoint[] {
-  const now = new Date();
-  const y = now.getUTCFullYear();
-  const mo = now.getUTCMonth();
-  const d = now.getUTCDate();
+function activityByUtcDay(items: ActivityItem[], nowMs: number): ActivityDayPoint[] {
   const days: ActivityDayPoint[] = [];
   const index = new Map<string, ActivityDayPoint>();
-  for (let i = 6; i >= 0; i--) {
-    const key = new Date(Date.UTC(y, mo, d - i)).toISOString().slice(0, 10);
+  for (const key of utcDaysBack(nowMs, 7)) {
     const point: ActivityDayPoint = { day: key, down: 0, recovered: 0, degraded: 0 };
     days.push(point);
     index.set(key, point);
@@ -76,6 +74,10 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
+  // Server snapshot: overdue checks and UTC day buckets vs this request.
+  // eslint-disable-next-line react-hooks/purity -- RSC request time
+  const nowMs = Date.now();
+
   const [monitors, [userOnboarding], activityAll] = await Promise.all([
     db.select().from(monitor).where(eq(monitor.userId, session.user.id)),
     db
@@ -88,12 +90,15 @@ export default async function DashboardPage() {
   const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }> = {};
   const uptimeByMonitor: Record<string, number | null> = {};
   let fleetUptimePct: number | null = null;
+  let trendByDay: FleetTrendPoint[] = [];
 
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
     const latestLimit = Math.min(monitorIds.length * 24, 500);
+    const dayKeys = utcDaysBack(nowMs, 7);
+    const trendSince = new Date(`${dayKeys[0]}T00:00:00.000Z`);
 
-    const [recentResults, uptimeStats] = await Promise.all([
+    const [recentResults, uptimeStats, dailyRows] = await Promise.all([
       db
         .select({
           monitorId: checkResult.monitorId,
@@ -105,7 +110,8 @@ export default async function DashboardPage() {
         .where(inArray(checkResult.monitorId, monitorIds))
         .orderBy(desc(checkResult.createdAt))
         .limit(latestLimit),
-      getUptimeStats90d(monitorIds, ninetyDaysAgoFrom()),
+      getUptimeStats90d(monitorIds, ninetyDaysAgoFrom(nowMs)),
+      getFleetDailyStats(monitorIds, trendSince),
     ]);
 
     for (const r of recentResults) {
@@ -130,11 +136,15 @@ export default async function DashboardPage() {
       }
     }
     fleetUptimePct = uptimePctFromCounts(fleetTotal, fleetOk);
+    trendByDay = fillFleetDayTrend(dailyRows, dayKeys).map((d) => ({
+      day: d.day,
+      total: d.total,
+      okCount: d.okCount,
+      uptimePct: uptimePctFromCounts(d.total, d.okCount),
+      avgMs: d.avgMs,
+    }));
   }
 
-  // Server snapshot: overdue checks vs this request, not a client re-render clock.
-  // eslint-disable-next-line react-hooks/purity -- RSC request time
-  const nowMs = Date.now();
   const pausedCount = monitors.filter((m) => m.paused).length;
   const downCount = monitors.filter((m) => {
     if (m.paused) return false;
@@ -302,7 +312,8 @@ export default async function DashboardPage() {
       attention={attention}
       activity={activityAll.slice(0, ACTIVITY_SNIPPET)}
       fleet={fleet}
-      activityByDay={activityByUtcDay(activityAll)}
+      activityByDay={activityByUtcDay(activityAll, nowMs)}
+      trendByDay={trendByDay}
       worstUptime={worstUptime}
       slowest={slowest}
       ssl={ssl}

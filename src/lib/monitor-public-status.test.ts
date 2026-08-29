@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { Monitor } from "@/db/schema";
 import {
   buildMonitorPublicStatusItem,
+  fillFleetDayTrend,
   NINETY_DAYS_MS,
   ninetyDaysAgoFrom,
   uptimePctFromCounts,
+  utcDaysBack,
 } from "@/lib/monitor-public-status";
 
 function baseMonitor(over: Partial<Monitor> = {}): Monitor {
@@ -105,5 +107,35 @@ describe("monitor-public-status", () => {
     expect(item.paused).toBeNull();
     expect(item.sslExpiresAt).toBe(sslExpires.toISOString());
     expect(item.consecutiveFailures).toBeNull();
+  });
+
+  it("utcDaysBack lists inclusive UTC calendar days ending today", () => {
+    const now = Date.UTC(2026, 8, 2, 18, 30, 0);
+    expect(utcDaysBack(now, 7)).toEqual([
+      "2026-08-27",
+      "2026-08-28",
+      "2026-08-29",
+      "2026-08-30",
+      "2026-08-31",
+      "2026-09-01",
+      "2026-09-02",
+    ]);
+  });
+
+  it("fillFleetDayTrend pads empty UTC days and rounds average ms", () => {
+    const days = utcDaysBack(Date.UTC(2026, 7, 28, 12, 0, 0), 3);
+    const filled = fillFleetDayTrend(
+      [
+        { day: "2026-08-28", total: 10, okCount: 9, avgMs: 184.6 },
+        { day: "2026-08-26", total: 4, okCount: 4, avgMs: 90 },
+      ],
+      days
+    );
+    expect(days).toEqual(["2026-08-26", "2026-08-27", "2026-08-28"]);
+    expect(filled).toEqual([
+      { day: "2026-08-26", total: 4, okCount: 4, avgMs: 90 },
+      { day: "2026-08-27", total: 0, okCount: 0, avgMs: null },
+      { day: "2026-08-28", total: 10, okCount: 9, avgMs: 185 },
+    ]);
   });
 });

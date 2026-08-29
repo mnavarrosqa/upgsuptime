@@ -5,15 +5,15 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { toast } from "sonner";
-import { ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer, Clock, CircleDashed } from "lucide-react";
+import { ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer, Clock, CircleDashed, ChartSpline } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
-import { ActivityVolumeClient, FleetMixClient } from "@/components/dashboard-charts-client";
+import { ActivityVolumeClient, FleetMixClient, FleetTrendClient } from "@/components/dashboard-charts-client";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
 import { MonitorFavicon } from "@/components/monitor-favicon";
 import { cn } from "@/lib/utils";
 import type { ActivityItem } from "@/lib/activity-item";
-import type { ActivityDayPoint, FleetSlice, RankingPoint } from "@/components/dashboard-charts";
+import type { ActivityDayPoint, FleetSlice, FleetTrendPoint, RankingPoint } from "@/components/dashboard-charts";
 
 export type OverviewAttentionKind = "down" | "degraded" | "overdue" | "pending";
 
@@ -55,6 +55,7 @@ export type DashboardOverviewProps = {
   activity: ActivityItem[];
   fleet: FleetSlice[];
   activityByDay: ActivityDayPoint[];
+  trendByDay: FleetTrendPoint[];
   worstUptime: RankingPoint[];
   slowest: RankingPoint[];
   ssl: OverviewNamedStat[];
@@ -288,6 +289,7 @@ export function DashboardOverview({
   activity,
   fleet,
   activityByDay,
+  trendByDay,
   worstUptime,
   slowest,
   ssl,
@@ -320,6 +322,20 @@ export function DashboardOverview({
     slowest.length > 0 && Math.max(...slowest.map((row) => row.n)) >= SLOWEST_MIN_MS;
   const showSsl = ssl.length > 0;
   const rankCount = Number(showUptime) + Number(showSlowest) + Number(showSsl);
+  const showTrend = trendByDay.some((d) => d.total > 0);
+  const weekChecks = trendByDay.reduce((sum, d) => sum + d.total, 0);
+  const weekOk = trendByDay.reduce((sum, d) => sum + d.okCount, 0);
+  const weekUptime =
+    weekChecks > 0 ? Math.round((weekOk / weekChecks) * 1000) / 10 : null;
+  let weekMsWeight = 0;
+  let weekMsSum = 0;
+  for (const d of trendByDay) {
+    if (d.avgMs != null && d.okCount > 0) {
+      weekMsSum += d.avgMs * d.okCount;
+      weekMsWeight += d.okCount;
+    }
+  }
+  const weekAvgMs = weekMsWeight > 0 ? Math.round(weekMsSum / weekMsWeight) : null;
 
   return (
     <>
@@ -477,6 +493,24 @@ export function DashboardOverview({
                 </ul>
               </section>
             )}
+
+            {showTrend ? (
+              <section className="mt-10">
+                <SectionHeading icon={ChartSpline}>{t("chartTrend")}</SectionHeading>
+                <p className="mb-3 text-[11px] text-text-muted">
+                  {weekUptime != null ? (
+                    <span className="tabular-nums text-text-primary">{weekUptime}%</span>
+                  ) : null}
+                  {weekUptime != null && weekAvgMs != null ? " · " : null}
+                  {weekAvgMs != null ? (
+                    <span className="tabular-nums text-text-primary">{weekAvgMs} ms</span>
+                  ) : null}
+                  {weekUptime != null || weekAvgMs != null ? " · " : null}
+                  {t("chartTrendSub")}
+                </p>
+                <FleetTrendClient trend={trendByDay} />
+              </section>
+            ) : null}
 
             <section className="mt-10">
               <SectionHeading href="/activity" hrefLabel={t("viewAll")}>

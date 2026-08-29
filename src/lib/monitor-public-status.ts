@@ -69,6 +69,39 @@ export function buildMonitorPublicStatusItem(
   };
 }
 
+export function utcDaysBack(nowMs: number, count: number): string[] {
+  const now = new Date(nowMs);
+  const y = now.getUTCFullYear();
+  const mo = now.getUTCMonth();
+  const d = now.getUTCDate();
+  const days: string[] = [];
+  for (let i = count - 1; i >= 0; i--) {
+    days.push(new Date(Date.UTC(y, mo, d - i)).toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+export type FleetDailyStat = {
+  day: string;
+  total: number;
+  okCount: number;
+  avgMs: number | null;
+};
+
+export function fillFleetDayTrend(rows: FleetDailyStat[], days: string[]): FleetDailyStat[] {
+  const index = new Map(rows.map((r) => [r.day, r]));
+  return days.map((day) => {
+    const r = index.get(day);
+    if (!r) return { day, total: 0, okCount: 0, avgMs: null };
+    const avgMs = r.avgMs == null || Number.isNaN(r.avgMs) ? null : Math.round(r.avgMs);
+    return { day, total: r.total, okCount: r.okCount, avgMs };
+  });
+}
+
+function notDuringMaintenance() {
+  return or(isNull(checkResult.duringMaintenance), eq(checkResult.duringMaintenance, false));
+}
+
 export async function getUptimeStats90d(
   monitorIds: string[],
   since: Date
@@ -77,10 +110,7 @@ export async function getUptimeStats90d(
   if (monitorIds.length === 0) return map;
 
   const { db } = await import("@/db");
-  const notMaintenance = or(
-    isNull(checkResult.duringMaintenance),
-    eq(checkResult.duringMaintenance, false)
-  );
+  const notMaintenance = notDuringMaintenance();
   const rows = await db
     .select({
       monitorId: checkResult.monitorId,
@@ -97,4 +127,44 @@ export async function getUptimeStats90d(
     map.set(row.monitorId, { total: row.total, okCount: row.okCount });
   }
   return map;
+}
+
+export async function getFleetDailyStats(
+  monitorIds: string[],
+  since: Date
+): Promise<FleetDailyStat[]> {
+  if (monitorIds.length === 0) return [];
+
+  const { db } = await import("@/db");
+  const dayExpr = sql<string>`strftime('%Y-%m-%d', ${checkResult.createdAt}, 'unixepoch')`;
+  const rows = await db
+    .select({
+      day: dayExpr,
+      total: sql<number>`cast(count(*) as integer)`.mapWith(Number),
+      okCount: sql<number>`coalesce(cast(sum(case when ${checkResult.ok} = 1 then 1 else 0 end) as integer), 0)`.mapWith(
+        Number
+      ),
+      avgMs: sql<number | null>`avg(case when ${checkResult.ok} = 1 and ${checkResult.responseTimeMs} is not null then ${checkResult.responseTimeMs} end)`.mapWith(
+        (v) => {
+          if (v == null || v === "") return null;
+          const n = Number(v);
+          return Number.isFinite(n) ? n : null;
+        }
+      ),
+    })
+    .from(checkResult)
+    .where(
+      and(
+        inArray(checkResult.monitorId, monitorIds),
+        gte(checkResult.createdAt, since),
+        notDuringMaintenance()
+      )
+    )
+    .groupBy(dayExpr);
+
+  return rows.flatMap((row) => {
+    const day = row.day?.slice(0, 10);
+    if (!day) return [];
+    return [{ day, total: row.total, okCount: row.okCount, avgMs: row.avgMs }];
+  });
 }
