@@ -62,12 +62,12 @@ export function AppSidebar({
   role,
   email,
   name,
-  onNavigate,
+  onClose,
 }: {
   role?: string | null;
   email: string;
   name?: string | null;
-  onNavigate?: () => void;
+  onClose?: () => void;
 }) {
   const pathname = usePathname();
   const { unreadCount } = useActivity();
@@ -87,7 +87,6 @@ export function AppSidebar({
       <div className="flex shrink-0 items-center gap-2 pr-3 md:pr-0">
         <Link
           href="/dashboard"
-          onClick={onNavigate}
           className="flex min-w-0 flex-1 items-center gap-2.5 px-4 py-5 text-sm font-semibold text-text-primary transition-opacity hover:opacity-80"
           style={{ fontFamily: "var(--font-display)" }}
         >
@@ -96,7 +95,7 @@ export function AppSidebar({
         </Link>
         <button
           type="button"
-          onClick={onNavigate}
+          onClick={onClose}
           className="flex size-11 shrink-0 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary md:hidden"
           aria-label={t("closeMenu")}
         >
@@ -115,7 +114,6 @@ export function AppSidebar({
               <Link
                 key={href}
                 href={href}
-                onClick={onNavigate}
                 aria-current={active ? "page" : undefined}
                 className={itemClass(active)}
               >
@@ -146,7 +144,6 @@ export function AppSidebar({
                   <Link
                     key={href}
                     href={href}
-                    onClick={onNavigate}
                     aria-current={active ? "page" : undefined}
                     className={itemClass(active)}
                   >
@@ -186,17 +183,16 @@ export function AppSidebar({
         </div>
 
         <div className="flex flex-col gap-0.5">
-          <Link href="/account" onClick={onNavigate} className={itemClass(pathname.startsWith("/account"))}>
+          <Link href="/account" className={itemClass(pathname.startsWith("/account"))}>
             <User className="size-4 shrink-0" aria-hidden />
             {t("account")}
           </Link>
-          <Link href="/help" onClick={onNavigate} className={itemClass(pathname.startsWith("/help"))}>
+          <Link href="/help" className={itemClass(pathname.startsWith("/help"))}>
             <CircleHelp className="size-4 shrink-0" aria-hidden />
             {t("help")}
           </Link>
           <Link
             href="/account#onboarding"
-            onClick={onNavigate}
             className={itemClass(false)}
           >
             <BookOpen className="size-4 shrink-0" aria-hidden />
@@ -206,7 +202,7 @@ export function AppSidebar({
             type="button"
             variant="ghost"
             onClick={() => {
-              onNavigate?.();
+              onClose?.();
               void signOut({ callbackUrl: "/login" });
             }}
             className={cn(

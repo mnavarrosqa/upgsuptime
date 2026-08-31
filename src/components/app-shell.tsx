@@ -106,7 +106,7 @@ export function AppShell({
           role={role}
           email={email}
           name={name}
-          onNavigate={() => close()}
+          onClose={() => close()}
         />
       </aside>
 
