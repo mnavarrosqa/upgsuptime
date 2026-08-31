@@ -1,13 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { startTransition, useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Menu, X } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cn } from "@/lib/utils";
+import { hrefPath } from "@/lib/app-main-nav";
+
+/** ponytail: hard-nav if the App Router transition never commits */
+const HARD_NAV_MS = 8000;
 
 export function AppShell({
   role,
@@ -21,13 +25,19 @@ export function AppShell({
   children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
   const pathname = usePathname();
+  const router = useRouter();
   const t = useTranslations("nav");
+  const tCommon = useTranslations("common");
   const buttonRef = useRef<HTMLButtonElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const drawerId = useId();
   const [openedAtPath, setOpenedAtPath] = useState(pathname);
   const visible = open && pathname === openedAtPath;
+  const navigatingTo =
+    pendingHref && hrefPath(pendingHref) !== pathname ? pendingHref : null;
+  const highlightPath = navigatingTo ? hrefPath(navigatingTo) : pathname;
 
   const close = useCallback(({ restoreFocus = false }: { restoreFocus?: boolean } = {}) => {
     setOpen(false);
@@ -35,6 +45,26 @@ export function AppShell({
       requestAnimationFrame(() => buttonRef.current?.focus());
     }
   }, []);
+
+  const onNavigate = useCallback(
+    (href: string) => {
+      if (hrefPath(href) === pathname) return;
+      setPendingHref(href);
+      startTransition(() => {
+        router.push(href);
+      });
+    },
+    [pathname, router]
+  );
+
+  useEffect(() => {
+    if (!navigatingTo) return;
+    const href = navigatingTo;
+    const timer = window.setTimeout(() => {
+      window.location.assign(href);
+    }, HARD_NAV_MS);
+    return () => window.clearTimeout(timer);
+  }, [navigatingTo]);
 
   useEffect(() => {
     if (!visible) return;
@@ -106,11 +136,22 @@ export function AppShell({
           role={role}
           email={email}
           name={name}
+          activePath={highlightPath}
+          pending={Boolean(navigatingTo)}
           onClose={() => close()}
+          onNavigate={onNavigate}
         />
       </aside>
 
-      <div className="flex min-w-0 flex-col">
+      <div className="relative flex min-w-0 flex-col">
+        {navigatingTo && (
+          <div
+            className="pointer-events-none absolute inset-x-0 top-0 z-40 h-0.5 overflow-hidden bg-accent/20"
+            aria-hidden
+          >
+            <div className="h-full w-1/3 bg-accent motion-safe:animate-pulse" />
+          </div>
+        )}
         <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-bg-card/80 backdrop-blur-xl md:hidden">
           <div className="flex h-14 items-center gap-2 px-3">
             <button
@@ -133,6 +174,20 @@ export function AppShell({
             </button>
             <Link
               href="/dashboard"
+              onClick={(event) => {
+                if (
+                  event.metaKey ||
+                  event.ctrlKey ||
+                  event.shiftKey ||
+                  event.altKey ||
+                  event.button !== 0
+                ) {
+                  return;
+                }
+                if (hrefPath("/dashboard") === pathname) return;
+                event.preventDefault();
+                onNavigate("/dashboard");
+              }}
               className="flex min-w-0 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-text-primary"
               style={{ fontFamily: "var(--font-display)" }}
             >
@@ -141,7 +196,19 @@ export function AppShell({
             </Link>
           </div>
         </header>
-        {children}
+        <div
+          className={cn(
+            "relative min-w-0 motion-safe:transition-opacity motion-safe:duration-200",
+            navigatingTo && "pointer-events-none opacity-60"
+          )}
+          aria-busy={navigatingTo ? true : undefined}
+          aria-live="polite"
+        >
+          {navigatingTo && (
+            <span className="sr-only">{tCommon("loading")}</span>
+          )}
+          {children}
+        </div>
       </div>
     </div>
   );

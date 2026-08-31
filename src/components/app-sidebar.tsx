@@ -26,9 +26,11 @@ import { cn } from "@/lib/utils";
 import {
   APP_ADMIN_NAV_LINKS,
   APP_PRIMARY_NAV_LINKS,
+  hrefPath,
   isAdminChildActive,
   isPrimaryNavActive,
 } from "@/lib/app-main-nav";
+import { Spinner } from "@/components/spinner";
 
 const PRIMARY_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   "/dashboard": LayoutDashboard,
@@ -58,18 +60,73 @@ function getInitials(name: string | null | undefined, email: string): string {
   return email.slice(0, 2).toUpperCase();
 }
 
+function isModifiedClick(event: React.MouseEvent) {
+  return (
+    event.metaKey ||
+    event.ctrlKey ||
+    event.shiftKey ||
+    event.altKey ||
+    event.button !== 0
+  );
+}
+
+function SidebarLink({
+  href,
+  active,
+  pending,
+  className,
+  style,
+  onNavigate,
+  children,
+}: {
+  href: string;
+  active: boolean;
+  pending?: boolean;
+  className: string;
+  style?: React.CSSProperties;
+  onNavigate?: (href: string) => void;
+  children: React.ReactNode;
+}) {
+  const pathname = usePathname();
+  return (
+    <Link
+      href={href}
+      aria-current={active ? "page" : undefined}
+      aria-busy={pending || undefined}
+      className={className}
+      style={style}
+      onClick={(event) => {
+        if (isModifiedClick(event)) return;
+        if (hrefPath(href) === pathname) return;
+        event.preventDefault();
+        onNavigate?.(href);
+      }}
+    >
+      {children}
+      {pending && <Spinner size="sm" className="text-accent" />}
+    </Link>
+  );
+}
+
 export function AppSidebar({
   role,
   email,
   name,
+  activePath,
+  pending,
   onClose,
+  onNavigate,
 }: {
   role?: string | null;
   email: string;
   name?: string | null;
+  activePath?: string;
+  pending?: boolean;
   onClose?: () => void;
+  onNavigate?: (href: string) => void;
 }) {
   const pathname = usePathname();
+  const highlight = activePath ?? pathname;
   const { unreadCount } = useActivity();
   const t = useTranslations("nav");
   const tAdmin = useTranslations("admin.nav");
@@ -85,14 +142,16 @@ export function AppSidebar({
   return (
     <div className="flex h-full min-h-0 flex-col">
       <div className="flex shrink-0 items-center gap-2 pr-3 md:pr-0">
-        <Link
+        <SidebarLink
           href="/dashboard"
+          active={false}
           className="flex min-w-0 flex-1 items-center gap-2.5 px-4 py-5 text-sm font-semibold text-text-primary transition-opacity hover:opacity-80"
           style={{ fontFamily: "var(--font-display)" }}
+          onNavigate={onNavigate}
         >
           <BrandMark className="size-5 shrink-0" />
           <span className="truncate">{t("appTitle")}</span>
-        </Link>
+        </SidebarLink>
         <button
           type="button"
           onClick={onClose}
@@ -107,15 +166,17 @@ export function AppSidebar({
         <div className="flex flex-col gap-0.5">
           {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
             const label = t(labelKey);
-            const active = isPrimaryNavActive(pathname, href);
-            const hasUnread = href === "/activity" && unreadCount > 0;
+            const active = isPrimaryNavActive(highlight, href);
+            const hasUnread = href === "/activity" && unreadCount > 0 && !pending;
             const Icon = PRIMARY_ICONS[href];
             return (
-              <Link
+              <SidebarLink
                 key={href}
                 href={href}
-                aria-current={active ? "page" : undefined}
+                active={active}
+                pending={pending && active}
                 className={itemClass(active)}
+                onNavigate={onNavigate}
               >
                 {Icon && <Icon className="size-4 shrink-0" aria-hidden />}
                 <span className="min-w-0 flex-1 truncate">{label}</span>
@@ -125,7 +186,7 @@ export function AppSidebar({
                     aria-label={t("unreadIncidents")}
                   />
                 )}
-              </Link>
+              </SidebarLink>
             );
           })}
         </div>
@@ -138,18 +199,20 @@ export function AppSidebar({
             </p>
             <div className="flex flex-col gap-0.5">
               {APP_ADMIN_NAV_LINKS.map(({ href, labelKey, exact }) => {
-                const active = isAdminChildActive(pathname, href, exact);
+                const active = isAdminChildActive(highlight, href, exact);
                 const Icon = ADMIN_ICONS[href];
                 return (
-                  <Link
+                  <SidebarLink
                     key={href}
                     href={href}
-                    aria-current={active ? "page" : undefined}
+                    active={active}
+                    pending={pending && active}
                     className={itemClass(active)}
+                    onNavigate={onNavigate}
                   >
                     {Icon && <Icon className="size-4 shrink-0" aria-hidden />}
                     <span className="min-w-0 flex-1 truncate">{tAdmin(labelKey)}</span>
-                  </Link>
+                  </SidebarLink>
                 );
               })}
             </div>
@@ -183,21 +246,35 @@ export function AppSidebar({
         </div>
 
         <div className="flex flex-col gap-0.5">
-          <Link href="/account" className={itemClass(pathname.startsWith("/account"))}>
+          <SidebarLink
+            href="/account"
+            active={highlight.startsWith("/account")}
+            pending={pending && highlight.startsWith("/account")}
+            className={itemClass(highlight.startsWith("/account"))}
+            onNavigate={onNavigate}
+          >
             <User className="size-4 shrink-0" aria-hidden />
             {t("account")}
-          </Link>
-          <Link href="/help" className={itemClass(pathname.startsWith("/help"))}>
+          </SidebarLink>
+          <SidebarLink
+            href="/help"
+            active={highlight.startsWith("/help")}
+            pending={pending && highlight.startsWith("/help")}
+            className={itemClass(highlight.startsWith("/help"))}
+            onNavigate={onNavigate}
+          >
             <CircleHelp className="size-4 shrink-0" aria-hidden />
             {t("help")}
-          </Link>
-          <Link
+          </SidebarLink>
+          <SidebarLink
             href="/account#onboarding"
+            active={false}
             className={itemClass(false)}
+            onNavigate={onNavigate}
           >
             <BookOpen className="size-4 shrink-0" aria-hidden />
             {t("onboardingGuide")}
-          </Link>
+          </SidebarLink>
           <Button
             type="button"
             variant="ghost"

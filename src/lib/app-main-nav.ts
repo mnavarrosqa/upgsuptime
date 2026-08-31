@@ -27,3 +27,9 @@ export function isAdminChildActive(
 ): boolean {
   return exact ? pathname === href : pathname.startsWith(href);
 }
+
+/** Pathname of an in-app href (hash stripped). */
+export function hrefPath(href: string): string {
+  const hash = href.indexOf("#");
+  return hash === -1 ? href : href.slice(0, hash) || "/";
+}
