@@ -1,0 +1,11 @@
+{
+  "name": "UPG Monitor",
+  "install": "npm ci && ([ -f .env ] || cp .env.example .env) && npm run db:push",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "npm run dev"
+    }
+  ],
+  "ports": [3077]
+}
