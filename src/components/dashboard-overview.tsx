@@ -207,7 +207,7 @@ function StatList({ items, empty }: { items: OverviewNamedStat[]; empty: string 
         <li key={row.id}>
           <Link
             href={row.href}
-            className="group flex items-center justify-between gap-3 py-2.5 text-sm"
+            className="group flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
           >
             <SiteLabel name={row.name} url={row.url} type={row.type} />
             <span className="shrink-0 tabular-nums text-text-muted">{row.value}</span>
@@ -336,7 +336,7 @@ function ActivityDigest({ activity, userId }: { activity: ActivityItem[]; userId
               <li key={`${item.kind}-${item.id}`}>
                 <Link
                   href={`/monitors/${item.monitorId}`}
-                  className="group flex items-center justify-between gap-3 py-2.5 text-sm"
+                  className="group flex flex-wrap items-center justify-between gap-3 py-3 text-sm"
                 >
                   <span className="min-w-0">
                     <SiteLabel name={item.name} url={item.url} />
@@ -393,16 +393,21 @@ export function DashboardOverview({
 
   const locationLabel = checkLocation ?? tDash("statValueLocationUnknown");
   const overdueCount = attention.filter((row) => row.kind === "overdue").length;
+  const warningCount = attention.filter((row) => row.kind !== "down").length;
   const statusTone =
-    downCount > 0 ? "down" : overdueCount > 0 ? "warn" : allPaused ? "paused" : "up";
+    downCount > 0 ? "down" : warningCount > 0 || ssl.length > 0 ? "warn" : allPaused ? "paused" : "up";
   const statusLabel =
     downCount > 0
       ? tDash("downCount", { count: downCount })
       : overdueCount > 0
         ? t("overdueCount", { count: overdueCount })
-        : allPaused
-          ? tDash("allPaused")
-          : tDash("allOperational");
+        : warningCount > 0
+          ? t("attentionCount", { count: warningCount })
+          : ssl.length > 0
+            ? t("ssl")
+            : allPaused
+              ? tDash("allPaused")
+              : tDash("allOperational");
   const showTrend = trendHasSignal(trendByDay);
   const rankCount = Number(worstUptime.length > 0) + Number(slowest.length > 0) + Number(ssl.length > 0);
   const weekChecks = trendByDay.reduce((sum, d) => sum + d.total, 0);
@@ -443,7 +448,7 @@ export function DashboardOverview({
                   "flex items-start gap-2.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight",
                   downCount > 0
                     ? "text-status-down"
-                    : overdueCount > 0
+                    : statusTone === "warn"
                       ? "text-status-warn"
                       : "text-text-primary"
                 )}
@@ -454,27 +459,13 @@ export function DashboardOverview({
               </h1>
               <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted">
                 <span className="tabular-nums">{tDash("monitorCount", { count: totalCount })}</span>
-                {downCount === 0 && !allPaused ? (
+                {statusTone === "up" && weekChecks > 0 ? (
                   <>
                     <MetaDot />
                     <span>
                       {lastIncidentAt
                         ? t("lastIncident", { when: formatRelativeTime(lastIncidentAt) })
                         : t("quietWeek")}
-                    </span>
-                  </>
-                ) : null}
-                {downtimeMin90d > 0 && downCount === 0 ? (
-                  <>
-                    <MetaDot />
-                    <span className="tabular-nums">{t("downtime90d", { n: downtimeMin90d })}</span>
-                  </>
-                ) : null}
-                {nextSsl ? (
-                  <>
-                    <MetaDot />
-                    <span className="truncate">
-                      {t("nextSsl", { name: nextSsl.name, n: nextSsl.days })}
                     </span>
                   </>
                 ) : null}
@@ -509,9 +500,31 @@ export function DashboardOverview({
               </p>
             </div>
 
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link href="/monitors" className="inline-flex min-h-10 items-center rounded-md border border-border px-4 text-sm font-medium text-text-primary transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+                {t("seeMonitors")}
+              </Link>
+              <DashboardAddMonitor />
+            </div>
+
+            <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-6 border-y border-border py-5 lg:grid-cols-4">
+              {[
+                { label: t("availability7d"), value: weekUptime == null ? "—" : `${weekUptime}%`, detail: weekChecks > 0 ? t("chartTrendChecks", { n: weekChecks }) : t("awaitingData") },
+                { label: t("response7d"), value: weekAvgMs == null ? "—" : `${weekAvgMs} ms`, detail: t("successfulChecks") },
+                { label: t("downtimeLabel"), value: t("downtimeMinutes", { n: downtimeMin90d }), detail: t("downtimeEstimate") },
+                { label: t("certificateLabel"), value: nextSsl ? t("sslDays", { n: nextSsl.days }) : "—", detail: nextSsl?.name ?? t("noCertificate") },
+              ].map((stat) => (
+                <div key={stat.label} className="min-w-0">
+                  <dt className="text-xs font-medium text-text-muted">{stat.label}</dt>
+                  <dd className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-text-primary">{stat.value}</dd>
+                  <dd className="mt-1 break-words text-xs leading-relaxed text-text-muted">{stat.detail}</dd>
+                </div>
+              ))}
+            </dl>
+
             {attention.length > 0 && (
               <section className="mt-10">
-                <SectionHeading icon={TriangleAlert}>{t("attention")}</SectionHeading>
+                <SectionHeading icon={TriangleAlert}>{t("attention")} · {attention.length}</SectionHeading>
                 <ul className="divide-y divide-border/70 text-sm">
                   {attention.map((row) => {
                     const tone =
@@ -605,23 +618,13 @@ export function DashboardOverview({
             {showTrend ? (
               <section className="mt-10">
                 <SectionHeading icon={ChartSpline}>{t("chartTrend")}</SectionHeading>
-                <p className="mb-3 text-[11px] text-text-muted">
-                  {weekUptime != null ? (
-                    <span className="tabular-nums text-text-primary">{weekUptime}%</span>
-                  ) : null}
-                  {weekUptime != null && weekAvgMs != null ? " · " : null}
-                  {weekAvgMs != null ? (
-                    <span className="tabular-nums text-text-primary">{weekAvgMs} ms</span>
-                  ) : null}
-                  {weekUptime != null || weekAvgMs != null ? " · " : null}
-                  {t("chartTrendSub")}
-                </p>
+                <p className="mb-4 text-xs text-text-muted">{t("chartTrendSub")}</p>
                 <FleetTrendClient trend={trendByDay} />
               </section>
             ) : null}
 
             {rankCount > 0 ? (
-              <div className={cn("mt-10 grid gap-10", rankCount > 1 && "lg:grid-cols-2")}>
+              <div className={cn("mt-10 grid gap-10", rankCount > 1 && "lg:grid-cols-2", rankCount === 3 && "xl:grid-cols-3")}>
                 {ssl.length > 0 ? (
                   <section>
                     <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={ShieldAlert}>
