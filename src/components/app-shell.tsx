@@ -7,7 +7,7 @@ import { signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useTranslations } from "next-intl";
-import { Bell, BookOpen, CircleHelp, LayoutDashboard, LogOut, Monitor, Settings, ShieldCheck, User, Users } from "lucide-react";
+import { Bell, BookOpen, CircleHelp, PanelsTopLeft, LogOut, MonitorCheck, Settings2, ShieldCheck, CircleUserRound, UsersRound, ServerCog } from "lucide-react";
 import { useActivity } from "@/components/activity-context";
 import { Spinner } from "@/components/spinner";
 import { BrandMark } from "@/components/brand-mark";
@@ -16,13 +16,13 @@ import { cn } from "@/lib/utils";
 import { hrefPath, isPrimaryNavActive, isAdminChildActive, APP_ADMIN_NAV_LINKS, APP_PRIMARY_NAV_LINKS } from "@/lib/app-main-nav";
 
 const MOBILE_NAV_ICONS = {
-  "/dashboard": LayoutDashboard,
-  "/monitors": Monitor,
+  "/dashboard": PanelsTopLeft,
+  "/monitors": MonitorCheck,
   "/activity": Bell,
   "/admin": ShieldCheck,
-  "/admin/users": Users,
-  "/admin/monitors": Monitor,
-  "/admin/settings": Settings,
+  "/admin/users": UsersRound,
+  "/admin/monitors": ServerCog,
+  "/admin/settings": Settings2,
 };
 
 export function AppShell({
@@ -51,7 +51,7 @@ export function AppShell({
     ...APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => ({
       href, label: t(labelKey), Icon: MOBILE_NAV_ICONS[href], exact: href === "/dashboard",
     })),
-    { href: "/account", label: t("account"), Icon: User, exact: false },
+    { href: "/account", label: t("account"), Icon: CircleUserRound, exact: false },
     { href: "/help", label: t("help"), Icon: CircleHelp, exact: false },
     ...(role === "admin" ? APP_ADMIN_NAV_LINKS.map(({ href, labelKey, exact }) => ({
       href, label: tAdmin(labelKey), Icon: MOBILE_NAV_ICONS[href], exact,
@@ -155,10 +155,10 @@ export function AppShell({
                 aria-busy={pending || undefined}
                 title={label}
                 className={cn(
-                  "group flex min-h-16 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                  "group relative flex size-14 shrink-0 snap-start items-center justify-center rounded-full touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                   active
-                    ? "w-20 bg-primary/12 text-primary shadow-[inset_0_1px_0_0_rgb(255_255_255/0.12)]"
-                    : "w-14 text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
+                    ? "bg-primary/12 text-primary shadow-[inset_0_1px_0_0_rgb(255_255_255/0.12)]"
+                    : "text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
                 )}
                 onClick={(event) => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -168,14 +168,15 @@ export function AppShell({
                 }}
               >
                 <span className="relative flex h-6 w-10 shrink-0 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-0.5">
-                  {pending ? <Spinner size="sm" /> : <Icon className="size-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden />}
+                  {pending ? <Spinner size="sm" /> : <Icon className="size-6 shrink-0" strokeWidth={active ? 2 : 1.75} aria-hidden />}
                   {href === "/activity" && unreadCount > 0 && (
                     <span className="absolute right-2 top-0 size-2 rounded-full bg-status-down ring-2 ring-bg-card">
                       <span className="sr-only">{t("unreadIncidents")}</span>
                     </span>
                   )}
                 </span>
-                <span className={active ? "flex min-h-7 items-center justify-center text-center text-balance" : "sr-only"}>{label}</span>
+                <span className="sr-only">{label}</span>
+                {active && <span className="absolute bottom-1.5 size-1 rounded-full bg-current" aria-hidden />}
               </Link>
             );
           })}
@@ -183,9 +184,9 @@ export function AppShell({
             type="button"
             onClick={() => void signOut({ callbackUrl: "/login" })}
             title={t("signOut")}
-            className="flex min-h-16 w-14 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight text-text-muted hover:bg-bg-page/60 hover:text-text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            className="flex size-14 shrink-0 snap-start items-center justify-center rounded-full touch-manipulation text-text-muted hover:bg-bg-page/60 hover:text-text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
           >
-            <span className="flex h-6 items-center"><LogOut className="size-5" aria-hidden /></span>
+            <span className="flex h-6 items-center"><LogOut className="size-6" strokeWidth={1.75} aria-hidden /></span>
             <span className="sr-only">{t("signOut")}</span>
           </button>
         </nav>
