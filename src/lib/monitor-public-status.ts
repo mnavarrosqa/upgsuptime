@@ -129,6 +129,54 @@ export async function getUptimeStats90d(
   return map;
 }
 
+export type RecentCheckRow = {
+  id: string;
+  monitorId: string;
+  ok: boolean;
+  responseTimeMs: number | null;
+  message: string | null;
+  createdAt: Date;
+};
+
+/** Latest `perMonitor` checks per monitor — avoids a global ORDER BY of the whole table. */
+export async function getRecentChecksByMonitor(
+  monitorIds: string[],
+  perMonitor: number
+): Promise<RecentCheckRow[]> {
+  if (monitorIds.length === 0 || perMonitor <= 0) return [];
+
+  const { db } = await import("@/db");
+  const ranked = db.$with("ranked_checks").as(
+    db
+      .select({
+        id: checkResult.id,
+        monitorId: checkResult.monitorId,
+        ok: checkResult.ok,
+        responseTimeMs: checkResult.responseTimeMs,
+        message: checkResult.message,
+        createdAt: checkResult.createdAt,
+        rn: sql<number>`row_number() over (partition by ${checkResult.monitorId} order by ${checkResult.createdAt} desc)`.as(
+          "rn"
+        ),
+      })
+      .from(checkResult)
+      .where(inArray(checkResult.monitorId, monitorIds))
+  );
+
+  return db
+    .with(ranked)
+    .select({
+      id: ranked.id,
+      monitorId: ranked.monitorId,
+      ok: ranked.ok,
+      responseTimeMs: ranked.responseTimeMs,
+      message: ranked.message,
+      createdAt: ranked.createdAt,
+    })
+    .from(ranked)
+    .where(sql`${ranked.rn} <= ${perMonitor}`);
+}
+
 export async function getFleetDailyStats(
   monitorIds: string[],
   since: Date

@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index } from "drizzle-orm/sqlite-core";
 
 export const user = sqliteTable("user", {
   id: text("id").primaryKey(),
@@ -73,23 +73,27 @@ export const monitor = sqliteTable("monitor", {
   baselineResetAt: integer("baseline_reset_at", { mode: "timestamp" }),
 });
 
-export const checkResult = sqliteTable("check_result", {
-  id: text("id").primaryKey(),
-  monitorId: text("monitor_id")
-    .notNull()
-    .references(() => monitor.id, { onDelete: "cascade" }),
-  statusCode: integer("status_code"),
-  responseTimeMs: integer("response_time_ms"),
-  dnsMs: integer("dns_ms"),
-  connectMs: integer("connect_ms"),
-  tlsMs: integer("tls_ms"),
-  ttfbMs: integer("ttfb_ms"),
-  attempts: integer("attempts"),
-  ok: integer("ok", { mode: "boolean" }).notNull(),
-  message: text("message"),
-  duringMaintenance: integer("during_maintenance", { mode: "boolean" }),
-  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
-});
+export const checkResult = sqliteTable(
+  "check_result",
+  {
+    id: text("id").primaryKey(),
+    monitorId: text("monitor_id")
+      .notNull()
+      .references(() => monitor.id, { onDelete: "cascade" }),
+    statusCode: integer("status_code"),
+    responseTimeMs: integer("response_time_ms"),
+    dnsMs: integer("dns_ms"),
+    connectMs: integer("connect_ms"),
+    tlsMs: integer("tls_ms"),
+    ttfbMs: integer("ttfb_ms"),
+    attempts: integer("attempts"),
+    ok: integer("ok", { mode: "boolean" }).notNull(),
+    message: text("message"),
+    duringMaintenance: integer("during_maintenance", { mode: "boolean" }),
+    createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  },
+  (t) => [index("check_result_monitor_created_idx").on(t.monitorId, t.createdAt)]
+);
 
 /** Logged when a degradation threshold is crossed (same moment as degradingAlertSentAt is set). */
 export const degradationAlertEvent = sqliteTable("degradation_alert_event", {

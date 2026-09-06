@@ -8,5 +8,13 @@ const dbPath = url.startsWith("file:")
   ? path.resolve(process.cwd(), url.slice(5))
   : url;
 const sqlite = new Database(dbPath);
+// ponytail: apply on boot so production does not wait on a separate migrate step
+try {
+  sqlite.exec(
+    "CREATE INDEX IF NOT EXISTS check_result_monitor_created_idx ON check_result (monitor_id, created_at)"
+  );
+} catch {
+  // table may not exist yet on first boot
+}
 
 export const db = drizzle(sqlite, { schema });

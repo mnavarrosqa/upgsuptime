@@ -2,11 +2,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { monitor, checkResult, user } from "@/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
+import { monitor, user } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { DashboardContent } from "@/components/dashboard-content";
 import { getCheckLocationLabel } from "@/lib/check-location";
 import {
+  getRecentChecksByMonitor,
   getUptimeStats90d,
   ninetyDaysAgoFrom,
   uptimePctFromCounts,
@@ -34,22 +35,8 @@ export default async function MonitorsPage() {
 
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
-    const trendLimit = Math.min(monitorIds.length * 24, 500);
-
     const [recentResults, uptimeStats] = await Promise.all([
-      db
-        .select({
-          id: checkResult.id,
-          monitorId: checkResult.monitorId,
-          ok: checkResult.ok,
-          responseTimeMs: checkResult.responseTimeMs,
-          message: checkResult.message,
-          createdAt: checkResult.createdAt,
-        })
-        .from(checkResult)
-        .where(inArray(checkResult.monitorId, monitorIds))
-        .orderBy(desc(checkResult.createdAt))
-        .limit(trendLimit),
+      getRecentChecksByMonitor(monitorIds, 24),
       getUptimeStats90d(monitorIds, ninetyDaysAgoFrom()),
     ]);
 

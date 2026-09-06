@@ -10,9 +10,11 @@ import { useTranslations } from "next-intl";
 export function CheckNowButton({
   monitorId,
   variant: tone = "secondary",
+  appearance = "button",
 }: {
   monitorId: string;
   variant?: "primary" | "secondary";
+  appearance?: "button" | "link";
 }) {
   const t = useTranslations("monitorsPage");
   const router = useRouter();
@@ -36,6 +38,19 @@ export function CheckNowButton({
     } finally {
       setLoading(false);
     }
+  }
+
+  if (appearance === "link") {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        disabled={loading}
+        className="min-h-11 text-sm sm:min-h-0 sm:text-xs font-medium text-text-muted underline-offset-4 transition-colors hover:text-text-primary hover:underline disabled:opacity-50"
+      >
+        {loading ? t("checking") : t("checkNow")}
+      </button>
+    );
   }
 
   const buttonClass =

@@ -462,30 +462,27 @@
   },
   "overview": {
     "emptyTitle": "Todavía no hay monitores",
-    "emptyBody": "Añade un monitor para ver salud de la flota, incidentes, latencia y riesgo SSL en un solo lugar.",
+    "emptyBody": "Añade un monitor para ver si tus sitios responden, cuándo fallaron y si un certificado se acerca a vencer.",
     "seeMonitors": "Ver monitores",
-    "kpiUp": "En línea",
-    "kpiDown": "Caídos",
-    "kpiPaused": "En pausa",
-    "kpiUnknown": "Sin estado",
-    "kpiTotal": "Total",
-    "chartFleet": "Composición de la flota",
-    "chartFleetAria": "{up} en línea, {down} caídos, {paused} en pausa, {unknown} sin estado",
-    "chartVolume": "Eventos de los últimos 7 días",
-    "chartVolumeSub": "Días UTC — caídas, recuperaciones y alertas de lentitud.",
-    "chartRecovered": "Recuperado",
     "chartTrend": "Últimos 7 días",
-    "chartTrendSub": "UTC — disponibilidad de la flota y respuesta media de las comprobaciones correctas.",
+    "chartTrendSub": "Disponibilidad y respuesta cuando algo cambió de verdad.",
     "chartUptimeTrend": "Disponibilidad",
     "chartResponseTrend": "Respuesta",
     "chartTrendChecks": "{n, plural, one {# comprobación} other {# comprobaciones}}",
-    "fleetUptime90d": "{pct}% en 90 días",
-    "uptimeAllClear": "Todos los monitores están al 100% en 90 días.",
+    "lastIncident": "Última caída hace {when}",
+    "quietWeek": "7 días sin caídas",
+    "downtime90d": "{n, plural, one {# min de cortes (90d)} other {# min de cortes (90d)}}",
+    "downtimeMinutes": "{n} min",
+    "nextSsl": "SSL de {name} en {n, plural, one {# día} other {# días}}",
+    "openSite": "Abrir",
+    "sinceVisit": "Desde que miraste",
+    "sinceVisitEmpty": "Nada nuevo desde que miraste.",
     "attention": "Necesitan atención",
     "acked": "Reconocido",
     "ack": "Reconocer",
     "degraded": "Lento",
-    "degradedDetail": "{recent} ms frente a {baseline} ms de línea base",
+    "degradedDetail": "{recent} ms frente a {baseline} ms de lo usual",
+    "slowDetail": "{recent} ms · suele {baseline} ms",
     "down": "Caído",
     "failedChecks": "{n, plural, one {# fallo seguido} other {# fallos seguidos}}",
     "overdue": "Atrasado",
@@ -496,14 +493,14 @@
     "recentActivity": "Actividad reciente",
     "activityEmpty": "Sin eventos en los últimos 7 días.",
     "viewAll": "Ver todo",
-    "worstUptime": "Peor disponibilidad 90d",
-    "slowest": "Última comprobación más lenta",
+    "worstUptime": "Más cortes (90d)",
+    "slowest": "Más lento de lo normal",
     "ssl": "SSL en riesgo",
     "sslInvalid": "Inválido",
     "sslExpired": "Caducado",
     "sslDays": "{n, plural, one {# día} other {# días}}",
     "noUptimeData": "Aún no hay comprobaciones suficientes para 90 días.",
-    "noLatencyData": "No hay comprobaciones correctas recientes para ordenar.",
+    "noLatencyData": "Nada está más lento de lo usual.",
     "sslClear": "Ningún certificado inválido o por vencer en 30 días."
   },
   "activity": {
@@ -615,7 +612,7 @@
         "body": [
           "UPG Monitor revisa tus URLs cada cierto tiempo y guarda si la comprobación salió bien, cuánto tardó y el estado SSL si lo tienes activado.",
           "Tus monitores son privados. Con tu usuario puedes compartir una página de estado pública de solo lectura.",
-          "El Dashboard resume la flota; Monitores es la lista; Actividad reciente muestra caídas y recuperaciones."
+          "El Dashboard te dice si algo necesita atención; Monitores es la lista; Actividad reciente muestra caídas y recuperaciones."
         ]
       },
       "signInAndAccount": {
@@ -636,11 +633,11 @@
       },
       "dashboardOverview": {
         "title": "El dashboard en pocas palabras",
-        "summary": "Salud de la flota, incidentes y riesgo sin abrir cada monitor.",
+        "summary": "Qué está caído, qué hacer y qué cambió desde que miraste.",
         "body": [
-          "El Dashboard resume tus monitores: cuántos van en línea, caídos o en pausa, cuáles necesitan atención, incidentes recientes, peor disponibilidad a 90 días, comprobaciones más lentas y certificados SSL en riesgo.",
-          "Abre una fila para ver ese monitor, o ve a Monitores para la lista completa, búsqueda y tendencias.",
-          "En pausa = no se checan hasta que los reanudes en Monitores. Si no tienes ninguno, el Dashboard te empuja a añadir el primero."
+          "El Dashboard responde si algo está caído ahora, qué hacer (abrir el sitio, comprobar, reconocer) y qué pasó desde tu última visita.",
+          "Si todo va bien, muestra hace cuánto que no hay caídas, el próximo SSL y los minutos de cortes en 90 días cuando importan. Los gráficos solo aparecen si la última semana cambió de verdad.",
+          "Abre una fila para ver ese monitor, o ve a Monitores para la lista. En pausa no se comprueban hasta que los reanudes."
         ]
       },
       "dashboardSearchAndStatusLink": {

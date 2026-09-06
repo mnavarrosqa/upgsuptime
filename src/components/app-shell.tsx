@@ -8,7 +8,7 @@ import { Menu, X } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cn } from "@/lib/utils";
-import { hrefPath } from "@/lib/app-main-nav";
+import { hrefPath, isPrimaryNavActive, APP_PRIMARY_NAV_LINKS, APP_ADMIN_NAV_LINKS } from "@/lib/app-main-nav";
 
 /** ponytail: hard-nav if the App Router transition never commits */
 const HARD_NAV_MS = 8000;
@@ -56,6 +56,17 @@ export function AppShell({
     },
     [pathname, router]
   );
+
+  useEffect(() => {
+    for (const { href } of APP_PRIMARY_NAV_LINKS) {
+      void router.prefetch(href);
+    }
+    if (role === "admin") {
+      for (const { href } of APP_ADMIN_NAV_LINKS) {
+        void router.prefetch(href);
+      }
+    }
+  }, [router, role]);
 
   useEffect(() => {
     if (!navigatingTo) return;
@@ -124,7 +135,7 @@ export function AppShell({
         aria-modal={visible ? true : undefined}
         aria-label={t("navMenu")}
         className={cn(
-          "flex flex-col border-r border-border/60 bg-bg-card max-md:safe-top",
+          "flex flex-col border-r border-border/60 bg-bg-card max-md:safe-top max-md:pb-[env(safe-area-inset-bottom)]",
           "fixed inset-y-0 left-0 z-50 w-60 max-w-[min(100vw-3rem,16rem)] shadow-xl",
           "motion-safe:transition-transform motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]",
           "md:static md:z-auto md:h-svh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none",
@@ -188,13 +199,36 @@ export function AppShell({
                 event.preventDefault();
                 onNavigate("/dashboard");
               }}
-              className="flex min-w-0 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-text-primary"
+              className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-text-primary"
               style={{ fontFamily: "var(--font-display)" }}
             >
               <BrandMark className="size-5 shrink-0" />
               <span className="truncate">{t("appTitle")}</span>
             </Link>
           </div>
+          <nav aria-label={t("mainNav")} className="grid grid-cols-3 gap-1 border-t border-border/60 px-3 py-1">
+            {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => (
+              <Link
+                key={href}
+                href={href}
+                aria-current={isPrimaryNavActive(pathname, href) ? "page" : undefined}
+                className={cn(
+                  "flex min-h-11 min-w-0 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  isPrimaryNavActive(highlightPath, href)
+                    ? "bg-accent/10 text-accent"
+                    : "text-text-muted hover:bg-bg-page hover:text-text-primary"
+                )}
+                onClick={(event) => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+                  if (href === pathname) return;
+                  event.preventDefault();
+                  onNavigate(href);
+                }}
+              >
+                {t(labelKey)}
+              </Link>
+            ))}
+          </nav>
         </header>
         <div
           className={cn(

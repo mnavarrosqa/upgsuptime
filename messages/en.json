@@ -462,30 +462,27 @@
   },
   "overview": {
     "emptyTitle": "No monitors yet",
-    "emptyBody": "Add a monitor to see fleet health, incidents, latency, and SSL risk in one place.",
+    "emptyBody": "Add a monitor to see if your sites respond, when they last failed, and whether a certificate is about to expire.",
     "seeMonitors": "View monitors",
-    "kpiUp": "Up",
-    "kpiDown": "Down",
-    "kpiPaused": "Paused",
-    "kpiUnknown": "Unknown",
-    "kpiTotal": "Total",
-    "chartFleet": "Fleet mix",
-    "chartFleetAria": "{up} up, {down} down, {paused} paused, {unknown} unknown",
-    "chartVolume": "Events last 7 days",
-    "chartVolumeSub": "UTC days — down, recovered, and slow-response alerts.",
-    "chartRecovered": "Recovered",
     "chartTrend": "Last 7 days",
-    "chartTrendSub": "UTC — fleet uptime and average response of successful checks.",
+    "chartTrendSub": "Availability and response when something actually changed.",
     "chartUptimeTrend": "Uptime",
     "chartResponseTrend": "Response",
     "chartTrendChecks": "{n, plural, one {# check} other {# checks}}",
-    "fleetUptime90d": "{pct}% over 90 days",
-    "uptimeAllClear": "Every monitor is at 100% over 90 days.",
+    "lastIncident": "Last incident {when} ago",
+    "quietWeek": "No downtime in 7 days",
+    "downtime90d": "{n, plural, one {# min of downtime (90d)} other {# min of downtime (90d)}}",
+    "downtimeMinutes": "{n} min",
+    "nextSsl": "{name} SSL in {n, plural, one {# day} other {# days}}",
+    "openSite": "Open",
+    "sinceVisit": "Since you last looked",
+    "sinceVisitEmpty": "Nothing new since you last looked.",
     "attention": "Needs attention",
     "acked": "Acknowledged",
     "ack": "Acknowledge",
     "degraded": "Slow",
-    "degradedDetail": "{recent} ms vs {baseline} ms baseline",
+    "degradedDetail": "{recent} ms vs usual {baseline} ms",
+    "slowDetail": "{recent} ms · usually {baseline} ms",
     "down": "Down",
     "failedChecks": "{n, plural, one {# failed check} other {# failed checks}}",
     "overdue": "Overdue",
@@ -496,14 +493,14 @@
     "recentActivity": "Recent activity",
     "activityEmpty": "No events in the last 7 days.",
     "viewAll": "View all",
-    "worstUptime": "Lowest 90-day uptime",
-    "slowest": "Slowest last check",
+    "worstUptime": "Most downtime (90d)",
+    "slowest": "Slower than usual",
     "ssl": "SSL at risk",
     "sslInvalid": "Invalid",
     "sslExpired": "Expired",
     "sslDays": "{n, plural, one {# day} other {# days}}",
     "noUptimeData": "Not enough checks yet for a 90-day picture.",
-    "noLatencyData": "No recent successful checks to rank.",
+    "noLatencyData": "Nothing is slower than its usual response.",
     "sslClear": "No certificates invalid or expiring within 30 days."
   },
   "activity": {
@@ -615,7 +612,7 @@
         "body": [
           "UPG Monitor checks URLs, hosts, ports, DNS records, keywords, and certificates on a schedule. Each run records whether the check succeeded, how long it took, and any status details needed for later review.",
           "Your monitors are private by default. You can publish selected monitors on a read-only status page, share data through the status API, and keep operational history inside your account.",
-          "Use Dashboard for the fleet summary, Monitors for the full list, Recent activity for cross-monitor events, and Help & Support when you need a reference."
+          "Use Dashboard to see if anything needs you, Monitors for the full list, Recent activity for cross-monitor events, and Help & Support when you need a reference."
         ]
       },
       "signInAndAccount": {
@@ -644,11 +641,11 @@
       },
       "dashboardOverview": {
         "title": "Dashboard at a glance",
-        "summary": "Fleet health, incidents, and risk without opening every monitor.",
+        "summary": "What is down, what to do, and what changed since you last looked.",
         "body": [
-          "The Dashboard summarizes your monitors: how many are up, down, or paused, which sites need attention, recent incidents, weakest 90-day uptime, slowest checks, and SSL certificates at risk.",
-          "Open a row to inspect that monitor, or go to Monitors for the full list, search, and trends.",
-          "Paused monitors are not checked until you resume them from Monitors. An empty account points you to add the first monitor."
+          "The Dashboard answers whether anything is down right now, what to do about it (open the site, check now, acknowledge), and what happened since you last visited.",
+          "When everything is fine it shows how long it has been quiet, upcoming SSL expiry, and minutes of downtime over 90 days when that is meaningful. Charts appear only if the last week actually changed.",
+          "Open a row to inspect that monitor, or go to Monitors for the full list. Paused monitors are not checked until you resume them."
         ]
       },
       "dashboardSearchAndStatusLink": {

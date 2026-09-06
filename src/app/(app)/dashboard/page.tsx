@@ -2,34 +2,36 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
-import { monitor, checkResult, user } from "@/db/schema";
-import { eq, desc, inArray } from "drizzle-orm";
-import type { ActivityDayPoint, FleetSlice, FleetTrendPoint, RankingPoint } from "@/components/dashboard-charts";
+import { monitor, user } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import type { FleetTrendPoint, RankingPoint } from "@/components/dashboard-charts";
 import { DashboardOverview } from "@/components/dashboard-overview";
 import { getCheckLocationLabel } from "@/lib/check-location";
 import { loadActivityFeed } from "@/lib/activity-feed";
-import type { ActivityItem } from "@/lib/activity-item";
 import { isDowntimeAcked } from "@/lib/downtime-ack";
 import { isMaintenanceActive } from "@/lib/monitor-config";
 import { getTranslations } from "next-intl/server";
 import {
   fillFleetDayTrend,
   getFleetDailyStats,
+  getRecentChecksByMonitor,
   getUptimeStats90d,
   ninetyDaysAgoFrom,
   uptimePctFromCounts,
   utcDaysBack,
 } from "@/lib/monitor-public-status";
+import {
+  SSL_WARN_DAYS,
+  failedCheckMinutes,
+  isSlowerThanUsual,
+  lastStatusAt,
+  shouldRankUptime,
+  soonestSsl,
+  sslDaysUntil,
+} from "@/lib/dashboard-overview-stats";
 
-const ACTIVITY_SNIPPET = 5;
 const RANK_LIMIT = 5;
 const ATTENTION_LIMIT = 8;
-const SSL_WARN_DAYS = 30;
-
-function sslDaysUntil(expiresAt: Date | string | null | undefined): number | null {
-  if (expiresAt == null) return null;
-  return Math.ceil((new Date(expiresAt).getTime() - Date.now()) / (1000 * 60 * 60 * 24));
-}
 
 function isLatestOk(
   monitorId: string,
@@ -40,24 +42,6 @@ function isLatestOk(
   if (latest) return latest.ok;
   if (currentStatus == null) return null;
   return currentStatus;
-}
-
-function activityByUtcDay(items: ActivityItem[], nowMs: number): ActivityDayPoint[] {
-  const days: ActivityDayPoint[] = [];
-  const index = new Map<string, ActivityDayPoint>();
-  for (const key of utcDaysBack(nowMs, 7)) {
-    const point: ActivityDayPoint = { day: key, down: 0, recovered: 0, degraded: 0 };
-    days.push(point);
-    index.set(key, point);
-  }
-  for (const item of items) {
-    const bucket = index.get(item.at.slice(0, 10));
-    if (!bucket) continue;
-    if (item.kind === "degradation") bucket.degraded += 1;
-    else if (item.recovered) bucket.recovered += 1;
-    else bucket.down += 1;
-  }
-  return days;
 }
 
 function isCheckOverdue(
@@ -74,7 +58,6 @@ export default async function DashboardPage() {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) redirect("/login");
 
-  // Server snapshot: overdue checks and UTC day buckets vs this request.
   // eslint-disable-next-line react-hooks/purity -- RSC request time
   const nowMs = Date.now();
 
@@ -89,27 +72,16 @@ export default async function DashboardPage() {
 
   const latestByMonitor: Record<string, { ok: boolean; responseTimeMs: number | null; message: string | null }> = {};
   const uptimeByMonitor: Record<string, number | null> = {};
-  let fleetUptimePct: number | null = null;
+  const downtimeMinByMonitor: Record<string, number> = {};
+  let downtimeMin90d = 0;
   let trendByDay: FleetTrendPoint[] = [];
 
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
-    const latestLimit = Math.min(monitorIds.length * 24, 500);
     const dayKeys = utcDaysBack(nowMs, 7);
     const trendSince = new Date(`${dayKeys[0]}T00:00:00.000Z`);
-
     const [recentResults, uptimeStats, dailyRows] = await Promise.all([
-      db
-        .select({
-          monitorId: checkResult.monitorId,
-          ok: checkResult.ok,
-          responseTimeMs: checkResult.responseTimeMs,
-          message: checkResult.message,
-        })
-        .from(checkResult)
-        .where(inArray(checkResult.monitorId, monitorIds))
-        .orderBy(desc(checkResult.createdAt))
-        .limit(latestLimit),
+      getRecentChecksByMonitor(monitorIds, 1),
       getUptimeStats90d(monitorIds, ninetyDaysAgoFrom(nowMs)),
       getFleetDailyStats(monitorIds, trendSince),
     ]);
@@ -123,19 +95,16 @@ export default async function DashboardPage() {
         };
       }
     }
-    let fleetTotal = 0;
-    let fleetOk = 0;
     for (const m of monitors) {
       const counts = uptimeStats.get(m.id);
       uptimeByMonitor[m.id] = counts
         ? uptimePctFromCounts(counts.total, counts.okCount)
         : null;
-      if (counts) {
-        fleetTotal += counts.total;
-        fleetOk += counts.okCount;
-      }
+      const failed = counts ? counts.total - counts.okCount : 0;
+      const minutes = failedCheckMinutes(failed, m.intervalMinutes);
+      downtimeMinByMonitor[m.id] = minutes;
+      downtimeMin90d += minutes;
     }
-    fleetUptimePct = uptimePctFromCounts(fleetTotal, fleetOk);
     trendByDay = fillFleetDayTrend(dailyRows, dayKeys).map((d) => ({
       day: d.day,
       total: d.total,
@@ -150,24 +119,10 @@ export default async function DashboardPage() {
     if (m.paused) return false;
     return isLatestOk(m.id, m.currentStatus, latestByMonitor) === false;
   }).length;
-  const upCount = monitors.filter((m) => {
-    if (m.paused) return false;
-    return isLatestOk(m.id, m.currentStatus, latestByMonitor) === true;
-  }).length;
-  const unknownCount = monitors.filter((m) => {
-    if (m.paused) return false;
-    return isLatestOk(m.id, m.currentStatus, latestByMonitor) === null;
-  }).length;
   const maintenanceCount = monitors.filter((m) =>
     isMaintenanceActive(m, new Date(nowMs))
   ).length;
   const allPaused = monitors.length > 0 && pausedCount === monitors.length;
-  const fleet: FleetSlice[] = [
-    { key: "up", value: upCount },
-    { key: "down", value: downCount },
-    { key: "paused", value: pausedCount },
-    { key: "unknown", value: unknownCount },
-  ];
 
   const attention = monitors
     .flatMap((m) => {
@@ -223,30 +178,28 @@ export default async function DashboardPage() {
     })
     .slice(0, ATTENTION_LIMIT);
 
-  const hasUptimeData = monitors.some((m) => uptimeByMonitor[m.id] != null);
-  const worstUptime: RankingPoint[] = monitors
-    .filter((m) => {
-      const pct = uptimeByMonitor[m.id];
-      return pct != null && pct < 100;
-    })
-    .sort((a, b) => (uptimeByMonitor[a.id] ?? 100) - (uptimeByMonitor[b.id] ?? 100))
-    .slice(0, RANK_LIMIT)
-    .map((m) => {
-      const pct = uptimeByMonitor[m.id]!;
-      return {
-        id: m.id,
-        name: m.name,
-        n: Math.round(pct * 10) / 10,
-        href: `/monitors/${m.id}`,
-        url: m.url,
-        type: m.type,
-      };
-    });
+  const attentionIds = new Set(attention.map((row) => row.id));
 
-  const slowest: RankingPoint[] = monitors
+  const worstUptime: RankingPoint[] = monitors
+    .filter((m) => shouldRankUptime(uptimeByMonitor[m.id]) && (downtimeMinByMonitor[m.id] ?? 0) > 0)
+    .sort((a, b) => (downtimeMinByMonitor[b.id] ?? 0) - (downtimeMinByMonitor[a.id] ?? 0))
+    .slice(0, RANK_LIMIT)
+    .map((m) => ({
+      id: m.id,
+      name: m.name,
+      n: downtimeMinByMonitor[m.id] ?? 0,
+      href: `/monitors/${m.id}`,
+      url: m.url,
+      type: m.type,
+    }));
+
+  const tOverview = await getTranslations("overview");
+
+  const slowest = monitors
     .filter((m) => {
+      if (m.paused || attentionIds.has(m.id)) return false;
       const latest = latestByMonitor[m.id];
-      return !m.paused && latest?.ok && latest.responseTimeMs != null;
+      return latest?.ok === true && isSlowerThanUsual(latest.responseTimeMs, m.baselineP75Ms);
     })
     .sort(
       (a, b) =>
@@ -257,18 +210,19 @@ export default async function DashboardPage() {
     .map((m) => ({
       id: m.id,
       name: m.name,
-      n: latestByMonitor[m.id]!.responseTimeMs!,
+      value: tOverview("slowDetail", {
+        recent: latestByMonitor[m.id]!.responseTimeMs!,
+        baseline: m.baselineP75Ms!,
+      }),
       href: `/monitors/${m.id}`,
       url: m.url,
       type: m.type,
     }));
 
-  const tOverview = await getTranslations("overview");
-
   const ssl = monitors
     .flatMap((m) => {
       if (m.sslMonitoring !== true) return [];
-      const days = sslDaysUntil(m.sslExpiresAt);
+      const days = sslDaysUntil(m.sslExpiresAt, nowMs);
       const invalid = m.sslValid === false;
       const expiring = days != null && days <= SSL_WARN_DAYS;
       if (!invalid && !expiring) return [];
@@ -297,6 +251,12 @@ export default async function DashboardPage() {
     .slice(0, RANK_LIMIT)
     .map(({ id, name, value, href, url, type }) => ({ id, name, value, href, url, type }));
 
+  const nextSsl = soonestSsl(monitors, nowMs);
+  const nextSslHealthy =
+    nextSsl && nextSsl.days > SSL_WARN_DAYS
+      ? { name: nextSsl.name, days: nextSsl.days }
+      : null;
+
   return (
     <DashboardOverview
       hasMonitors={monitors.length > 0}
@@ -304,15 +264,14 @@ export default async function DashboardPage() {
       pausedCount={pausedCount}
       maintenanceCount={maintenanceCount}
       totalCount={monitors.length}
-      fleetUptimePct={fleetUptimePct}
-      hasUptimeData={hasUptimeData}
+      downtimeMin90d={downtimeMin90d}
+      lastIncidentAt={lastStatusAt(activityAll)}
+      nextSsl={nextSslHealthy}
       allPaused={allPaused}
       checkLocation={getCheckLocationLabel()}
       username={session.user.name ?? null}
       attention={attention}
-      activity={activityAll.slice(0, ACTIVITY_SNIPPET)}
-      fleet={fleet}
-      activityByDay={activityByUtcDay(activityAll, nowMs)}
+      activity={activityAll}
       trendByDay={trendByDay}
       worstUptime={worstUptime}
       slowest={slowest}

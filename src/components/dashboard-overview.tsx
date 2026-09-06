@@ -3,17 +3,19 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer, Clock, CircleDashed, ChartSpline } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
+import { CheckNowButton } from "@/components/check-now-button";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
-import { ActivityVolumeClient, FleetMixClient, FleetTrendClient } from "@/components/dashboard-charts-client";
+import { FleetTrendClient } from "@/components/dashboard-charts-client";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
 import { MonitorFavicon } from "@/components/monitor-favicon";
 import { cn } from "@/lib/utils";
 import type { ActivityItem } from "@/lib/activity-item";
-import type { ActivityDayPoint, FleetSlice, FleetTrendPoint, RankingPoint } from "@/components/dashboard-charts";
+import type { FleetTrendPoint, RankingPoint } from "@/components/dashboard-charts";
+import { trendHasSignal } from "@/lib/dashboard-overview-stats";
 
 export type OverviewAttentionKind = "down" | "degraded" | "overdue" | "pending";
 
@@ -46,18 +48,17 @@ export type DashboardOverviewProps = {
   pausedCount: number;
   maintenanceCount: number;
   totalCount: number;
-  fleetUptimePct: number | null;
-  hasUptimeData: boolean;
+  downtimeMin90d: number;
+  lastIncidentAt: string | null;
+  nextSsl: { name: string; days: number } | null;
   allPaused: boolean;
   checkLocation: string | null;
   username: string | null;
   attention: OverviewAttentionRow[];
   activity: ActivityItem[];
-  fleet: FleetSlice[];
-  activityByDay: ActivityDayPoint[];
   trendByDay: FleetTrendPoint[];
   worstUptime: RankingPoint[];
-  slowest: RankingPoint[];
+  slowest: OverviewNamedStat[];
   ssl: OverviewNamedStat[];
   onboarding?: {
     onboardingCompleted?: boolean | null;
@@ -73,6 +74,16 @@ function faviconSrc(url: string, type?: string | null): string {
   } catch {
     return "";
   }
+}
+
+function httpHref(url: string): string | null {
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") return parsed.href;
+  } catch {
+    return null;
+  }
+  return null;
 }
 
 function SiteLabel({
@@ -95,8 +106,6 @@ function SiteLabel({
     </span>
   );
 }
-
-const SLOWEST_MIN_MS = 300;
 
 function MetaDot() {
   return (
@@ -214,13 +223,11 @@ function RankList({
   empty,
   format,
   fillFor,
-  scale,
 }: {
   items: RankingPoint[];
   empty: string;
   format: (n: number) => string;
   fillFor: (n: number) => string;
-  scale: "pct" | "relative";
 }) {
   if (items.length === 0) {
     return <p className="text-sm text-text-muted">{empty}</p>;
@@ -229,7 +236,7 @@ function RankList({
   return (
     <ul className="space-y-3">
       {items.map((row) => {
-        const widthPct = scale === "pct" ? Math.min(100, row.n) : (row.n / max) * 100;
+        const widthPct = (row.n / max) * 100;
         return (
           <li key={row.id}>
             <Link
@@ -274,21 +281,101 @@ function formatRelativeTime(iso: string): string {
   return `${Math.floor(diffHours / 24)}d`;
 }
 
+function ActivityDigest({ activity, userId }: { activity: ActivityItem[]; userId: string }) {
+  const t = useTranslations("overview");
+  const tActivity = useTranslations("activity");
+  const [since, setSince] = useState<string | null>(null);
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const lastKey = `upg-dash-last-visit:${userId}`;
+    const sinceKey = `upg-dash-since:${userId}`;
+    let sinceVal = sessionStorage.getItem(sinceKey);
+    if (sinceVal == null) {
+      sinceVal = localStorage.getItem(lastKey) ?? "";
+      sessionStorage.setItem(sinceKey, sinceVal);
+    }
+    setSince(sinceVal || null);
+    setReady(true);
+    const stamp = () => localStorage.setItem(lastKey, new Date().toISOString());
+    window.addEventListener("pagehide", stamp);
+    return () => window.removeEventListener("pagehide", stamp);
+  }, [userId]);
+
+  const filtered =
+    ready && since ? activity.filter((item) => item.at > since) : activity;
+  const items = filtered.slice(0, 8);
+  const usingVisit = Boolean(ready && since);
+  const heading = usingVisit ? t("sinceVisit") : t("recentActivity");
+  const empty = usingVisit ? t("sinceVisitEmpty") : t("activityEmpty");
+
+  return (
+    <section className="mt-10">
+      <SectionHeading href="/activity" hrefLabel={t("viewAll")}>
+        {heading}
+      </SectionHeading>
+      {items.length === 0 ? (
+        <p className="text-sm text-text-muted">{empty}</p>
+      ) : (
+        <ul className="divide-y divide-border/70">
+          {items.map((item) => {
+            const label =
+              item.kind === "degradation"
+                ? tActivity("degradationBadge")
+                : item.recovered
+                  ? tActivity("recovered")
+                  : tActivity("wentDown");
+            const detail =
+              item.kind === "degradation"
+                ? t("degradedDetail", {
+                    recent: item.recentAvgMs,
+                    baseline: item.baselineP75Ms,
+                  })
+                : null;
+            return (
+              <li key={`${item.kind}-${item.id}`}>
+                <Link
+                  href={`/monitors/${item.monitorId}`}
+                  className="group flex items-center justify-between gap-3 py-2.5 text-sm"
+                >
+                  <span className="min-w-0">
+                    <SiteLabel name={item.name} url={item.url} />
+                    {detail ? (
+                      <p className="mt-0.5 break-words pl-6 text-sm sm:truncate sm:text-xs text-text-muted" title={detail}>
+                        {detail}
+                      </p>
+                    ) : null}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-2 text-xs text-text-muted">
+                    <span>{label}</span>
+                    <time dateTime={item.at} className="tabular-nums">
+                      {formatRelativeTime(item.at)}
+                    </time>
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
 export function DashboardOverview({
   hasMonitors,
   downCount,
   pausedCount,
   maintenanceCount,
   totalCount,
-  fleetUptimePct,
-  hasUptimeData,
+  downtimeMin90d,
+  lastIncidentAt,
+  nextSsl,
   allPaused,
   checkLocation,
   username,
   attention,
   activity,
-  fleet,
-  activityByDay,
   trendByDay,
   worstUptime,
   slowest,
@@ -299,7 +386,6 @@ export function DashboardOverview({
   const router = useRouter();
   const t = useTranslations("overview");
   const tDash = useTranslations("dashboard");
-  const tActivity = useTranslations("activity");
   const tNav = useTranslations("nav");
   const [showOnboarding, setShowOnboarding] = useState(
     !onboarding?.onboardingCompleted && !hasMonitors
@@ -317,12 +403,8 @@ export function DashboardOverview({
         : allPaused
           ? tDash("allPaused")
           : tDash("allOperational");
-  const showUptime = worstUptime.length > 0 || !hasUptimeData;
-  const showSlowest =
-    slowest.length > 0 && Math.max(...slowest.map((row) => row.n)) >= SLOWEST_MIN_MS;
-  const showSsl = ssl.length > 0;
-  const rankCount = Number(showUptime) + Number(showSlowest) + Number(showSsl);
-  const showTrend = trendByDay.some((d) => d.total > 0);
+  const showTrend = trendHasSignal(trendByDay);
+  const rankCount = Number(worstUptime.length > 0) + Number(slowest.length > 0) + Number(ssl.length > 0);
   const weekChecks = trendByDay.reduce((sum, d) => sum + d.total, 0);
   const weekOk = trendByDay.reduce((sum, d) => sum + d.okCount, 0);
   const weekUptime =
@@ -355,61 +437,76 @@ export function DashboardOverview({
           </div>
         ) : (
           <>
-            <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between lg:gap-12">
-              <div className="min-w-0 flex-1">
-                <h1
-                  className={cn(
-                    "flex items-start gap-2.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight",
-                    downCount > 0
-                      ? "text-status-down"
-                      : overdueCount > 0
-                        ? "text-status-warn"
-                        : "text-text-primary"
-                  )}
-                  aria-live="polite"
-                >
-                  <StatusLiveDot tone={statusTone} />
-                  <span>{statusLabel}</span>
-                </h1>
-                <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted">
-                  <span className="tabular-nums">{tDash("monitorCount", { count: totalCount })}</span>
-                  {fleetUptimePct != null ? (
-                    <>
-                      <MetaDot />
-                      <span className="tabular-nums">{t("fleetUptime90d", { pct: fleetUptimePct })}</span>
-                    </>
-                  ) : null}
-                  {maintenanceCount > 0 ? (
-                    <>
-                      <MetaDot />
-                      <span className="tabular-nums">{t("maintenanceCount", { count: maintenanceCount })}</span>
-                    </>
-                  ) : null}
-                  {pausedCount > 0 && !allPaused ? (
-                    <>
-                      <MetaDot />
-                      <span className="tabular-nums">{tDash("pausedCountMeta", { count: pausedCount })}</span>
-                    </>
-                  ) : null}
-                  <MetaDot />
-                  <span className="truncate">{tDash("checksFrom", { location: locationLabel })}</span>
-                  {username ? (
-                    <>
-                      <MetaDot />
-                      <Link
-                        href={`/status/${username}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-text-primary underline-offset-4 transition-colors hover:text-text-muted hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
-                      >
-                        {tDash("statusPageLink")}
-                        <ExternalLink className="size-3.5 shrink-0" aria-hidden />
-                      </Link>
-                    </>
-                  ) : null}
-                </p>
-              </div>
-              <FleetMixClient fleet={fleet} totalCount={totalCount} />
+            <div className="min-w-0">
+              <h1
+                className={cn(
+                  "flex items-start gap-2.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight",
+                  downCount > 0
+                    ? "text-status-down"
+                    : overdueCount > 0
+                      ? "text-status-warn"
+                      : "text-text-primary"
+                )}
+                aria-live="polite"
+              >
+                <StatusLiveDot tone={statusTone} />
+                <span>{statusLabel}</span>
+              </h1>
+              <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-text-muted">
+                <span className="tabular-nums">{tDash("monitorCount", { count: totalCount })}</span>
+                {downCount === 0 && !allPaused ? (
+                  <>
+                    <MetaDot />
+                    <span>
+                      {lastIncidentAt
+                        ? t("lastIncident", { when: formatRelativeTime(lastIncidentAt) })
+                        : t("quietWeek")}
+                    </span>
+                  </>
+                ) : null}
+                {downtimeMin90d > 0 && downCount === 0 ? (
+                  <>
+                    <MetaDot />
+                    <span className="tabular-nums">{t("downtime90d", { n: downtimeMin90d })}</span>
+                  </>
+                ) : null}
+                {nextSsl ? (
+                  <>
+                    <MetaDot />
+                    <span className="truncate">
+                      {t("nextSsl", { name: nextSsl.name, n: nextSsl.days })}
+                    </span>
+                  </>
+                ) : null}
+                {maintenanceCount > 0 ? (
+                  <>
+                    <MetaDot />
+                    <span className="tabular-nums">{t("maintenanceCount", { count: maintenanceCount })}</span>
+                  </>
+                ) : null}
+                {pausedCount > 0 && !allPaused ? (
+                  <>
+                    <MetaDot />
+                    <span className="tabular-nums">{tDash("pausedCountMeta", { count: pausedCount })}</span>
+                  </>
+                ) : null}
+                <MetaDot />
+                <span className="truncate">{tDash("checksFrom", { location: locationLabel })}</span>
+                {username ? (
+                  <>
+                    <MetaDot />
+                    <Link
+                      href={`/status/${username}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 text-text-primary underline-offset-4 transition-colors hover:text-text-muted hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                    >
+                      {tDash("statusPageLink")}
+                      <ExternalLink className="size-3.5 shrink-0" aria-hidden />
+                    </Link>
+                  </>
+                ) : null}
+              </p>
             </div>
 
             {attention.length > 0 && (
@@ -453,20 +550,29 @@ export function DashboardOverview({
                                 .filter(Boolean)
                                 .join(" · ")
                             : row.detail;
+                    const openHref = httpHref(row.url);
                     return (
-                      <li key={row.id} className="flex items-start gap-3 py-2.5">
-                        <Link
-                          href={`/monitors/${row.id}`}
-                          className="group min-w-0 flex-1"
-                        >
+                      <li key={row.id} className="flex flex-col items-stretch gap-2 py-3 sm:flex-row sm:flex-wrap sm:items-start sm:gap-x-3 sm:gap-y-1 sm:py-2.5">
+                        <Link href={`/monitors/${row.id}`} className="group min-w-0 flex-1 max-sm:py-1">
                           <SiteLabel name={row.name} url={row.url} type={row.type} />
                           {detail ? (
-                            <p className="mt-0.5 truncate pl-6 text-xs text-text-muted" title={detail}>
+                            <p className="mt-0.5 break-words pl-6 text-sm sm:truncate sm:text-xs text-text-muted" title={detail}>
                               {detail}
                             </p>
                           ) : null}
                         </Link>
-                        <div className="mt-0.5 flex shrink-0 items-center gap-2">
+                        <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:shrink-0 sm:justify-end sm:gap-2">
+                          {openHref ? (
+                            <a
+                              href={openHref}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex min-h-11 items-center text-sm font-medium text-text-muted underline-offset-4 transition-colors hover:text-text-primary hover:underline sm:min-h-0 sm:text-xs"
+                            >
+                              {t("openSite")}
+                            </a>
+                          ) : null}
+                          <CheckNowButton monitorId={row.id} appearance="link" />
                           {row.kind === "down" && !row.acked ? (
                             <AttentionAckButton monitorId={row.id} />
                           ) : null}
@@ -494,6 +600,8 @@ export function DashboardOverview({
               </section>
             )}
 
+            <ActivityDigest activity={activity} userId={userId} />
+
             {showTrend ? (
               <section className="mt-10">
                 <SectionHeading icon={ChartSpline}>{t("chartTrend")}</SectionHeading>
@@ -512,47 +620,17 @@ export function DashboardOverview({
               </section>
             ) : null}
 
-            <section className="mt-10">
-              <SectionHeading href="/activity" hrefLabel={t("viewAll")}>
-                {t("recentActivity")}
-              </SectionHeading>
-              <p className="mb-3 text-[11px] text-text-muted">{t("chartVolumeSub")}</p>
-              <ActivityVolumeClient activityByDay={activityByDay} />
-              {activity.length === 0 ? (
-                <p className="mt-3 text-sm text-text-muted">{t("activityEmpty")}</p>
-              ) : (
-                <ul className="mt-4 divide-y divide-border/70">
-                  {activity.map((item) => {
-                    const label =
-                      item.kind === "degradation"
-                        ? tActivity("degradationBadge")
-                        : item.recovered
-                          ? tActivity("recovered")
-                          : tActivity("wentDown");
-                    return (
-                      <li key={`${item.kind}-${item.id}`}>
-                        <Link
-                          href={`/monitors/${item.monitorId}`}
-                          className="group flex items-center justify-between gap-3 py-2.5 text-sm"
-                        >
-                          <SiteLabel name={item.name} url={item.url} />
-                          <span className="flex shrink-0 items-center gap-2 text-xs text-text-muted">
-                            <span>{label}</span>
-                            <time dateTime={item.at} className="tabular-nums">
-                              {formatRelativeTime(item.at)}
-                            </time>
-                          </span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </section>
-
             {rankCount > 0 ? (
               <div className={cn("mt-10 grid gap-10", rankCount > 1 && "lg:grid-cols-2")}>
-                {showUptime ? (
+                {ssl.length > 0 ? (
+                  <section>
+                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={ShieldAlert}>
+                      {t("ssl")}
+                    </SectionHeading>
+                    <StatList items={ssl} empty={t("sslClear")} />
+                  </section>
+                ) : null}
+                {worstUptime.length > 0 ? (
                   <section>
                     <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
                       {t("worstUptime")}
@@ -560,36 +638,17 @@ export function DashboardOverview({
                     <RankList
                       items={worstUptime}
                       empty={t("noUptimeData")}
-                      format={(n) => `${n}%`}
-                      scale="pct"
-                      fillFor={(n) =>
-                        n < 99 ? "var(--color-status-down)" : "var(--color-status-warn)"
-                      }
+                      format={(n) => t("downtimeMinutes", { n })}
+                      fillFor={() => "var(--color-status-down)"}
                     />
                   </section>
                 ) : null}
-                {showSlowest ? (
+                {slowest.length > 0 ? (
                   <section>
                     <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
                       {t("slowest")}
                     </SectionHeading>
-                    <RankList
-                      items={slowest}
-                      empty={t("noLatencyData")}
-                      format={(n) => `${n} ms`}
-                      scale="relative"
-                      fillFor={(n) =>
-                        n >= 1000 ? "var(--color-status-warn)" : "var(--color-accent)"
-                      }
-                    />
-                  </section>
-                ) : null}
-                {showSsl ? (
-                  <section>
-                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={ShieldAlert}>
-                      {t("ssl")}
-                    </SectionHeading>
-                    <StatList items={ssl} empty={t("sslClear")} />
+                    <StatList items={slowest} empty={t("noLatencyData")} />
                   </section>
                 ) : null}
               </div>
