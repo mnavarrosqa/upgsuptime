@@ -358,3 +358,12 @@ body {
     animation: brand-orbit-turn 2.4s linear infinite;
   }
 }
+
+/* A single introductory turn; continuous motion is reserved for loading. */
+@media (prefers-reduced-motion: no-preference) {
+  .landing-orbit .brand-orbit-motion {
+    animation-duration: 1.8s;
+    animation-timing-function: var(--motion-ease-out-quart);
+    animation-iteration-count: 1;
+  }
+}

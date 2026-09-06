@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { BrandMark } from "@/components/brand-mark";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import {
   monitorStatusDownPillClass,
@@ -130,6 +131,10 @@ export function LandingHeroCarousel({
       }}
       tabIndex={0}
     >
+      <div className="mb-4 flex items-center gap-2.5 text-sm font-semibold text-text-primary" style={{ fontFamily: "var(--font-display)" }}>
+        <BrandMark className="size-6 shrink-0" />
+        <span>UPG Monitor</span>
+      </div>
       <div className="relative min-h-[358px] sm:min-h-[382px] overflow-hidden rounded-xl border border-border bg-bg-card" style={{ boxShadow: "0 1px 4px 0 oklch(0 0 0 / 0.06), 0 4px 16px -4px oklch(0 0 0 / 0.06)" }}>
         {[0, 1, 2].map((slideIdx) => (
           <div
