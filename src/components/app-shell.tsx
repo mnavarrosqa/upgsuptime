@@ -1,17 +1,17 @@
 "use client";
 
-import { startTransition, useCallback, useEffect, useId, useRef, useState } from "react";
+import { useTransition, useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Bell, LayoutDashboard, Menu, Monitor, X } from "lucide-react";
+import { useActivity } from "@/components/activity-context";
+import { Spinner } from "@/components/spinner";
 import { BrandMark } from "@/components/brand-mark";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cn } from "@/lib/utils";
-import { hrefPath, isPrimaryNavActive, APP_PRIMARY_NAV_LINKS, APP_ADMIN_NAV_LINKS } from "@/lib/app-main-nav";
+import { hrefPath, isPrimaryNavActive, APP_PRIMARY_NAV_LINKS } from "@/lib/app-main-nav";
 
-/** ponytail: hard-nav if the App Router transition never commits */
-const HARD_NAV_MS = 8000;
 const MOBILE_NAV_ICONS = {
   "/dashboard": LayoutDashboard,
   "/monitors": Monitor,
@@ -29,6 +29,8 @@ export function AppShell({
   name?: string | null;
   children: React.ReactNode;
 }) {
+  const [isPending, startTransition] = useTransition();
+  const { unreadCount } = useActivity();
   const [open, setOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const pathname = usePathname();
@@ -41,7 +43,7 @@ export function AppShell({
   const [openedAtPath, setOpenedAtPath] = useState(pathname);
   const visible = open && pathname === openedAtPath;
   const navigatingTo =
-    pendingHref && hrefPath(pendingHref) !== pathname ? pendingHref : null;
+    isPending && pendingHref ? pendingHref : null;
   const highlightPath = navigatingTo ? hrefPath(navigatingTo) : pathname;
 
   const close = useCallback(({ restoreFocus = false }: { restoreFocus?: boolean } = {}) => {
@@ -53,34 +55,15 @@ export function AppShell({
 
   const onNavigate = useCallback(
     (href: string) => {
+      close();
       if (hrefPath(href) === pathname) return;
       setPendingHref(href);
       startTransition(() => {
         router.push(href);
       });
     },
-    [pathname, router]
+    [pathname, router, close]
   );
-
-  useEffect(() => {
-    for (const { href } of APP_PRIMARY_NAV_LINKS) {
-      void router.prefetch(href);
-    }
-    if (role === "admin") {
-      for (const { href } of APP_ADMIN_NAV_LINKS) {
-        void router.prefetch(href);
-      }
-    }
-  }, [router, role]);
-
-  useEffect(() => {
-    if (!navigatingTo) return;
-    const href = navigatingTo;
-    const timer = window.setTimeout(() => {
-      window.location.assign(href);
-    }, HARD_NAV_MS);
-    return () => window.clearTimeout(timer);
-  }, [navigatingTo]);
 
   useEffect(() => {
     if (!visible) return;
@@ -168,7 +151,7 @@ export function AppShell({
             <div className="h-full w-1/3 bg-accent motion-safe:animate-pulse" />
           </div>
         )}
-        <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-bg-card/80 backdrop-blur-xl md:hidden">
+        <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-bg-card md:hidden">
           <div className="flex h-14 items-center gap-2 px-3">
             <button
               ref={buttonRef}
@@ -215,15 +198,18 @@ export function AppShell({
         <nav aria-label={t("mainNav")} className="fixed inset-x-0 bottom-0 z-30 grid h-[var(--mobile-nav-height)] grid-cols-3 gap-1 border-t border-border/60 bg-bg-card px-3 pt-1 pb-[env(safe-area-inset-bottom)] md:hidden">
           {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
             const Icon = MOBILE_NAV_ICONS[href];
+            const active = isPrimaryNavActive(highlightPath, href);
+            const pending = navigatingTo === href;
             return (
               <Link
                 key={href}
                 href={href}
                 aria-current={isPrimaryNavActive(pathname, href) ? "page" : undefined}
+                aria-busy={pending || undefined}
                 className={cn(
-                  "flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
-                  isPrimaryNavActive(highlightPath, href)
-                    ? "bg-accent/10 text-accent"
+                  "flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 text-sm font-medium touch-manipulation transition-colors motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  active
+                    ? "text-primary"
                     : "text-text-muted hover:bg-bg-page hover:text-text-primary"
                 )}
                 onClick={(event) => {
@@ -233,7 +219,17 @@ export function AppShell({
                   onNavigate(href);
                 }}
               >
-                <Icon className="size-5 shrink-0" aria-hidden />
+                <span className={cn(
+                  "relative flex h-7 w-14 items-center justify-center rounded-full transition-colors",
+                  active && "bg-primary/10"
+                )}>
+                  {pending ? <Spinner size="sm" /> : <Icon className="size-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden />}
+                  {href === "/activity" && unreadCount > 0 && (
+                    <span className="absolute right-2 top-0 size-2 rounded-full bg-status-down ring-2 ring-bg-card">
+                      <span className="sr-only">{t("unreadIncidents")}</span>
+                    </span>
+                  )}
+                </span>
                 <span>{t(labelKey)}</span>
               </Link>
             );
@@ -241,8 +237,7 @@ export function AppShell({
         </nav>
         <div
           className={cn(
-            "relative min-w-0 motion-safe:transition-opacity motion-safe:duration-200",
-            navigatingTo && "pointer-events-none opacity-60"
+            "relative min-w-0"
           )}
           aria-busy={navigatingTo ? true : undefined}
           aria-live="polite"
