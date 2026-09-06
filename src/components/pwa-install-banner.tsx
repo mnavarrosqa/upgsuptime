@@ -91,7 +91,7 @@ export function PwaInstallBanner() {
       role="banner"
       aria-live="polite"
       className={`
-        fixed bottom-0 left-0 right-0 z-50
+        fixed bottom-[var(--mobile-nav-height,0px)] left-0 right-0 z-50
         flex items-start gap-3
         border-t border-border bg-bg-card px-4 py-4
         shadow-[0_-4px_16px_rgba(0,0,0,0.08)]

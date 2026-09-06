@@ -4,7 +4,7 @@ import { startTransition, useCallback, useEffect, useId, useRef, useState } from
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Menu, X } from "lucide-react";
+import { Bell, LayoutDashboard, Menu, Monitor, X } from "lucide-react";
 import { BrandMark } from "@/components/brand-mark";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cn } from "@/lib/utils";
@@ -12,6 +12,11 @@ import { hrefPath, isPrimaryNavActive, APP_PRIMARY_NAV_LINKS, APP_ADMIN_NAV_LINK
 
 /** ponytail: hard-nav if the App Router transition never commits */
 const HARD_NAV_MS = 8000;
+const MOBILE_NAV_ICONS = {
+  "/dashboard": LayoutDashboard,
+  "/monitors": Monitor,
+  "/activity": Bell,
+};
 
 export function AppShell({
   role,
@@ -206,14 +211,17 @@ export function AppShell({
               <span className="truncate">{t("appTitle")}</span>
             </Link>
           </div>
-          <nav aria-label={t("mainNav")} className="grid grid-cols-3 gap-1 border-t border-border/60 px-3 py-1">
-            {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => (
+        </header>
+        <nav aria-label={t("mainNav")} className="fixed inset-x-0 bottom-0 z-30 grid h-[var(--mobile-nav-height)] grid-cols-3 gap-1 border-t border-border/60 bg-bg-card px-3 pt-1 pb-[env(safe-area-inset-bottom)] md:hidden">
+          {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
+            const Icon = MOBILE_NAV_ICONS[href];
+            return (
               <Link
                 key={href}
                 href={href}
                 aria-current={isPrimaryNavActive(pathname, href) ? "page" : undefined}
                 className={cn(
-                  "flex min-h-11 min-w-0 items-center justify-center rounded-md px-2 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  "flex min-h-11 min-w-0 flex-col items-center justify-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   isPrimaryNavActive(highlightPath, href)
                     ? "bg-accent/10 text-accent"
                     : "text-text-muted hover:bg-bg-page hover:text-text-primary"
@@ -225,11 +233,12 @@ export function AppShell({
                   onNavigate(href);
                 }}
               >
-                {t(labelKey)}
+                <Icon className="size-5 shrink-0" aria-hidden />
+                <span>{t(labelKey)}</span>
               </Link>
-            ))}
-          </nav>
-        </header>
+            );
+          })}
+        </nav>
         <div
           className={cn(
             "relative min-w-0 motion-safe:transition-opacity motion-safe:duration-200",

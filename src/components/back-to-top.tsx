@@ -34,7 +34,7 @@ export function BackToTopButton() {
         window.scrollTo({ top: 0, behavior: reduce ? "auto" : "smooth" });
       }}
       className={cn(
-        "fixed bottom-6 right-4 z-30 h-11 w-11 rounded-full border border-border bg-bg-card text-text-primary shadow-md transition-[opacity,transform] duration-200 hover:bg-bg-page sm:right-6",
+        "fixed bottom-[calc(var(--mobile-nav-height,0px)+1.5rem)] right-4 z-30 h-11 w-11 rounded-full border border-border bg-bg-card text-text-primary shadow-md transition-[opacity,transform] duration-200 hover:bg-bg-page sm:right-6",
         visible
           ? "pointer-events-auto translate-y-0 opacity-100"
           : "pointer-events-none translate-y-2 opacity-0"
