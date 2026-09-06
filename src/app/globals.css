@@ -346,3 +346,15 @@ body {
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }
+/* Rotate the complete mark so the satellite stays seated in the ring opening. */
+@keyframes brand-orbit-turn {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .brand-orbit-motion {
+    transform-box: view-box;
+    transform-origin: 50% 50%;
+    animation: brand-orbit-turn 2.4s linear infinite;
+  }
+}

@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { BrandLoading } from "@/components/brand-loading";
 import { BrandMark } from "@/components/brand-mark";
 import { useLocale, useTranslations } from "next-intl";
 import { LanguageSelect } from "@/components/language-select";
@@ -19,9 +20,7 @@ const authInputClass =
 function LoadingFallback() {
   const tCommon = useTranslations("common");
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <p className="text-text-muted">{tCommon("loading")}</p>
-    </div>
+    <BrandLoading label={tCommon("loading")} fullScreen />
   );
 }
 

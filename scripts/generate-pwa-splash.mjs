@@ -1,5 +1,5 @@
 import sharp from "sharp";
-import { mkdir, writeFile } from "fs/promises";
+import { mkdir, writeFile, readFile } from "fs/promises";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
 
@@ -90,6 +90,7 @@ const SPLASH_SCREENS = [
 ];
 
 const BG = "#1c1917";
+const orbit = JSON.parse(await readFile(join(root, "src/lib/brand-orbit.json"), "utf8"));
 
 function buildSplashSvg(width, height) {
   const min = Math.min(width, height);
@@ -101,12 +102,10 @@ function buildSplashSvg(width, height) {
   const logoX = Math.round((width - logoSize) / 2);
   const textY = topY + logoSize + gap + Math.round(fontSize * 0.85);
 
-  // Keep geometry in sync with src/app/icon.svg and src/components/brand-mark.tsx.
   const logoInner = `
   <g transform="translate(${logoX},${topY}) scale(${logoSize / 32})">
-    <path d="M6 16.5 H11 L14.2 9.4 L19.2 16.5 H21.2" fill="none" stroke="#f4f1ee" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round"/>
-    <circle cx="24.6" cy="16.5" r="3.55" fill="#76cd9c" opacity="0.28"/>
-    <circle cx="24.6" cy="16.5" r="2.2" fill="#76cd9c"/>
+    <path d="${orbit.path}" fill="none" stroke="#f4f1ee" stroke-width="${orbit.strokeWidth}"/>
+    <circle cx="${orbit.dot.cx}" cy="${orbit.dot.cy}" r="${orbit.dot.r}" fill="${orbit.color}"/>
   </g>`;
 
   return `<?xml version="1.0" encoding="UTF-8"?>

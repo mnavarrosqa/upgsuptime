@@ -1,13 +1,15 @@
 "use client";
 
+import { BrandLoading } from "@/components/brand-loading";
+
 import { useTranslations } from "next-intl";
 
 /** Shared, lightweight fallback keeps navigation available while route data streams. */
 export default function AppLoading() {
   const t = useTranslations("common");
   return (
-    <div role="status" aria-live="polite" className="space-y-8">
-      <span className="sr-only">{t("loading")}</span>
+    <div className="space-y-8">
+      <BrandLoading label={t("loading")} />
       <div aria-hidden="true" className="space-y-3 motion-safe:animate-pulse">
         <div className="h-8 w-2/3 max-w-sm rounded-md bg-border/60" />
         <div className="h-4 w-1/2 max-w-xs rounded bg-border/40" />

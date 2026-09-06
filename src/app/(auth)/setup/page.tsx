@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { BrandLoading } from "@/components/brand-loading";
 import { BrandMark } from "@/components/brand-mark";
 import { useLocale, useTranslations } from "next-intl";
 import { LanguageSelect } from "@/components/language-select";
@@ -82,9 +83,7 @@ export default function SetupPage() {
 
   if (loading || needsSetup === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-text-muted">{tAuth("checkingSetupStatus")}</p>
-      </div>
+      <BrandLoading label={tAuth("checkingSetupStatus")} fullScreen />
     );
   }
 

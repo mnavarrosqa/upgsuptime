@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { BrandLoading } from "@/components/brand-loading";
 import { BrandMark } from "@/components/brand-mark";
 import { useLocale, useTranslations } from "next-intl";
 import { LanguageSelect } from "@/components/language-select";
@@ -82,9 +83,7 @@ export default function RegisterPage() {
 
   if (loading || canRegister === null) {
     return (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-text-muted">{tCommon("loading")}</p>
-      </div>
+      <BrandLoading label={tCommon("loading")} fullScreen />
     );
   }
 

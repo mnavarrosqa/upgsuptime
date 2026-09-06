@@ -5,7 +5,17 @@ import { fileURLToPath } from "url";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = join(__dirname, "..");
-const svgBuffer = readFileSync(join(root, "src/app/icon.svg"));
+const orbit = JSON.parse(readFileSync(join(root, "src/lib/brand-orbit.json"), "utf8"));
+const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <rect width="32" height="32" rx="8" fill="#1c1917"/>
+  <g transform="translate(3.2 3.2) scale(0.8)">
+    <path d="${orbit.path}" fill="none" stroke="#f4f1ee" stroke-width="${orbit.strokeWidth}"/>
+    <circle cx="${orbit.dot.cx}" cy="${orbit.dot.cy}" r="${orbit.dot.r}" fill="${orbit.color}"/>
+  </g>
+</svg>
+`;
+writeFileSync(join(root, "src/app/icon.svg"), svg);
+const svgBuffer = Buffer.from(svg);
 
 /** Single PNG (e.g. 32×32) embedded in a minimal .ico (Vista+ PNG-in-ICO). */
 function pngBufferToIco(pngBuffer) {
