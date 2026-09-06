@@ -62,6 +62,9 @@ export function AppShell({
     !href.includes("#") && (href.startsWith("/admin")
       ? isAdminChildActive(path, href, exact)
       : isPrimaryNavActive(path, href));
+  const currentSection = mobileLinks.find(({ href, exact }) =>
+    isMobileActive(highlightPath, href, exact)
+  )?.label;
 
   const onNavigate = useCallback(
     (href: string) => {
@@ -107,7 +110,7 @@ export function AppShell({
           </div>
         )}
         <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-bg-card md:hidden">
-          <div className="flex h-14 items-center gap-2 px-3">
+          <div className="flex min-h-16 items-center justify-between gap-3 px-4">
             <Link
               href="/dashboard"
               onClick={(event) => {
@@ -124,15 +127,19 @@ export function AppShell({
                 event.preventDefault();
                 onNavigate("/dashboard");
               }}
-              className="mr-auto flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-text-primary"
+              className="flex min-h-11 min-w-0 flex-1 items-center gap-2.5 rounded-lg text-text-primary transition-opacity hover:opacity-80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
               style={{ fontFamily: "var(--font-display)" }}
             >
-              <BrandMark className="size-5 shrink-0" />
-              <span className="truncate">{t("appTitle")}</span>
+              <BrandMark className="size-6 shrink-0" />
+              <span className="flex min-w-0 flex-col gap-0.5">
+                <span className={cn("truncate font-semibold", currentSection ? "text-[11px] leading-4 text-text-muted" : "text-sm")}>{t("appTitle")}</span>
+                {currentSection && <span className="truncate text-sm font-semibold leading-5">{currentSection}</span>}
+              </span>
             </Link>
-            <div className="flex shrink-0 items-center gap-1 [&_button]:min-h-11 [&_button]:min-w-11">
-              <LanguageToggle />
-              <ThemeToggle />
+            <div className="flex shrink-0 items-center rounded-xl border border-border/60 bg-bg-page/60 [&_button]:min-h-11 [&_button]:min-w-11 [&_button]:touch-manipulation [&_button]:focus-visible:outline-2 [&_button]:focus-visible:-outline-offset-2 [&_button]:focus-visible:outline-ring">
+              <div className="flex min-h-11 items-center"><LanguageToggle /></div>
+              <span className="h-4 w-px bg-border/80" aria-hidden />
+              <div className="flex size-11 items-center justify-center"><ThemeToggle /></div>
             </div>
           </div>
         </header>
