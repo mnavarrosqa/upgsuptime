@@ -146,11 +146,12 @@ export function AppShell({
                 href={href}
                 aria-current={isMobileActive(pathname, href, exact) ? "page" : undefined}
                 aria-busy={pending || undefined}
+                title={label}
                 className={cn(
-                  "group flex min-h-16 w-20 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                  "group flex min-h-16 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                   active
-                    ? "bg-primary/12 text-primary shadow-[inset_0_1px_0_0_rgb(255_255_255/0.12)]"
-                    : "text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
+                    ? "w-20 bg-primary/12 text-primary shadow-[inset_0_1px_0_0_rgb(255_255_255/0.12)]"
+                    : "w-14 text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
                 )}
                 onClick={(event) => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -167,17 +168,18 @@ export function AppShell({
                     </span>
                   )}
                 </span>
-                <span className="flex min-h-7 items-center justify-center text-center text-balance">{label}</span>
+                <span className={active ? "flex min-h-7 items-center justify-center text-center text-balance" : "sr-only"}>{label}</span>
               </Link>
             );
           })}
           <button
             type="button"
             onClick={() => void signOut({ callbackUrl: "/login" })}
-            className="flex min-h-16 w-20 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight text-text-muted hover:bg-bg-page/60 hover:text-text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            title={t("signOut")}
+            className="flex min-h-16 w-14 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight text-text-muted hover:bg-bg-page/60 hover:text-text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
           >
             <span className="flex h-6 items-center"><LogOut className="size-5" aria-hidden /></span>
-            <span className="flex min-h-7 items-center text-center text-balance">{t("signOut")}</span>
+            <span className="sr-only">{t("signOut")}</span>
           </button>
         </nav>
         <div
