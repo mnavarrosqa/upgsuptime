@@ -1,4 +1,4 @@
-import { and, gte, inArray, isNull, or, eq, sql } from "drizzle-orm";
+import { and, desc, gte, inArray, isNull, or, eq, sql } from "drizzle-orm";
 import { checkResult, monitor } from "@/db/schema";
 
 export const NINETY_DAYS_MS = 90 * 24 * 60 * 60 * 1000;
@@ -138,7 +138,7 @@ export type RecentCheckRow = {
   createdAt: Date;
 };
 
-/** Latest `perMonitor` checks per monitor — avoids a global ORDER BY of the whole table. */
+/** Read only the requested index tail instead of ranking each monitor's entire history. */
 export async function getRecentChecksByMonitor(
   monitorIds: string[],
   perMonitor: number
@@ -146,7 +146,9 @@ export async function getRecentChecksByMonitor(
   if (monitorIds.length === 0 || perMonitor <= 0) return [];
 
   const { db } = await import("@/db");
-  const ranked = db.$with("ranked_checks").as(
+  // SQLite is in-process: bounded index seeks avoid both a history scan and
+  // network round trips. Deduplicate IDs to preserve the former IN semantics.
+  return [...new Set(monitorIds)].flatMap((monitorId) =>
     db
       .select({
         id: checkResult.id,
@@ -155,26 +157,13 @@ export async function getRecentChecksByMonitor(
         responseTimeMs: checkResult.responseTimeMs,
         message: checkResult.message,
         createdAt: checkResult.createdAt,
-        rn: sql<number>`row_number() over (partition by ${checkResult.monitorId} order by ${checkResult.createdAt} desc)`.as(
-          "rn"
-        ),
       })
       .from(checkResult)
-      .where(inArray(checkResult.monitorId, monitorIds))
+      .where(eq(checkResult.monitorId, monitorId))
+      .orderBy(desc(checkResult.createdAt))
+      .limit(Math.floor(perMonitor))
+      .all()
   );
-
-  return db
-    .with(ranked)
-    .select({
-      id: ranked.id,
-      monitorId: ranked.monitorId,
-      ok: ranked.ok,
-      responseTimeMs: ranked.responseTimeMs,
-      message: ranked.message,
-      createdAt: ranked.createdAt,
-    })
-    .from(ranked)
-    .where(sql`${ranked.rn} <= ${perMonitor}`);
 }
 
 export async function getFleetDailyStats(

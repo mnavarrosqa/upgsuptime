@@ -195,7 +195,7 @@ export function AppShell({
             </Link>
           </div>
         </header>
-        <nav aria-label={t("mainNav")} className="fixed inset-x-0 bottom-0 z-30 grid h-[var(--mobile-nav-height)] grid-cols-3 gap-1 border-t border-border/60 bg-bg-card px-3 pt-1 pb-[env(safe-area-inset-bottom)] md:hidden">
+        <nav aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-30 mx-auto grid max-w-sm grid-cols-3 gap-1 rounded-[2rem] border border-border/50 bg-bg-card p-1.5 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.28),inset_0_1px_0_0_rgb(255_255_255/0.16)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/70 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
           {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
             const Icon = MOBILE_NAV_ICONS[href];
             const active = isPrimaryNavActive(highlightPath, href);
@@ -207,10 +207,10 @@ export function AppShell({
                 aria-current={isPrimaryNavActive(pathname, href) ? "page" : undefined}
                 aria-busy={pending || undefined}
                 className={cn(
-                  "flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-2 py-1 text-sm font-medium touch-manipulation transition-colors motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  "group flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
                   active
-                    ? "text-primary"
-                    : "text-text-muted hover:bg-bg-page hover:text-text-primary"
+                    ? "bg-primary/12 text-primary shadow-[inset_0_1px_0_0_rgb(255_255_255/0.12)]"
+                    : "text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
                 )}
                 onClick={(event) => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -219,10 +219,7 @@ export function AppShell({
                   onNavigate(href);
                 }}
               >
-                <span className={cn(
-                  "relative flex h-7 w-14 items-center justify-center rounded-full transition-colors",
-                  active && "bg-primary/10"
-                )}>
+                <span className="relative flex h-6 w-10 shrink-0 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-0.5">
                   {pending ? <Spinner size="sm" /> : <Icon className="size-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden />}
                   {href === "/activity" && unreadCount > 0 && (
                     <span className="absolute right-2 top-0 size-2 rounded-full bg-status-down ring-2 ring-bg-card">
@@ -230,7 +227,7 @@ export function AppShell({
                     </span>
                   )}
                 </span>
-                <span>{t(labelKey)}</span>
+                <span className="flex min-h-7 items-center justify-center text-center text-balance">{t(labelKey)}</span>
               </Link>
             );
           })}
