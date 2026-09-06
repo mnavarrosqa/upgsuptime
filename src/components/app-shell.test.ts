@@ -20,15 +20,17 @@ vi.mock("next/navigation", () => ({
 }));
 vi.mock("next-intl", () => ({ useTranslations: () => (key: string) => key }));
 vi.mock("next/link", () => ({ default: "a" }));
+vi.mock("@/components/theme-toggle", () => ({ ThemeToggle: () => null }));
+vi.mock("@/components/language-toggle", () => ({ LanguageToggle: () => null }));
 vi.mock("@/components/app-sidebar", () => ({ AppSidebar: () => null }));
 vi.mock("@/components/activity-context", () => ({ useActivity: () => ({ unreadCount: 2 }) }));
 
 import { AppShell } from "./app-shell";
 
-function renderShell() {
+function renderShell(role?: string) {
   // AppShell requires children in its props type, including with createElement.
   // eslint-disable-next-line react/no-children-prop
-  return renderToStaticMarkup(createElement(AppShell, { email: "test@example.com", children: "Page content" }));
+  return renderToStaticMarkup(createElement(AppShell, { role, email: "test@example.com", children: "Page content" }));
 }
 
 describe("AppShell navigation feedback", () => {
@@ -53,6 +55,38 @@ describe("AppShell navigation feedback", () => {
   it("keeps Monitors selected on monitor detail pages", () => {
     navigation.pathname = "/monitors/site-1";
     expect(renderShell()).toContain('href="/monitors" aria-current="page"');
+  });
+
+  it("exposes account and help without a mobile drawer", () => {
+    const html = renderShell();
+    for (const href of ["/account", "/help", "/account#onboarding"]) {
+      expect(html).toContain('href="' + href + '"');
+    }
+    expect(html).toContain("signOut");
+    expect(html).not.toContain("openMenu");
+    expect(html).not.toContain('aria-modal="true"');
+  });
+
+  it("limits administrative dock links to administrators", () => {
+    expect(renderShell()).not.toContain('href="/admin');
+    const html = renderShell("admin");
+    for (const href of ["/admin", "/admin/users", "/admin/monitors", "/admin/settings"]) {
+      expect(html).toContain('href="' + href + '"');
+    }
+  });
+
+  it("selects only the matching administrative destination", () => {
+    navigation.pathname = "/admin/users";
+    const html = renderShell("admin");
+    expect(html).toContain('href="/admin/users" aria-current="page"');
+    expect(html).not.toContain('href="/admin" aria-current="page"');
+  });
+
+  it("does not select the onboarding shortcut on the account page", () => {
+    navigation.pathname = "/account";
+    const html = renderShell();
+    expect(html).toContain('href="/account" aria-current="page"');
+    expect(html).not.toContain('href="/account#onboarding" aria-current="page"');
   });
 
   it("exposes unread activity in the mobile navigation", () => {

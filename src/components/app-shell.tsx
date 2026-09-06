@@ -1,21 +1,28 @@
 "use client";
 
-import { useTransition, useCallback, useEffect, useId, useRef, useState } from "react";
+import { useTransition, useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { LanguageToggle } from "@/components/language-toggle";
 import { useTranslations } from "next-intl";
-import { Bell, LayoutDashboard, Menu, Monitor, X } from "lucide-react";
+import { Bell, BookOpen, CircleHelp, LayoutDashboard, LogOut, Monitor, Settings, ShieldCheck, User, Users } from "lucide-react";
 import { useActivity } from "@/components/activity-context";
 import { Spinner } from "@/components/spinner";
 import { BrandMark } from "@/components/brand-mark";
 import { AppSidebar } from "@/components/app-sidebar";
 import { cn } from "@/lib/utils";
-import { hrefPath, isPrimaryNavActive, APP_PRIMARY_NAV_LINKS } from "@/lib/app-main-nav";
+import { hrefPath, isPrimaryNavActive, isAdminChildActive, APP_ADMIN_NAV_LINKS, APP_PRIMARY_NAV_LINKS } from "@/lib/app-main-nav";
 
 const MOBILE_NAV_ICONS = {
   "/dashboard": LayoutDashboard,
   "/monitors": Monitor,
   "/activity": Bell,
+  "/admin": ShieldCheck,
+  "/admin/users": Users,
+  "/admin/monitors": Monitor,
+  "/admin/settings": Settings,
 };
 
 export function AppShell({
@@ -31,113 +38,61 @@ export function AppShell({
 }) {
   const [isPending, startTransition] = useTransition();
   const { unreadCount } = useActivity();
-  const [open, setOpen] = useState(false);
   const [pendingHref, setPendingHref] = useState<string | null>(null);
   const pathname = usePathname();
   const router = useRouter();
   const t = useTranslations("nav");
   const tCommon = useTranslations("common");
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const drawerRef = useRef<HTMLElement>(null);
-  const drawerId = useId();
-  const [openedAtPath, setOpenedAtPath] = useState(pathname);
-  const visible = open && pathname === openedAtPath;
-  const navigatingTo =
-    isPending && pendingHref ? pendingHref : null;
+  const dockRef = useRef<HTMLElement>(null);
+  const tAdmin = useTranslations("admin.nav");
+  const navigatingTo = isPending && pendingHref ? pendingHref : null;
   const highlightPath = navigatingTo ? hrefPath(navigatingTo) : pathname;
-
-  const close = useCallback(({ restoreFocus = false }: { restoreFocus?: boolean } = {}) => {
-    setOpen(false);
-    if (restoreFocus) {
-      requestAnimationFrame(() => buttonRef.current?.focus());
-    }
-  }, []);
+  const mobileLinks = [
+    ...APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => ({
+      href, label: t(labelKey), Icon: MOBILE_NAV_ICONS[href], exact: href === "/dashboard",
+    })),
+    { href: "/account", label: t("account"), Icon: User, exact: false },
+    { href: "/help", label: t("help"), Icon: CircleHelp, exact: false },
+    ...(role === "admin" ? APP_ADMIN_NAV_LINKS.map(({ href, labelKey, exact }) => ({
+      href, label: tAdmin(labelKey), Icon: MOBILE_NAV_ICONS[href], exact,
+    })) : []),
+    { href: "/account#onboarding", label: t("onboardingGuide"), Icon: BookOpen, exact: false },
+  ];
+  const isMobileActive = (path: string, href: string, exact: boolean) =>
+    !href.includes("#") && (href.startsWith("/admin")
+      ? isAdminChildActive(path, href, exact)
+      : isPrimaryNavActive(path, href));
 
   const onNavigate = useCallback(
     (href: string) => {
-      close();
-      if (hrefPath(href) === pathname) return;
+      if (href === pathname) return;
       setPendingHref(href);
       startTransition(() => {
         router.push(href);
       });
     },
-    [pathname, router, close]
+    [pathname, router]
   );
 
   useEffect(() => {
-    if (!visible) return;
-    function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") {
-        e.preventDefault();
-        close({ restoreFocus: true });
-        return;
-      }
-      if (e.key !== "Tab" || !drawerRef.current) return;
-      const focusable = Array.from(
-        drawerRef.current.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), [tabindex]:not([tabindex="-1"])'
-        )
-      );
-      if (focusable.length === 0) return;
-      const first = focusable[0];
-      const last = focusable[focusable.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
-    }
-    document.addEventListener("keydown", onKey);
-    document.body.style.overflow = "hidden";
-    requestAnimationFrame(() => {
-      const firstItem = drawerRef.current?.querySelector<HTMLElement>(
-        "a[href], button:not([disabled])"
-      );
-      firstItem?.focus();
+    const dock = dockRef.current;
+    const selected = dock?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!dock || !selected) return;
+    dock.scrollTo({
+      left: selected.offsetLeft - (dock.clientWidth - selected.offsetWidth) / 2,
+      behavior: "instant",
     });
-    return () => {
-      document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = "";
-    };
-  }, [close, visible]);
+  }, [pathname]);
 
   return (
     <div className="min-h-svh bg-bg-page text-text-primary md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
-      <button
-        type="button"
-        tabIndex={visible ? 0 : -1}
-        aria-label={t("closeMenu")}
-        className={cn(
-          "fixed inset-0 z-40 bg-black/40 md:hidden motion-safe:transition-opacity motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]",
-          visible ? "opacity-100" : "pointer-events-none opacity-0"
-        )}
-        onClick={() => close()}
-      />
-      <aside
-        id={drawerId}
-        ref={drawerRef}
-        role={visible ? "dialog" : undefined}
-        aria-modal={visible ? true : undefined}
-        aria-label={t("navMenu")}
-        className={cn(
-          "flex flex-col border-r border-border/60 bg-bg-card max-md:safe-top max-md:pb-[env(safe-area-inset-bottom)]",
-          "fixed inset-y-0 left-0 z-50 w-60 max-w-[min(100vw-3rem,16rem)] shadow-xl",
-          "motion-safe:transition-transform motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]",
-          "md:static md:z-auto md:h-svh md:w-auto md:max-w-none md:translate-x-0 md:shadow-none",
-          visible ? "translate-x-0" : "-translate-x-full md:translate-x-0",
-          !visible && "max-md:invisible max-md:pointer-events-none"
-        )}
-      >
+      <aside className="hidden h-svh flex-col border-r border-border/60 bg-bg-card md:flex">
         <AppSidebar
           role={role}
           email={email}
           name={name}
           activePath={highlightPath}
           pending={Boolean(navigatingTo)}
-          onClose={() => close()}
           onNavigate={onNavigate}
         />
       </aside>
@@ -153,24 +108,6 @@ export function AppShell({
         )}
         <header className="safe-top sticky top-0 z-30 border-b border-border/60 bg-bg-card md:hidden">
           <div className="flex h-14 items-center gap-2 px-3">
-            <button
-              ref={buttonRef}
-              type="button"
-              onClick={() => {
-                if (visible) {
-                  setOpen(false);
-                } else {
-                  setOpenedAtPath(pathname);
-                  setOpen(true);
-                }
-              }}
-              className="flex size-11 items-center justify-center rounded-lg text-text-muted transition-colors hover:bg-bg-page hover:text-text-primary"
-              aria-label={visible ? t("closeMenu") : t("openMenu")}
-              aria-expanded={visible}
-              aria-controls={drawerId}
-            >
-              {visible ? <X className="size-5" aria-hidden /> : <Menu className="size-5" aria-hidden />}
-            </button>
             <Link
               href="/dashboard"
               onClick={(event) => {
@@ -187,27 +124,30 @@ export function AppShell({
                 event.preventDefault();
                 onNavigate("/dashboard");
               }}
-              className="flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-text-primary"
+              className="mr-auto flex min-h-11 min-w-0 items-center gap-2 rounded-lg px-1 text-sm font-semibold text-text-primary"
               style={{ fontFamily: "var(--font-display)" }}
             >
               <BrandMark className="size-5 shrink-0" />
               <span className="truncate">{t("appTitle")}</span>
             </Link>
+            <div className="flex shrink-0 items-center gap-1 [&_button]:min-h-11 [&_button]:min-w-11">
+              <LanguageToggle />
+              <ThemeToggle />
+            </div>
           </div>
         </header>
-        <nav aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-30 mx-auto grid max-w-sm grid-cols-3 gap-1 rounded-[2rem] border border-border/50 bg-bg-card p-1.5 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.28),inset_0_1px_0_0_rgb(255_255_255/0.16)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/70 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
-          {APP_PRIMARY_NAV_LINKS.map(({ href, labelKey }) => {
-            const Icon = MOBILE_NAV_ICONS[href];
-            const active = isPrimaryNavActive(highlightPath, href);
+        <nav ref={dockRef} aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-30 mx-auto flex max-w-xl gap-1 overflow-x-auto overscroll-x-contain snap-x snap-proximity scroll-px-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[2rem] border border-border/50 bg-bg-card p-1.5 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.28),inset_0_1px_0_0_rgb(255_255_255/0.16)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/70 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
+          {mobileLinks.map(({ href, label, Icon, exact }) => {
+            const active = isMobileActive(highlightPath, href, exact);
             const pending = navigatingTo === href;
             return (
               <Link
                 key={href}
                 href={href}
-                aria-current={isPrimaryNavActive(pathname, href) ? "page" : undefined}
+                aria-current={isMobileActive(pathname, href, exact) ? "page" : undefined}
                 aria-busy={pending || undefined}
                 className={cn(
-                  "group flex min-h-16 min-w-0 flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+                  "group flex min-h-16 w-20 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                   active
                     ? "bg-primary/12 text-primary shadow-[inset_0_1px_0_0_rgb(255_255_255/0.12)]"
                     : "text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
@@ -227,10 +167,18 @@ export function AppShell({
                     </span>
                   )}
                 </span>
-                <span className="flex min-h-7 items-center justify-center text-center text-balance">{t(labelKey)}</span>
+                <span className="flex min-h-7 items-center justify-center text-center text-balance">{label}</span>
               </Link>
             );
           })}
+          <button
+            type="button"
+            onClick={() => void signOut({ callbackUrl: "/login" })}
+            className="flex min-h-16 w-20 shrink-0 snap-start flex-col items-center justify-center gap-1 rounded-[1.5rem] px-1 py-1.5 text-[11px] font-medium leading-tight text-text-muted hover:bg-bg-page/60 hover:text-text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+          >
+            <span className="flex h-6 items-center"><LogOut className="size-5" aria-hidden /></span>
+            <span className="flex min-h-7 items-center text-center text-balance">{t("signOut")}</span>
+          </button>
         </nav>
         <div
           className={cn(
