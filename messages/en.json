@@ -342,6 +342,7 @@
     "STATUS_PAGE_TAGLINE_TOO_LONG": "Tagline must be 400 characters or less."
   },
   "nav": {
+    "more": "More",
     "appTitle": "UPG Monitor",
     "dashboard": "Dashboard",
     "monitors": "Monitors",

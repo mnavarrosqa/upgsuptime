@@ -342,6 +342,7 @@
     "STATUS_PAGE_TAGLINE_TOO_LONG": "El subtítulo debe tener 400 caracteres o menos."
   },
   "nav": {
+    "more": "Más",
     "appTitle": "UPG Monitor",
     "dashboard": "Dashboard",
     "monitors": "Monitores",

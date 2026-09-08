@@ -1,13 +1,13 @@
 "use client";
 
-import { useTransition, useCallback, useEffect, useRef, useState } from "react";
+import { useTransition, useCallback, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut } from "next-auth/react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { LanguageToggle } from "@/components/language-toggle";
 import { useTranslations } from "next-intl";
-import { Bell, BookOpen, CircleHelp, PanelsTopLeft, LogOut, MonitorCheck, Settings2, ShieldCheck, CircleUserRound, UsersRound, ServerCog } from "lucide-react";
+import { Bell, BookOpen, CircleHelp, PanelsTopLeft, LogOut, MonitorCheck, Settings2, ShieldCheck, CircleUserRound, UsersRound, ServerCog, Menu } from "lucide-react";
 import { useActivity } from "@/components/activity-context";
 import { Spinner } from "@/components/spinner";
 import { BrandMark } from "@/components/brand-mark";
@@ -43,7 +43,8 @@ export function AppShell({
   const router = useRouter();
   const t = useTranslations("nav");
   const tCommon = useTranslations("common");
-  const dockRef = useRef<HTMLElement>(null);
+  const moreRef = useRef<HTMLDivElement>(null);
+  const moreId = useId();
   const tAdmin = useTranslations("admin.nav");
   const navigatingTo = isPending && pendingHref ? pendingHref : null;
   const highlightPath = navigatingTo ? hrefPath(navigatingTo) : pathname;
@@ -68,6 +69,7 @@ export function AppShell({
 
   const onNavigate = useCallback(
     (href: string) => {
+      moreRef.current?.hidePopover();
       if (href === pathname) return;
       setPendingHref(href);
       startTransition(() => {
@@ -76,16 +78,6 @@ export function AppShell({
     },
     [pathname, router]
   );
-
-  useEffect(() => {
-    const dock = dockRef.current;
-    const selected = dock?.querySelector<HTMLElement>('[aria-current="page"]');
-    if (!dock || !selected) return;
-    dock.scrollTo({
-      left: selected.offsetLeft - (dock.clientWidth - selected.offsetWidth) / 2,
-      behavior: "instant",
-    });
-  }, [pathname]);
 
   return (
     <div className="min-h-svh bg-bg-page text-text-primary md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
@@ -143,8 +135,8 @@ export function AppShell({
             </div>
           </div>
         </header>
-        <nav ref={dockRef} aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-30 mx-auto flex max-w-xl gap-1 overflow-x-auto overscroll-x-contain snap-x snap-proximity scroll-px-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[2rem] border border-border/50 bg-bg-card p-1.5 shadow-[0_8px_32px_-8px_rgb(0_0_0/0.28),inset_0_1px_0_0_rgb(255_255_255/0.16)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/70 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
-          {mobileLinks.map(({ href, label, Icon, exact }) => {
+        <nav aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] z-30 mx-auto grid max-w-2xl grid-cols-5 rounded-[2.75rem] border border-border/60 bg-bg-card p-1.5 shadow-[0_4px_24px_-12px_rgb(0_0_0/0.18),inset_0_1px_0_0_rgb(255_255_255/0.3)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/65 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
+          {mobileLinks.slice(0, 4).map(({ href, label, Icon, exact }) => {
             const active = isMobileActive(highlightPath, href, exact);
             const pending = navigatingTo === href;
             return (
@@ -155,9 +147,9 @@ export function AppShell({
                 aria-busy={pending || undefined}
                 title={label}
                 className={cn(
-                  "group relative flex size-14 shrink-0 snap-start items-center justify-center rounded-full touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                  "group relative flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-1 rounded-[2rem] px-1 py-1 touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                   active
-                    ? "bg-primary/12 text-primary shadow-[inset_0_1px_0_0_rgb(255_255_255/0.12)]"
+                    ? "text-primary"
                     : "text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
                 )}
                 onClick={(event) => {
@@ -167,29 +159,63 @@ export function AppShell({
                   onNavigate(href);
                 }}
               >
-                <span className="relative flex h-6 w-10 shrink-0 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-0.5">
-                  {pending ? <Spinner size="sm" /> : <Icon className="size-6 shrink-0" strokeWidth={active ? 2 : 1.75} aria-hidden />}
+                <span className="relative flex h-8 w-10 shrink-0 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-0.5">
+                  {pending ? <Spinner size="sm" /> : <Icon className="size-7 shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden />}
                   {href === "/activity" && unreadCount > 0 && (
                     <span className="absolute right-2 top-0 size-2 rounded-full bg-status-down ring-2 ring-bg-card">
                       <span className="sr-only">{t("unreadIncidents")}</span>
                     </span>
                   )}
                 </span>
-                <span className="sr-only">{label}</span>
-                {active && <span className="absolute bottom-1.5 size-1 rounded-full bg-current" aria-hidden />}
+                <span className={cn("flex min-h-7 items-center justify-center text-center text-[11px] leading-tight text-balance sm:text-xs", active ? "font-semibold" : "font-normal")}>{label}</span>
               </Link>
             );
           })}
           <button
             type="button"
-            onClick={() => void signOut({ callbackUrl: "/login" })}
-            title={t("signOut")}
-            className="flex size-14 shrink-0 snap-start items-center justify-center rounded-full touch-manipulation text-text-muted hover:bg-bg-page/60 hover:text-text-primary focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            popoverTarget={moreId}
+            className={cn("flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-1 rounded-[2rem] px-1 py-1 touch-manipulation hover:bg-bg-page/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+              mobileLinks.slice(4).some(({ href, exact }) => isMobileActive(highlightPath, href, exact)) ? "text-primary" : "text-text-muted")}
           >
-            <span className="flex h-6 items-center"><LogOut className="size-6" strokeWidth={1.75} aria-hidden /></span>
-            <span className="sr-only">{t("signOut")}</span>
+            <span className="flex h-8 items-center"><Menu className="size-7" strokeWidth={1.75} aria-hidden /></span>
+            <span className="flex min-h-7 items-center justify-center text-[11px] leading-tight sm:text-xs">{t("more")}</span>
           </button>
         </nav>
+        <div
+          ref={moreRef}
+          id={moreId}
+          popover="auto"
+          aria-label={t("more")}
+          className="fixed inset-x-3 top-auto bottom-[calc(env(safe-area-inset-bottom)+6.5rem)] mx-auto my-0 max-h-[60svh] w-auto max-w-2xl overflow-y-auto rounded-3xl border border-border/60 bg-bg-card/95 p-2 text-text-primary shadow-xl backdrop-blur-2xl md:hidden"
+        >
+          <nav aria-label={t("more")} className="grid grid-cols-2 gap-1">
+            {mobileLinks.slice(4).map(({ href, label, Icon, exact }) => (
+              <Link
+                key={href}
+                href={href}
+                aria-current={isMobileActive(pathname, href, exact) ? "page" : undefined}
+                className={cn("flex min-h-12 items-center gap-3 rounded-2xl px-3 py-2 text-sm focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                  isMobileActive(highlightPath, href, exact) ? "bg-primary/10 text-primary" : "text-text-muted hover:bg-bg-page")}
+                onClick={(event) => {
+                  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+                  event.preventDefault();
+                  onNavigate(href);
+                }}
+              >
+                <Icon className="size-5 shrink-0" aria-hidden />
+                <span>{label}</span>
+              </Link>
+            ))}
+            <button
+              type="button"
+              onClick={() => void signOut({ callbackUrl: "/login" })}
+              className="flex min-h-12 items-center gap-3 rounded-2xl px-3 py-2 text-left text-sm text-text-muted hover:bg-bg-page focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring"
+            >
+              <LogOut className="size-5 shrink-0" aria-hidden />
+              <span>{t("signOut")}</span>
+            </button>
+          </nav>
+        </div>
         <div
           className={cn(
             "relative min-w-0"
