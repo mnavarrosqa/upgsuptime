@@ -147,7 +147,7 @@ export function AppShell({
                 aria-busy={pending || undefined}
                 title={label}
                 className={cn(
-                  "group relative flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-1 rounded-[2rem] px-1 py-1 touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                  "group relative flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-[2rem] px-1 py-1 touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                   active
                     ? "text-primary"
                     : "text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
@@ -159,26 +159,26 @@ export function AppShell({
                   onNavigate(href);
                 }}
               >
-                <span className="relative flex h-8 w-10 shrink-0 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-0.5">
-                  {pending ? <Spinner size="sm" /> : <Icon className="size-7 shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden />}
+                <span className="relative flex h-6 w-10 shrink-0 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-0.5">
+                  {pending ? <Spinner size="sm" /> : <Icon className="size-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden />}
                   {href === "/activity" && unreadCount > 0 && (
                     <span className="absolute right-2 top-0 size-2 rounded-full bg-status-down ring-2 ring-bg-card">
                       <span className="sr-only">{t("unreadIncidents")}</span>
                     </span>
                   )}
                 </span>
-                <span className={cn("flex min-h-7 items-center justify-center text-center text-[11px] leading-tight text-balance sm:text-xs", active ? "font-semibold" : "font-normal")}>{label}</span>
+                <span className={cn("flex min-h-6 items-center justify-center text-center text-[10px] leading-tight text-balance sm:text-[11px]", active ? "font-semibold" : "font-normal")}>{label}</span>
               </Link>
             );
           })}
           <button
             type="button"
             popoverTarget={moreId}
-            className={cn("flex min-h-[4.25rem] min-w-0 flex-col items-center justify-center gap-1 rounded-[2rem] px-1 py-1 touch-manipulation hover:bg-bg-page/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+            className={cn("flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 rounded-[2rem] px-1 py-1 touch-manipulation hover:bg-bg-page/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
               mobileLinks.slice(4).some(({ href, exact }) => isMobileActive(highlightPath, href, exact)) ? "text-primary" : "text-text-muted")}
           >
-            <span className="flex h-8 items-center"><Menu className="size-7" strokeWidth={1.75} aria-hidden /></span>
-            <span className="flex min-h-7 items-center justify-center text-[11px] leading-tight sm:text-xs">{t("more")}</span>
+            <span className="flex h-6 items-center"><Menu className="size-5" strokeWidth={1.75} aria-hidden /></span>
+            <span className="flex min-h-6 items-center justify-center text-[10px] leading-tight sm:text-[11px]">{t("more")}</span>
           </button>
         </nav>
         <div

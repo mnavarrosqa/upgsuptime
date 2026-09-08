@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ExternalLink,
   MoreHorizontal,
@@ -61,8 +61,8 @@ function formatLastChecked(
   return tTime("daysAgo", { count: Math.floor(diffHr / 24) });
 }
 
-function formatUptimePct(value: number): string {
-  return value.toLocaleString(undefined, {
+function formatUptimePct(value: number, locale: string): string {
+  return value.toLocaleString(locale, {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
   });
@@ -113,6 +113,7 @@ export function MonitorCard({
   downtimeAcked = false,
 }: MonitorCardProps) {
   const router = useRouter();
+  const locale = useLocale();
   const t = useTranslations("monitorsPage");
   const tCommon = useTranslations("common");
   const tTime = useTranslations("time");
@@ -268,7 +269,7 @@ export function MonitorCard({
               className="font-display text-[1.5rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
               title={formatLastChecked(lastCheckAt, tTime)}
             >
-              {uptimePct != null ? formatUptimePct(uptimePct) : "—"}
+              {uptimePct != null ? formatUptimePct(uptimePct, locale) : "—"}
             </span>
             <span className="min-w-0 truncate text-xs text-text-muted">
               {t("uptimeLabel")}
