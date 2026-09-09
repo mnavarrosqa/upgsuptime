@@ -135,7 +135,7 @@ export function AppShell({
             </div>
           </div>
         </header>
-        <nav aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.25rem)] z-30 mx-auto grid max-w-2xl grid-cols-5 rounded-2xl border border-border/60 bg-bg-card px-1 py-0.5 shadow-[0_4px_24px_-12px_rgb(0_0_0/0.18),inset_0_1px_0_0_rgb(255_255_255/0.3)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/65 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
+        <nav aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.25rem)] z-30 mx-auto grid max-w-2xl grid-cols-5 rounded-2xl border border-border/60 bg-bg-card px-1 py-1 shadow-[0_4px_24px_-12px_rgb(0_0_0/0.18),inset_0_1px_0_0_rgb(255_255_255/0.3)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/65 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
           {mobileLinks.slice(0, 4).map(({ href, label, Icon, exact }) => {
             const active = isMobileActive(highlightPath, href, exact);
             const pending = navigatingTo === href;
@@ -147,7 +147,7 @@ export function AppShell({
                 aria-busy={pending || undefined}
                 title={label}
                 className={cn(
-                  "group relative flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-0.5 touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                  "group relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                   active
                     ? "text-primary"
                     : "text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
@@ -174,7 +174,7 @@ export function AppShell({
           <button
             type="button"
             popoverTarget={moreId}
-            className={cn("flex min-h-11 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-0.5 touch-manipulation hover:bg-bg-page/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+            className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 touch-manipulation hover:bg-bg-page/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
               mobileLinks.slice(4).some(({ href, exact }) => isMobileActive(highlightPath, href, exact)) ? "text-primary" : "text-text-muted")}
           >
             <span className="flex size-5 items-center justify-center"><Menu className="size-5" strokeWidth={1.75} aria-hidden /></span>
@@ -186,7 +186,7 @@ export function AppShell({
           id={moreId}
           popover="auto"
           aria-label={t("more")}
-          className="fixed inset-x-3 top-auto bottom-[calc(env(safe-area-inset-bottom)+4.5rem)] mx-auto my-0 max-h-[60svh] w-auto max-w-2xl overflow-y-auto rounded-2xl border border-border/60 bg-bg-card/95 p-2 text-text-primary shadow-xl backdrop-blur-2xl md:hidden"
+          className="fixed inset-x-3 top-auto bottom-[calc(env(safe-area-inset-bottom)+5rem)] mx-auto my-0 max-h-[60svh] w-auto max-w-2xl overflow-y-auto rounded-2xl border border-border/60 bg-bg-card/95 p-2 text-text-primary shadow-xl backdrop-blur-2xl md:hidden"
         >
           <nav aria-label={t("more")} className="grid grid-cols-2 gap-1">
             {mobileLinks.slice(4).map(({ href, label, Icon, exact }) => (
