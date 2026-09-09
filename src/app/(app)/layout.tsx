@@ -23,7 +23,7 @@ export default async function AppLayout({
 
   return (
     <ActivityProvider>
-      <div className="min-h-svh bg-bg-page text-text-primary [--mobile-nav-height:calc(6rem+env(safe-area-inset-bottom))] md:[--mobile-nav-height:0px]">
+      <div className="min-h-svh bg-bg-page text-text-primary [--mobile-nav-height:calc(4rem+env(safe-area-inset-bottom))] md:[--mobile-nav-height:0px]">
         <Link
           href="#main-content"
           className="fixed left-4 top-0 z-[60] -translate-y-full rounded-md border border-border bg-bg-card px-3 py-2 text-sm font-medium text-text-primary shadow-md outline-none ring-2 ring-ring/30 motion-safe:transition-transform focus:left-4 focus:top-4 focus:translate-y-0 focus-visible:left-4 focus-visible:top-4 focus-visible:translate-y-0"
