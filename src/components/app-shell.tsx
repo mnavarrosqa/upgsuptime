@@ -66,6 +66,14 @@ export function AppShell({
   const currentSection = mobileLinks.find(({ href, exact }) =>
     isMobileActive(highlightPath, href, exact)
   )?.label;
+  const primaryDock = mobileLinks.slice(0, 4);
+  const overflowDock = mobileLinks.slice(4);
+  const overflowActive = overflowDock.some(({ href, exact }) =>
+    isMobileActive(highlightPath, href, exact)
+  );
+  const dockActiveIndex = overflowActive
+    ? 4
+    : primaryDock.findIndex(({ href, exact }) => isMobileActive(highlightPath, href, exact));
 
   const onNavigate = useCallback(
     (href: string) => {
@@ -135,8 +143,16 @@ export function AppShell({
             </div>
           </div>
         </header>
-        <nav aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.25rem)] z-30 mx-auto grid max-w-2xl grid-cols-5 rounded-2xl border border-border/60 bg-bg-card px-1 py-1 shadow-[0_4px_24px_-12px_rgb(0_0_0/0.18),inset_0_1px_0_0_rgb(255_255_255/0.3)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/65 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
-          {mobileLinks.slice(0, 4).map(({ href, label, Icon, exact }) => {
+        <nav aria-label={t("mainNav")} className="fixed inset-x-3 bottom-[calc(env(safe-area-inset-bottom)+0.25rem)] z-30 mx-auto max-w-2xl rounded-2xl border border-border/60 bg-bg-card px-1 py-1 shadow-[0_4px_24px_-12px_rgb(0_0_0/0.18),inset_0_1px_0_0_rgb(255_255_255/0.3)] supports-[backdrop-filter:blur(1px)]:bg-bg-card/65 supports-[backdrop-filter:blur(1px)]:backdrop-blur-2xl supports-[backdrop-filter:blur(1px)]:backdrop-saturate-150 md:hidden">
+          <div className="relative grid grid-cols-5">
+            {dockActiveIndex >= 0 && (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-y-0 left-0 z-0 w-1/5 rounded-lg bg-primary/10 motion-safe:transition-transform motion-safe:duration-300 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]"
+                style={{ transform: `translate3d(${dockActiveIndex * 100}%, 0, 0)` }}
+              />
+            )}
+            {primaryDock.map(({ href, label, Icon, exact }) => {
             const active = isMobileActive(highlightPath, href, exact);
             const pending = navigatingTo === href;
             return (
@@ -147,10 +163,10 @@ export function AppShell({
                 aria-busy={pending || undefined}
                 title={label}
                 className={cn(
-                  "group relative flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 touch-manipulation transition-colors motion-safe:transition-[color,background-color,box-shadow,transform] motion-safe:duration-200 motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+                  "group relative z-[1] flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 touch-manipulation transition-colors motion-safe:transition-[color,transform] motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)] motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
                   active
                     ? "text-primary"
-                    : "text-text-muted hover:bg-bg-page/60 hover:text-text-primary"
+                    : "text-text-muted hover:text-text-primary"
                 )}
                 onClick={(event) => {
                   if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
@@ -159,7 +175,10 @@ export function AppShell({
                   onNavigate(href);
                 }}
               >
-                <span className="relative flex size-5 shrink-0 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:group-hover:-translate-y-0.5">
+                <span className={cn(
+                  "relative flex size-5 shrink-0 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]",
+                  active ? "motion-safe:scale-110" : "motion-safe:group-hover:-translate-y-0.5"
+                )}>
                   {pending ? <Spinner size="sm" /> : <Icon className="size-5 shrink-0" strokeWidth={active ? 2.25 : 1.75} aria-hidden />}
                   {href === "/activity" && unreadCount > 0 && (
                     <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-status-down ring-2 ring-bg-card">
@@ -174,19 +193,27 @@ export function AppShell({
           <button
             type="button"
             popoverTarget={moreId}
-            className={cn("flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 touch-manipulation hover:bg-bg-page/60 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
-              mobileLinks.slice(4).some(({ href, exact }) => isMobileActive(highlightPath, href, exact)) ? "text-primary" : "text-text-muted")}
+            className={cn(
+              "relative z-[1] flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-lg px-1 py-1 touch-manipulation transition-colors motion-safe:transition-[color,transform] motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)] motion-safe:active:scale-95 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring",
+              overflowActive ? "text-primary" : "text-text-muted"
+            )}
           >
-            <span className="flex size-5 items-center justify-center"><Menu className="size-5" strokeWidth={1.75} aria-hidden /></span>
+            <span className={cn(
+              "flex size-5 items-center justify-center motion-safe:transition-transform motion-safe:duration-200 motion-safe:[transition-timing-function:var(--motion-ease-out-quart)]",
+              overflowActive && "motion-safe:scale-110"
+            )}>
+              <Menu className="size-5" strokeWidth={overflowActive ? 2.25 : 1.75} aria-hidden />
+            </span>
             <span className="max-w-full text-center text-[10px] leading-tight sm:text-[11px]">{t("more")}</span>
           </button>
+          </div>
         </nav>
         <div
           ref={moreRef}
           id={moreId}
           popover="auto"
           aria-label={t("more")}
-          className="fixed inset-x-3 top-auto bottom-[calc(env(safe-area-inset-bottom)+5rem)] mx-auto my-0 max-h-[60svh] w-auto max-w-2xl overflow-y-auto rounded-2xl border border-border/60 bg-bg-card/95 p-2 text-text-primary shadow-xl backdrop-blur-2xl md:hidden"
+          className="fixed inset-x-3 top-auto bottom-[calc(env(safe-area-inset-bottom)+5rem)] mx-auto my-0 max-h-[60svh] w-auto max-w-2xl overflow-y-auto rounded-2xl border border-border/60 bg-bg-card/65 p-2 text-text-primary shadow-[0_4px_24px_-12px_rgb(0_0_0/0.18),inset_0_1px_0_0_rgb(255_255_255/0.3)] backdrop-blur-2xl backdrop-saturate-150 md:hidden"
         >
           <nav aria-label={t("more")} className="grid grid-cols-2 gap-1">
             {mobileLinks.slice(4).map(({ href, label, Icon, exact }) => (

@@ -92,4 +92,12 @@ describe("AppShell navigation feedback", () => {
   it("exposes unread activity in the mobile navigation", () => {
     expect(renderShell()).toContain("unreadIncidents");
   });
+
+  it("places the dock indicator on the highlighted destination", () => {
+    expect(renderShell()).toContain("translate3d(0%, 0, 0)");
+    navigation.pathname = "/monitors";
+    expect(renderShell()).toContain("translate3d(100%, 0, 0)");
+    navigation.pathname = "/help";
+    expect(renderShell()).toContain("translate3d(400%, 0, 0)");
+  });
 });
