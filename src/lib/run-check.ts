@@ -1,6 +1,6 @@
 import { randomUUID } from "crypto";
 import { lookup as dnsLookup, resolve as dnsResolve } from "dns/promises";
-import { connect as netConnect } from "net";
+import { connect as netConnect, isIP } from "net";
 import { fetch as undiciFetch, buildConnector, Agent } from "undici";
 import { db } from "@/db";
 import { monitor, checkResult, degradationAlertEvent } from "@/db/schema";
@@ -45,13 +45,34 @@ const CONFIRMATION_COUNT = 2;
  */
 const defaultConnector = buildConnector({});
 
-function createInstrumentedAgent(timings: PhaseTimings, resolvedHost?: string): Agent {
+/** The monitor URL's host and the IP that `checkUrlAllowed` validated for it. */
+type PinnedHost = { hostname: string; ip: string };
+
+function bareHostname(hostname: string): string {
+  return hostname.toLowerCase().replace(/^\[(.*)\]$/, "$1");
+}
+
+function pinnedHostFor(url: string, resolvedIp: string): PinnedHost {
+  return { hostname: bareHostname(new URL(url).hostname), ip: resolvedIp };
+}
+
+function createInstrumentedAgent(timings: PhaseTimings, pinned?: PinnedHost): Agent {
   return new Agent({
     connect: (options, callback) => {
-      const connectWithIp = (resolvedIp?: string) => {
-        const connectOpts = resolvedIp
-          ? { ...options, hostname: resolvedIp, servername: (options as { hostname?: string }).hostname }
-          : options;
+      const hostname = bareHostname((options as { hostname?: string }).hostname ?? "");
+
+      // Always connect to an IP we validated ourselves, so the connector cannot
+      // re-resolve DNS to a different (possibly internal) address.
+      const connectToIp = (ip: string) => {
+        if (isBlockedIP(ip)) {
+          callback(new Error(`Resolved IP ${ip} is not allowed (SSRF protection)`), null);
+          return;
+        }
+        const connectOpts = {
+          ...options,
+          hostname: ip,
+          servername: isIP(hostname) ? (options as { servername?: string }).servername : hostname,
+        };
         const connectStart = performance.now();
         defaultConnector(connectOpts as typeof options, (err, socket) => {
           if (!err && socket) {
@@ -67,26 +88,29 @@ function createInstrumentedAgent(timings: PhaseTimings, resolvedHost?: string): 
         });
       };
 
-      if (resolvedHost) {
+      // The pinned IP only belongs to the monitor's own host; redirects to other
+      // hosts must be resolved and validated on their own.
+      if (pinned && hostname === pinned.hostname) {
         timings.dnsMs = 0;
-        if (isBlockedIP(resolvedHost)) {
-          callback(new Error(`Resolved IP ${resolvedHost} is not allowed (SSRF protection)`), null);
-          return;
-        }
-        connectWithIp(resolvedHost);
+        connectToIp(pinned.ip);
+      } else if (isIP(hostname)) {
+        timings.dnsMs = 0;
+        connectToIp(hostname);
       } else {
-        const hostname = (options as { hostname?: string }).hostname ?? "";
         const dnsStart = performance.now();
         dnsLookup(hostname, { all: true })
           .then((addresses) => {
             timings.dnsMs = Math.round(performance.now() - dnsStart);
-            for (const { address } of addresses) {
-              if (isBlockedIP(address)) {
-                callback(new Error(`Resolved IP ${address} is not allowed (SSRF protection)`), null);
-                return;
-              }
+            const blocked = addresses.find(({ address }) => isBlockedIP(address));
+            if (blocked) {
+              callback(new Error(`Resolved IP ${blocked.address} is not allowed (SSRF protection)`), null);
+              return;
             }
-            connectWithIp();
+            if (!addresses.length) {
+              callback(new Error(`Could not resolve ${hostname}`), null);
+              return;
+            }
+            connectToIp(addresses[0].address);
           })
           .catch((err: unknown) => {
             timings.dnsMs = Math.round(performance.now() - dnsStart);
@@ -388,7 +412,7 @@ async function runCheckHttp(
       statusCode = undefined;
       message = undefined;
       timings = {};
-      const agent = createInstrumentedAgent(timings, urlCheck.resolvedHost);
+      const agent = createInstrumentedAgent(timings, pinnedHostFor(m.url, urlCheck.resolvedHost));
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -464,7 +488,7 @@ async function runCheckKeyword(
       statusCode = undefined;
       message = undefined;
       timings = {};
-      const agent = createInstrumentedAgent(timings, urlCheck.resolvedHost);
+      const agent = createInstrumentedAgent(timings, pinnedHostFor(m.url, urlCheck.resolvedHost));
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
