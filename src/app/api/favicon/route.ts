@@ -32,14 +32,34 @@ function acceptsAsImage(contentType: string, sourceUrl: string): boolean {
   );
 }
 
+const MAX_DIRECT_REDIRECTS = 3;
+
+/**
+ * Fetches an icon. For the user-controlled origin (`validateHops`), redirects are
+ * followed manually and every hop is SSRF-checked, so a redirect cannot reach an
+ * internal address.
+ */
 async function tryFetchIcon(
   url: string,
+  validateHops = false,
 ): Promise<{ body: ArrayBuffer; contentType: string } | null> {
   try {
-    const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; UptimeFavicon/1.0)" },
-      signal: AbortSignal.timeout(10_000),
-    });
+    const signal = AbortSignal.timeout(10_000);
+    let currentUrl = url;
+    let res: Response;
+    for (let hop = 0; ; hop++) {
+      res = await fetch(currentUrl, {
+        headers: { "User-Agent": "Mozilla/5.0 (compatible; UptimeFavicon/1.0)" },
+        signal,
+        redirect: validateHops ? "manual" : "follow",
+      });
+      if (!validateHops || res.status < 300 || res.status >= 400) break;
+      const location = res.headers.get("Location");
+      await res.body?.cancel();
+      if (!location || hop >= MAX_DIRECT_REDIRECTS) return null;
+      currentUrl = new URL(location, currentUrl).toString();
+      if ((await getUrlNotAllowedReason(currentUrl)) !== null) return null;
+    }
     if (!res.ok) return null;
     const contentType = res.headers.get("Content-Type") ?? "";
     if (!acceptsAsImage(contentType, url)) return null;
@@ -62,17 +82,17 @@ export async function GET(request: NextRequest) {
   // user-supplied domain is only a query param). The third fetches the origin
   // directly, so it is guarded against SSRF (private/loopback/link-local IPs,
   // reserved hostnames) before being attempted.
-  const directOriginAllowed =
-    (await getUrlNotAllowedReason(`https://${domain}/favicon.ico`)) === null;
+  const directOriginUrl = `https://${domain}/favicon.ico`;
+  const directOriginAllowed = (await getUrlNotAllowedReason(directOriginUrl)) === null;
 
   const sources = [
     `https://www.google.com/s2/favicons?domain=${encodeURIComponent(domain)}&sz=32`,
     `https://icons.duckduckgo.com/ip3/${encodeURIComponent(domain)}.ico`,
-    ...(directOriginAllowed ? [`https://${domain}/favicon.ico`] : []),
+    ...(directOriginAllowed ? [directOriginUrl] : []),
   ];
 
   for (const url of sources) {
-    const got = await tryFetchIcon(url);
+    const got = await tryFetchIcon(url, url === directOriginUrl);
     if (got) {
       return new NextResponse(got.body, {
         headers: {

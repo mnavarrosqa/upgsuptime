@@ -7,10 +7,11 @@ import {
   getUptimeStats90d,
   ninetyDaysAgoFrom,
 } from "@/lib/monitor-public-status";
+import { pruneExpiredBuckets, type RateLimitBucket } from "@/lib/rate-limit-buckets";
 
 const RATE_LIMIT_WINDOW_MS = 60_000;
 const RATE_LIMIT_MAX = 120;
-const rateLimitBuckets = new Map<string, { count: number; resetAt: number }>();
+const rateLimitBuckets = new Map<string, RateLimitBucket>();
 
 function getClientKey(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -23,6 +24,7 @@ function enforcePublicStatusRateLimit(request: Request):
   | { ok: false; retryAfterSeconds: number } {
   const now = Date.now();
   const key = getClientKey(request);
+  pruneExpiredBuckets(rateLimitBuckets, now);
   const bucket = rateLimitBuckets.get(key);
 
   if (!bucket || bucket.resetAt <= now) {

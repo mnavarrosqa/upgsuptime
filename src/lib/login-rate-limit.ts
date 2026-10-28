@@ -1,7 +1,9 @@
+import { pruneExpiredBuckets, type RateLimitBucket } from "@/lib/rate-limit-buckets";
+
 const RATE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const RATE_MAX_ATTEMPTS = 10;
 
-const store = new Map<string, { count: number; resetAt: number }>();
+const store = new Map<string, RateLimitBucket>();
 
 function getClientKey(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
@@ -26,6 +28,7 @@ export function isLoginRateLimited(request: Request): boolean {
 export function recordLoginAttempt(request: Request): void {
   const key = getClientKey(request);
   const now = Date.now();
+  pruneExpiredBuckets(store, now);
   const entry = store.get(key);
   if (!entry) {
     store.set(key, { count: 1, resetAt: now + RATE_WINDOW_MS });
