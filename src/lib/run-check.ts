@@ -56,69 +56,77 @@ function pinnedHostFor(url: string, resolvedIp: string): PinnedHost {
   return { hostname: bareHostname(new URL(url).hostname), ip: resolvedIp };
 }
 
-function createInstrumentedAgent(timings: PhaseTimings, pinned?: PinnedHost): Agent {
-  return new Agent({
-    connect: (options, callback) => {
-      const hostname = bareHostname((options as { hostname?: string }).hostname ?? "");
+type ConnectFn = buildConnector.connector;
 
-      // Always connect to an IP we validated ourselves, so the connector cannot
-      // re-resolve DNS to a different (possibly internal) address.
-      const connectToIp = (ip: string) => {
-        if (isBlockedIP(ip)) {
-          callback(new Error(`Resolved IP ${ip} is not allowed (SSRF protection)`), null);
-          return;
-        }
-        const connectOpts = {
-          ...options,
-          hostname: ip,
-          servername: isIP(hostname) ? (options as { servername?: string }).servername : hostname,
-        };
-        const connectStart = performance.now();
-        defaultConnector(connectOpts as typeof options, (err, socket) => {
-          if (!err && socket) {
-            const connectEnd = performance.now();
-            timings.connectMs = Math.round(connectEnd - connectStart);
-            const tlsSocket = socket as import("tls").TLSSocket;
-            if (typeof tlsSocket.encrypted !== "undefined") {
-              timings.tlsMs = Math.round(connectEnd - connectStart);
-            }
-          }
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (callback as any)(err, socket);
-        });
-      };
+/**
+ * Undici `connect` hook: resolves and SSRF-validates the target, connects by IP,
+ * and records DNS/connect timings. Exported for tests.
+ */
+export function createInstrumentedConnect(timings: PhaseTimings, pinned?: PinnedHost): ConnectFn {
+  return (options, callback) => {
+    const hostname = bareHostname((options as { hostname?: string }).hostname ?? "");
 
-      // The pinned IP only belongs to the monitor's own host; redirects to other
-      // hosts must be resolved and validated on their own.
-      if (pinned && hostname === pinned.hostname) {
-        timings.dnsMs = 0;
-        connectToIp(pinned.ip);
-      } else if (isIP(hostname)) {
-        timings.dnsMs = 0;
-        connectToIp(hostname);
-      } else {
-        const dnsStart = performance.now();
-        dnsLookup(hostname, { all: true })
-          .then((addresses) => {
-            timings.dnsMs = Math.round(performance.now() - dnsStart);
-            const blocked = addresses.find(({ address }) => isBlockedIP(address));
-            if (blocked) {
-              callback(new Error(`Resolved IP ${blocked.address} is not allowed (SSRF protection)`), null);
-              return;
-            }
-            if (!addresses.length) {
-              callback(new Error(`Could not resolve ${hostname}`), null);
-              return;
-            }
-            connectToIp(addresses[0].address);
-          })
-          .catch((err: unknown) => {
-            timings.dnsMs = Math.round(performance.now() - dnsStart);
-            callback(err instanceof Error ? err : new Error(String(err)), null);
-          });
+    // Always connect to an IP we validated ourselves, so the connector cannot
+    // re-resolve DNS to a different (possibly internal) address.
+    const connectToIp = (ip: string) => {
+      if (isBlockedIP(ip)) {
+        callback(new Error(`Resolved IP ${ip} is not allowed (SSRF protection)`), null);
+        return;
       }
-    },
-  });
+      const connectOpts = {
+        ...options,
+        hostname: ip,
+        servername: isIP(hostname) ? (options as { servername?: string }).servername : hostname,
+      };
+      const connectStart = performance.now();
+      defaultConnector(connectOpts as typeof options, (err, socket) => {
+        if (!err && socket) {
+          const connectEnd = performance.now();
+          timings.connectMs = Math.round(connectEnd - connectStart);
+          const tlsSocket = socket as import("tls").TLSSocket;
+          if (typeof tlsSocket.encrypted !== "undefined") {
+            timings.tlsMs = Math.round(connectEnd - connectStart);
+          }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (callback as any)(err, socket);
+      });
+    };
+
+    // The pinned IP only belongs to the monitor's own host; redirects to other
+    // hosts must be resolved and validated on their own.
+    if (pinned && hostname === pinned.hostname) {
+      timings.dnsMs = 0;
+      connectToIp(pinned.ip);
+    } else if (isIP(hostname)) {
+      timings.dnsMs = 0;
+      connectToIp(hostname);
+    } else {
+      const dnsStart = performance.now();
+      dnsLookup(hostname, { all: true })
+        .then((addresses) => {
+          timings.dnsMs = Math.round(performance.now() - dnsStart);
+          const blocked = addresses.find(({ address }) => isBlockedIP(address));
+          if (blocked) {
+            callback(new Error(`Resolved IP ${blocked.address} is not allowed (SSRF protection)`), null);
+            return;
+          }
+          if (!addresses.length) {
+            callback(new Error(`Could not resolve ${hostname}`), null);
+            return;
+          }
+          connectToIp(addresses[0].address);
+        })
+        .catch((err: unknown) => {
+          timings.dnsMs = Math.round(performance.now() - dnsStart);
+          callback(err instanceof Error ? err : new Error(String(err)), null);
+        });
+    }
+  };
+}
+
+function createInstrumentedAgent(timings: PhaseTimings, pinned?: PinnedHost): Agent {
+  return new Agent({ connect: createInstrumentedConnect(timings, pinned) });
 }
 
 /** Total fetch attempts per check (1 initial + 2 retries). */
