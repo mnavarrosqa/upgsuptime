@@ -79,17 +79,26 @@ export function createInstrumentedConnect(timings: PhaseTimings, pinned?: Pinned
         servername: isIP(hostname) ? (options as { servername?: string }).servername : hostname,
       };
       const connectStart = performance.now();
-      defaultConnector(connectOpts as typeof options, (err, socket) => {
+      let tcpConnectedAt: number | undefined;
+      // undici's connector returns the socket synchronously (its typings say void).
+      // For HTTPS the callback fires after the handshake, so the socket's own
+      // "connect" event marks where TCP ends and TLS begins.
+      const pending = defaultConnector(connectOpts as typeof options, (err, socket) => {
         if (!err && socket) {
           const connectEnd = performance.now();
-          timings.connectMs = Math.round(connectEnd - connectStart);
           const tlsSocket = socket as import("tls").TLSSocket;
-          if (typeof tlsSocket.encrypted !== "undefined") {
-            timings.tlsMs = Math.round(connectEnd - connectStart);
+          if (typeof tlsSocket.encrypted !== "undefined" && tcpConnectedAt !== undefined) {
+            timings.connectMs = Math.round(tcpConnectedAt - connectStart);
+            timings.tlsMs = Math.round(connectEnd - tcpConnectedAt);
+          } else {
+            timings.connectMs = Math.round(connectEnd - connectStart);
           }
         }
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (callback as any)(err, socket);
+      }) as unknown as import("net").Socket | undefined;
+      pending?.once?.("connect", () => {
+        tcpConnectedAt = performance.now();
       });
     };
 

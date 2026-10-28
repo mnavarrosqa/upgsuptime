@@ -1,3 +1,4 @@
+import { EventEmitter } from "events";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Monitor } from "@/db/schema";
 import type { MonitorOwner } from "@/lib/monitor-owner";
@@ -585,6 +586,49 @@ describe("createInstrumentedConnect", () => {
     expect(err?.message).toBe("Resolved IP ::ffff:127.0.0.1 is not allowed (SSRF protection)");
     expect(mocks.dnsLookup).not.toHaveBeenCalled();
     expect(mocks.connector).not.toHaveBeenCalled();
+  });
+
+  function fakeSocket(encrypted: boolean) {
+    const socket = new EventEmitter() as EventEmitter & { encrypted?: boolean };
+    if (encrypted) socket.encrypted = true;
+    return socket;
+  }
+
+  it("splits TCP connect time from the TLS handshake", async () => {
+    const now = vi.spyOn(performance, "now").mockReturnValueOnce(100).mockReturnValueOnce(130).mockReturnValueOnce(180);
+    mocks.connector.mockImplementation((_opts, cb) => {
+      const socket = fakeSocket(true);
+      queueMicrotask(() => {
+        socket.emit("connect");
+        cb(null, socket);
+      });
+      return socket;
+    });
+    const timings: PhaseTimings = {};
+
+    await connectTo("example.com", timings);
+
+    expect(timings).toMatchObject({ connectMs: 30, tlsMs: 50 });
+    now.mockRestore();
+  });
+
+  it("reports only connect time for plain HTTP", async () => {
+    const now = vi.spyOn(performance, "now").mockReturnValueOnce(100).mockReturnValueOnce(125).mockReturnValueOnce(125);
+    mocks.connector.mockImplementation((_opts, cb) => {
+      const socket = fakeSocket(false);
+      queueMicrotask(() => {
+        socket.emit("connect");
+        cb(null, socket);
+      });
+      return socket;
+    });
+    const timings: PhaseTimings = {};
+
+    await connectTo("example.com", timings);
+
+    expect(timings.connectMs).toBe(25);
+    expect(timings.tlsMs).toBeUndefined();
+    now.mockRestore();
   });
 
   it("passes DNS failures through", async () => {
