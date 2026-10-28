@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 import { ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer, Clock, CircleDashed, ChartSpline } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
@@ -281,22 +281,35 @@ function formatRelativeTime(iso: string): string {
   return `${Math.floor(diffHours / 24)}d`;
 }
 
+function subscribeNoop() {
+  return () => {};
+}
+
+/** Last-visit timestamp, pinned for the browser session so it survives in-session navigation. */
+function readVisitSince(userId: string): string {
+  const sinceKey = `upg-dash-since:${userId}`;
+  let sinceVal = sessionStorage.getItem(sinceKey);
+  if (sinceVal == null) {
+    sinceVal = localStorage.getItem(`upg-dash-last-visit:${userId}`) ?? "";
+    sessionStorage.setItem(sinceKey, sinceVal);
+  }
+  return sinceVal;
+}
+
 function ActivityDigest({ activity, userId }: { activity: ActivityItem[]; userId: string }) {
   const t = useTranslations("overview");
   const tActivity = useTranslations("activity");
-  const [since, setSince] = useState<string | null>(null);
-  const [ready, setReady] = useState(false);
+  // `undefined` until hydrated on the client; "" when there is no previous visit.
+  const sinceVal = useSyncExternalStore(
+    subscribeNoop,
+    () => readVisitSince(userId),
+    () => undefined,
+  );
+  const ready = sinceVal !== undefined;
+  const since = sinceVal || null;
 
   useEffect(() => {
     const lastKey = `upg-dash-last-visit:${userId}`;
-    const sinceKey = `upg-dash-since:${userId}`;
-    let sinceVal = sessionStorage.getItem(sinceKey);
-    if (sinceVal == null) {
-      sinceVal = localStorage.getItem(lastKey) ?? "";
-      sessionStorage.setItem(sinceKey, sinceVal);
-    }
-    setSince(sinceVal || null);
-    setReady(true);
     const stamp = () => localStorage.setItem(lastKey, new Date().toISOString());
     window.addEventListener("pagehide", stamp);
     return () => window.removeEventListener("pagehide", stamp);

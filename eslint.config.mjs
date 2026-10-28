@@ -14,6 +14,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Serwist / build output (minified; not hand-maintained)
     "public/sw.js",
+    // Local agent tooling (CommonJS helpers, not app code)
+    ".claude/**",
   ]),
 ]);
 

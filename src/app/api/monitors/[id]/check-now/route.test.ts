@@ -90,7 +90,7 @@ describe("POST /api/monitors/[id]/check-now", () => {
     expect(mocks.isMaintenanceActive).toHaveBeenCalledWith(ownedMonitor);
     expect(mocks.runCheck).toHaveBeenCalledWith(
       ownedMonitor,
-      { email: "owner@example.com", language: "en" },
+      { email: "owner@example.com", language: "es" },
       {
         maintenanceActive: true,
         manual: true,

@@ -4,7 +4,6 @@ import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export function LanguageToggle() {
   const locale = useLocale();
