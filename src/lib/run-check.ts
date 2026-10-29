@@ -8,6 +8,7 @@ import { sql } from "drizzle-orm";
 import type { Monitor } from "@/db/schema";
 import { checkUrlAllowed, isBlockedIP } from "@/lib/url-allowed";
 import { sendNotifications, sendSslNotifications } from "@/lib/notify";
+import { sendMonitorStatusPush } from "@/lib/push";
 import type { SslAlertType } from "@/lib/notify";
 import { evaluateDegradation, sendDegradationAlert } from "@/lib/degradation";
 import { checkSSL } from "@/lib/check-ssl";
@@ -346,6 +347,10 @@ async function applyCheckResult(
       downEpisodeAt: !ok ? now : undefined,
     }).catch((err) => {
       console.error("[run-check] notification error for monitor", m.id, err);
+    });
+    // Push goes to every app device the owner registered, independent of the email toggle.
+    sendMonitorStatusPush(m, ok, result, owner.language).catch((err) => {
+      console.error("[run-check] push error for monitor", m.id, err);
     });
   }
   // Only send standalone SSL alerts when the site is up — if it's down, SSL

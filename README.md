@@ -29,6 +29,7 @@ npm install && npm run db:push && npm run build && npm run start
 - Pick one scheduler owner per environment: either the in-process scheduler from `src/instrumentation.ts` or an external cron hitting `/api/cron/run-checks`. The in-process scheduler prevents overlapping runs only within the same Node process; multiple app replicas can still tick at the same time unless only one replica owns scheduling.
 - For horizontally scaled deployments, prefer an external cron/worker or run exactly one scheduler-enabled app instance. All other web instances should serve requests only.
 - Login/API rate limits are in-memory and per Node process. For multi-instance deployments, put rate limiting at the proxy/load balancer or move buckets to a shared store.
+- Native app: the Android app uses the token-based API under `/api/v1` (see [docs/mobile-api.md](docs/mobile-api.md)). Push alerts need `FCM_SERVICE_ACCOUNT_JSON` (a Firebase service account key, as one line of JSON); without it push is off.
 - The production CSP keeps inline script/style allowances for Next.js compatibility, but does not allow `unsafe-eval`. If you need a stricter policy, plan a nonce-based CSP pass before removing inline allowances.
 
 ---

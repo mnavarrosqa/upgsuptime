@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcrypt";
+import { revokeAllMobileSessions } from "@/lib/mobile-auth";
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
@@ -63,6 +64,8 @@ export async function POST(request: Request) {
     .update(user)
     .set({ passwordHash })
     .where(eq(user.id, session.user.id));
+  // A new password should sign out every app device that used the old one.
+  await revokeAllMobileSessions(session.user.id);
 
   return NextResponse.json({ success: true });
 }

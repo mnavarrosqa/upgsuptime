@@ -1,10 +1,10 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
 import { db } from "@/db";
 import { user as userTable } from "@/db/schema";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { normalizeLocale } from "@/i18n/config";
+import { verifyCredentials } from "@/lib/credentials";
 
 const secret = process.env.NEXTAUTH_SECRET;
 if (process.env.NODE_ENV === "production" && (typeof secret !== "string" || secret.length === 0)) {
@@ -21,54 +21,20 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const identifier = credentials?.login?.trim();
-        const password = credentials?.password;
         if (authDebugEnabled) {
-          console.log("[auth] credentials:", identifier ? "identifier present" : "missing identifier", password ? "password present" : "missing password");
+          console.log("[auth] credentials:", credentials?.login?.trim() ? "identifier present" : "missing identifier", credentials?.password ? "password present" : "missing password");
         }
-        if (!identifier || !password) return null;
-        const isEmail = identifier.includes("@");
-        let u:
-          | {
-              id: string;
-              email: string;
-              username: string | null;
-              passwordHash: string;
-              role: string;
-              language: "en" | "es";
-            }
-          | undefined;
-        if (isEmail) {
-          [u] = await db
-            .select()
-            .from(userTable)
-            .where(sql`LOWER(${userTable.email}) = LOWER(${identifier})`);
-        } else {
-          try {
-            [u] = await db.select().from(userTable).where(eq(userTable.username, identifier));
-          } catch {
-            // username column may not exist in older DBs; try matching as email
-            [u] = await db
-              .select()
-              .from(userTable)
-              .where(sql`LOWER(${userTable.email}) = LOWER(${identifier})`);
-          }
-        }
+        const u = await verifyCredentials(credentials?.login, credentials?.password);
         if (authDebugEnabled) {
-          console.log("[auth] user lookup:", u ? `found user id=${u.id}` : "no user found");
+          console.log("[auth] sign-in:", u ? `ok for user id=${u.id}` : "rejected");
         }
         if (!u) return null;
-        const ok = await bcrypt.compare(password, u.passwordHash);
-        if (authDebugEnabled && !ok) {
-          console.log("[auth] password mismatch for user id=", u.id);
-        }
-        if (!ok) return null;
         return {
           id: u.id,
           email: u.email,
           name: u.username ?? undefined,
           role: u.role,
-          language: normalizeLocale(u.language ?? "es"),
+          language: u.language,
         };
       },
     }),

@@ -5,7 +5,7 @@ import type { RunCheckResult } from "@/lib/run-check";
 import type { SslCheckResult } from "@/lib/check-ssl";
 import type { AppLocale } from "@/i18n/config";
 import { buildUptimeAlertHtml, buildSslAlertHtml } from "@/lib/email-templates";
-import { emailFormat, getEmailMessages } from "@/lib/email-i18n";
+import { emailFormat, getEmailMessages, type EmailMessages } from "@/lib/email-i18n";
 import {
   canSignEmailAckTokens,
   signEmailAckToken,
@@ -47,6 +47,25 @@ export function getTransporter(): Transporter | null {
   return _transporter;
 }
 
+/** Subject line for a down/recovery alert; also used as the push notification title. */
+export function uptimeAlertSubject(
+  m: Pick<Monitor, "name" | "type">,
+  newStatus: boolean,
+  messages: EmailMessages,
+): string {
+  const monitorType = m.type ?? "http";
+  const template = newStatus
+    ? messages.uptime.subjectUp
+    : monitorType === "dns"
+      ? messages.uptime.subjectDownDns
+      : monitorType === "keyword"
+        ? messages.uptime.subjectDownKeyword
+        : monitorType === "tcp"
+          ? messages.uptime.subjectDownTcp
+          : messages.uptime.subjectDown;
+  return emailFormat(template, { name: m.name });
+}
+
 export async function sendEmailAlert(
   m: Monitor,
   newStatus: boolean,
@@ -62,18 +81,7 @@ export async function sendEmailAlert(
   const to = m.alertEmailTo ?? ownerEmail;
   const monitorType = m.type ?? "http";
 
-  let subject: string;
-  if (newStatus) {
-    subject = emailFormat(messages.uptime.subjectUp, { name: m.name });
-  } else if (monitorType === "dns") {
-    subject = emailFormat(messages.uptime.subjectDownDns, { name: m.name });
-  } else if (monitorType === "keyword") {
-    subject = emailFormat(messages.uptime.subjectDownKeyword, { name: m.name });
-  } else if (monitorType === "tcp") {
-    subject = emailFormat(messages.uptime.subjectDownTcp, { name: m.name });
-  } else {
-    subject = emailFormat(messages.uptime.subjectDown, { name: m.name });
-  }
+  const subject = uptimeAlertSubject(m, newStatus, messages);
 
   const checkedAt = new Date().toUTCString();
 
