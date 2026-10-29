@@ -51,4 +51,16 @@ describe("GET /api/favicon", () => {
     expect(res.headers.get("Content-Type")).toBe("image/x-icon");
     expect(new Uint8Array(await res.arrayBuffer())).toEqual(ICON);
   });
+
+  it("answers with a fully transparent placeholder when no icon is found", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response(null, { status: 404 })));
+    const { GET } = await import("./route");
+
+    const res = await GET(new NextRequest("http://localhost/api/favicon?domain=site.example"));
+
+    const sharp = (await import("sharp")).default;
+    const { data, info } = await sharp(Buffer.from(await res.arrayBuffer())).raw().toBuffer({ resolveWithObject: true });
+    expect([info.width, info.height]).toEqual([1, 1]);
+    expect(data[3]).toBe(0); // alpha
+  });
 });

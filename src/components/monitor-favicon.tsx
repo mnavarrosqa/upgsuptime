@@ -35,6 +35,10 @@ export function MonitorFavicon({
       unoptimized
       loading="lazy"
       onError={() => setFailed(true)}
+      // The favicon API answers "no icon" with a 1×1 transparent PNG; show the neutral tile instead.
+      onLoad={(e) => {
+        if (e.currentTarget.naturalWidth <= 1) setFailed(true);
+      }}
     />
   );
 }

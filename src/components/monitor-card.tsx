@@ -62,7 +62,8 @@ function formatLastChecked(
 }
 
 function formatUptimePct(value: number, locale: string): string {
-  return value.toLocaleString(locale, {
+  return (value / 100).toLocaleString(locale, {
+    style: "percent",
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
   });

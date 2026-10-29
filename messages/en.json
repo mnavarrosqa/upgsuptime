@@ -465,7 +465,7 @@
     "pausedCountMeta": "{count, plural, one {# paused} other {# paused}}",
     "checksFrom": "Checks from {location}",
     "statLocationTooltip": "Where uptime checks are executed from (server/region label).",
-    "statValueLocationUnknown": "This server",
+    "statValueLocationUnknown": "this server",
     "statusPageLink": "Public status page",
     "searchPlaceholder": "Search by name or URL…",
     "emptyTitle": "No monitors yet",
