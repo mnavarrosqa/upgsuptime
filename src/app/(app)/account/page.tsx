@@ -12,6 +12,7 @@ import { asc, eq } from "drizzle-orm";
 import { AccountOnboardingSection } from "@/components/account-onboarding-section";
 import { AccountDataPortability } from "@/components/account-data-portability";
 import { ApiAccessSection } from "@/components/api-access-section";
+import { AppSessionsSection } from "@/components/app-sessions-section";
 import { AccountTabs } from "@/components/account-tabs";
 import { getTranslations } from "next-intl/server";
 
@@ -176,6 +177,7 @@ export default async function AccountPage() {
             <div className="mt-4 rounded-lg border border-border bg-bg-card px-6 py-5">
               <PasswordForm />
             </div>
+            <AppSessionsSection />
           </div>
         }
         guide={
