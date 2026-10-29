@@ -20,6 +20,8 @@ import { DowntimeAckControls } from "@/components/downtime-ack-controls";
 import { MonitorDetailAckFeedback } from "@/components/monitor-detail-ack-feedback";
 import { MonitorFavicon } from "@/components/monitor-favicon";
 import { MonitorStatusBadge } from "@/components/monitor-status-badge";
+import { CheckTimingBreakdown } from "@/components/check-timing-breakdown";
+import { summarizeTimings } from "@/lib/timing-breakdown";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns" || monitorType === "tcp") return "";
@@ -102,6 +104,8 @@ export default async function MonitorDetailPage({
   }));
 
   const monitorType = m.type ?? "http";
+  // DNS monitors only have a single lookup time — nothing to break down.
+  const timingSummary = monitorType === "dns" ? null : summarizeTimings(serializedResults);
   const favicon = getFaviconUrl(m.url, monitorType);
   const allMessagesNull = serializedResults.every((r) => r.message === null);
 
@@ -294,6 +298,8 @@ export default async function MonitorDetailPage({
             );
           })()}
       </MonitorDetailHistoryClient>
+
+      {timingSummary && <CheckTimingBreakdown summary={timingSummary} />}
 
       {/* Check log */}
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm">

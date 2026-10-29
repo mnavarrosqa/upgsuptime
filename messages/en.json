@@ -1074,7 +1074,20 @@
     "tooltipBucketChecks": "{n} checks in this window",
     "tooltipCheck": "check",
     "tooltipChecks": "checks",
-    "maintenanceScheduled": "Maintenance scheduled"
+    "maintenanceScheduled": "Maintenance scheduled",
+    "timingTitle": "Response timing",
+    "timingSubtitle": "Where the time goes in a successful check",
+    "timingLatest": "Latest",
+    "timingMedian": "Median",
+    "timingMedianOf": "Median of last {n} successful checks",
+    "timingPhase": "Phase",
+    "timingTotal": "Total",
+    "timingPhaseDns": "DNS lookup",
+    "timingPhaseConnect": "Connect",
+    "timingPhaseTls": "TLS handshake",
+    "timingPhaseServer": "Server wait",
+    "timingPhaseDownload": "Download",
+    "timingNote": "DNS runs before the request, so the total can exceed the response time. Server wait includes any redirects."
   },
   "emails": {
     "wordmark": "UPG Monitor",

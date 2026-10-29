@@ -1075,7 +1075,20 @@
     "tooltipBucketChecks": "{n} comprobaciones en esta ventana",
     "tooltipCheck": "comprobación",
     "tooltipChecks": "comprobaciones",
-    "maintenanceScheduled": "Mantenimiento programado"
+    "maintenanceScheduled": "Mantenimiento programado",
+    "timingTitle": "Tiempos de respuesta",
+    "timingSubtitle": "En qué se va el tiempo de una comprobación exitosa",
+    "timingLatest": "Última",
+    "timingMedian": "Mediana",
+    "timingMedianOf": "Mediana de las últimas {n} comprobaciones exitosas",
+    "timingPhase": "Fase",
+    "timingTotal": "Total",
+    "timingPhaseDns": "Consulta DNS",
+    "timingPhaseConnect": "Conexión",
+    "timingPhaseTls": "Handshake TLS",
+    "timingPhaseServer": "Espera del servidor",
+    "timingPhaseDownload": "Descarga",
+    "timingNote": "El DNS se resuelve antes de la petición, así que el total puede superar el tiempo de respuesta. La espera del servidor incluye las redirecciones."
   },
   "emails": {
     "wordmark": "UPG Monitor",
