@@ -15,9 +15,9 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
-import { useTranslations } from "next-intl";
+import { useFormatter, useTranslations } from "next-intl";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { formatRelativeTime, formatDuration } from "@/lib/format-time";
+import { formatDuration } from "@/lib/format-time";
 import { cn } from "@/lib/utils";
 
 function getFaviconUrl(url: string): string {
@@ -76,6 +76,11 @@ export function StatusPageShell({
 }) {
   const router = useRouter();
   const tPublic = useTranslations("publicStatus");
+  const format = useFormatter();
+  // Relative times are measured from when the page was generated, so server and
+  // client render the same text; the page refreshes itself about once a minute.
+  const pageNow = new Date(generatedAt);
+  const relative = (iso: string) => format.relativeTime(new Date(iso), pageNow);
 
   useEffect(() => {
     const id = setInterval(() => {
@@ -136,7 +141,7 @@ export function StatusPageShell({
             <div className="flex shrink-0 flex-wrap items-center gap-3 sm:justify-end">
               <p className="text-xs tabular-nums text-text-muted">
                 {tPublic("updated")}{" "}
-                <time dateTime={generatedAt}>{formatRelativeTime(generatedAt)}</time>
+                <time dateTime={generatedAt}>{relative(generatedAt)}</time>
               </p>
               <ThemeToggle />
             </div>
@@ -385,7 +390,7 @@ export function StatusPageShell({
                           {tPublic("checked")}{" "}
                           {m.lastCheckAt ? (
                             <time dateTime={m.lastCheckAt}>
-                              {formatRelativeTime(m.lastCheckAt)}
+                              {relative(m.lastCheckAt)}
                             </time>
                           ) : (
                             "—"

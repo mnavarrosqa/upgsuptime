@@ -251,11 +251,10 @@ export default async function DashboardPage() {
     .slice(0, RANK_LIMIT)
     .map(({ id, name, value, href, url, type }) => ({ id, name, value, href, url, type }));
 
+  // Soonest expiry overall: hiding at-risk certificates here made the tile claim
+  // "no expirations" while one was days away.
   const nextSsl = soonestSsl(monitors, nowMs);
-  const nextSslHealthy =
-    nextSsl && nextSsl.days > SSL_WARN_DAYS
-      ? { name: nextSsl.name, days: nextSsl.days }
-      : null;
+  const nextSslSummary = nextSsl ? { ...nextSsl, atRisk: nextSsl.days <= SSL_WARN_DAYS } : null;
 
   return (
     <DashboardOverview
@@ -266,7 +265,8 @@ export default async function DashboardPage() {
       totalCount={monitors.length}
       downtimeMin90d={downtimeMin90d}
       lastIncidentAt={lastStatusAt(activityAll)}
-      nextSsl={nextSslHealthy}
+      nextSsl={nextSslSummary}
+      nowMs={nowMs}
       allPaused={allPaused}
       checkLocation={getCheckLocationLabel()}
       username={session.user.name ?? null}

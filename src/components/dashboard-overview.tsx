@@ -50,7 +50,9 @@ export type DashboardOverviewProps = {
   totalCount: number;
   downtimeMin90d: number;
   lastIncidentAt: string | null;
-  nextSsl: { name: string; days: number } | null;
+  nextSsl: { name: string; days: number; atRisk: boolean } | null;
+  /** Server render time; relative times are measured from it. */
+  nowMs: number;
   allPaused: boolean;
   checkLocation: string | null;
   username: string | null;
@@ -269,10 +271,11 @@ function RankList({
   );
 }
 
-function formatRelativeTime(iso: string): string {
+/** Compact age ("5m", "2h") measured from the server render time, so hydration matches. */
+function formatRelativeTime(iso: string, nowMs: number): string {
   const then = new Date(iso).getTime();
   if (Number.isNaN(then)) return iso;
-  const diffSec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  const diffSec = Math.max(0, Math.floor((nowMs - then) / 1000));
   if (diffSec < 60) return "<1m";
   const diffMin = Math.floor(diffSec / 60);
   if (diffMin < 60) return `${diffMin}m`;
@@ -296,7 +299,7 @@ function readVisitSince(userId: string): string {
   return sinceVal;
 }
 
-function ActivityDigest({ activity, userId }: { activity: ActivityItem[]; userId: string }) {
+function ActivityDigest({ activity, userId, nowMs }: { activity: ActivityItem[]; userId: string; nowMs: number }) {
   const t = useTranslations("overview");
   const tActivity = useTranslations("activity");
   // `undefined` until hydrated on the client; "" when there is no previous visit.
@@ -362,7 +365,7 @@ function ActivityDigest({ activity, userId }: { activity: ActivityItem[]; userId
                   <span className="flex shrink-0 items-center gap-2 text-xs text-text-muted">
                     <span>{label}</span>
                     <time dateTime={item.at} className="tabular-nums">
-                      {formatRelativeTime(item.at)}
+                      {formatRelativeTime(item.at, nowMs)}
                     </time>
                   </span>
                 </Link>
@@ -384,6 +387,7 @@ export function DashboardOverview({
   downtimeMin90d,
   lastIncidentAt,
   nextSsl,
+  nowMs,
   allPaused,
   checkLocation,
   username,
@@ -477,7 +481,7 @@ export function DashboardOverview({
                     <MetaDot />
                     <span>
                       {lastIncidentAt
-                        ? t("lastIncident", { when: formatRelativeTime(lastIncidentAt) })
+                        ? t("lastIncident", { when: formatRelativeTime(lastIncidentAt, nowMs) })
                         : t("quietWeek")}
                     </span>
                   </>
@@ -525,11 +529,21 @@ export function DashboardOverview({
                 { label: t("availability7d"), value: weekUptime == null ? "—" : `${weekUptime}%`, detail: weekChecks > 0 ? t("chartTrendChecks", { n: weekChecks }) : t("awaitingData") },
                 { label: t("response7d"), value: weekAvgMs == null ? "—" : `${weekAvgMs} ms`, detail: t("successfulChecks") },
                 { label: t("downtimeLabel"), value: t("downtimeMinutes", { n: downtimeMin90d }), detail: t("downtimeEstimate") },
-                { label: t("certificateLabel"), value: nextSsl ? t("sslDays", { n: nextSsl.days }) : "—", detail: nextSsl?.name ?? t("noCertificate") },
+                {
+                  label: t("certificateLabel"),
+                  value: nextSsl ? (nextSsl.days < 0 ? t("sslExpired") : t("sslDays", { n: nextSsl.days })) : "—",
+                  detail: nextSsl?.name ?? t("noCertificate"),
+                  warn: nextSsl?.atRisk ?? false,
+                },
               ].map((stat) => (
                 <div key={stat.label} className="min-w-0">
                   <dt className="text-xs font-medium text-text-muted">{stat.label}</dt>
-                  <dd className="mt-2 text-2xl font-semibold tracking-tight tabular-nums text-text-primary">{stat.value}</dd>
+                  <dd className="mt-2 flex items-center gap-1.5 text-2xl font-semibold tracking-tight tabular-nums text-text-primary">
+                    {"warn" in stat && stat.warn ? (
+                      <ShieldAlert className="size-5 shrink-0 text-status-warn" aria-hidden />
+                    ) : null}
+                    {stat.value}
+                  </dd>
                   <dd className="mt-1 break-words text-xs leading-relaxed text-text-muted">{stat.detail}</dd>
                 </div>
               ))}
@@ -614,7 +628,7 @@ export function DashboardOverview({
                             {label}
                             {row.since ? (
                               <span className="tabular-nums text-text-muted">
-                                · {formatRelativeTime(row.since)}
+                                · {formatRelativeTime(row.since, nowMs)}
                               </span>
                             ) : null}
                           </span>
@@ -626,7 +640,7 @@ export function DashboardOverview({
               </section>
             )}
 
-            <ActivityDigest activity={activity} userId={userId} />
+            <ActivityDigest activity={activity} userId={userId} nowMs={nowMs} />
 
             {showTrend ? (
               <section className="mt-10">
