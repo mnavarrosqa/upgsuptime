@@ -128,6 +128,35 @@ export const apiKey = sqliteTable("api_key", {
   createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
 });
 
+/** Native app sign-in: one row per device session, holding the current refresh token hash. */
+export const mobileSession = sqliteTable("mobile_session", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  deviceName: text("device_name"),
+  refreshTokenHash: text("refresh_token_hash").notNull().unique(),
+  /** Hash of the refresh token this one replaced; presenting it again means the token leaked. */
+  previousRefreshTokenHash: text("previous_refresh_token_hash"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  lastUsedAt: integer("last_used_at", { mode: "timestamp" }),
+  expiresAt: integer("expires_at", { mode: "timestamp" }).notNull(),
+  revokedAt: integer("revoked_at", { mode: "timestamp" }),
+});
+
+/** Push notification targets (FCM registration tokens) registered by the native app. */
+export const pushDevice = sqliteTable("push_device", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  sessionId: text("session_id").references(() => mobileSession.id, { onDelete: "cascade" }),
+  platform: text("platform", { enum: ["android"] }).notNull().default("android"),
+  token: text("token").notNull().unique(),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }).notNull(),
+});
+
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type Monitor = typeof monitor.$inferSelect;
@@ -140,3 +169,5 @@ export type Settings = typeof settings.$inferSelect;
 export type NewSettings = typeof settings.$inferInsert;
 export type ApiKey = typeof apiKey.$inferSelect;
 export type NewApiKey = typeof apiKey.$inferInsert;
+export type MobileSession = typeof mobileSession.$inferSelect;
+export type PushDevice = typeof pushDevice.$inferSelect;

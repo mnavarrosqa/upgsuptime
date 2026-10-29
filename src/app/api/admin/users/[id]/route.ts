@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
-import { user } from "@/db/schema";
+import { mobileSession, pushDevice, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export async function PATCH(
@@ -63,6 +63,10 @@ export async function DELETE(
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
+  // SQLite foreign keys are not enforced here, so clear app sign-ins and push
+  // targets explicitly rather than relying on ON DELETE CASCADE.
+  await db.delete(pushDevice).where(eq(pushDevice.userId, id));
+  await db.delete(mobileSession).where(eq(mobileSession.userId, id));
   await db.delete(user).where(eq(user.id, id));
 
   return NextResponse.json({ success: true });

@@ -34,6 +34,7 @@ const mocks = vi.hoisted(() => {
     sendSslNotifications: vi.fn(),
     evaluateDegradation: vi.fn(),
     sendDegradationAlert: vi.fn(),
+    sendMonitorStatusPush: vi.fn(),
   };
 });
 
@@ -53,6 +54,7 @@ vi.mock("@/lib/notify", () => ({
   sendNotifications: mocks.sendNotifications,
   sendSslNotifications: mocks.sendSslNotifications,
 }));
+vi.mock("@/lib/push", () => ({ sendMonitorStatusPush: mocks.sendMonitorStatusPush }));
 vi.mock("@/lib/degradation", () => ({
   evaluateDegradation: mocks.evaluateDegradation,
   sendDegradationAlert: mocks.sendDegradationAlert,
@@ -152,6 +154,7 @@ beforeEach(() => {
     mocks.sendSslNotifications,
     mocks.evaluateDegradation,
     mocks.sendDegradationAlert,
+    mocks.sendMonitorStatusPush,
   ]) {
     fn.mockReset();
   }
@@ -160,6 +163,7 @@ beforeEach(() => {
   mocks.sendNotifications.mockResolvedValue(undefined);
   mocks.sendSslNotifications.mockResolvedValue(undefined);
   mocks.sendDegradationAlert.mockResolvedValue(undefined);
+  mocks.sendMonitorStatusPush.mockResolvedValue(undefined);
 });
 
 afterEach(() => {
@@ -190,6 +194,12 @@ describe("runCheck status state machine", () => {
       "owner@example.com",
       "en",
       { downEpisodeAt: undefined },
+    );
+    expect(mocks.sendMonitorStatusPush).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "monitor-1" }),
+      true,
+      expect.objectContaining({ ok: true }),
+      "en",
     );
   });
 
@@ -250,6 +260,7 @@ describe("runCheck status state machine", () => {
 
     expect(lastUpdate()).toMatchObject({ currentStatus: false });
     expect(mocks.sendNotifications).not.toHaveBeenCalled();
+    expect(mocks.sendMonitorStatusPush).not.toHaveBeenCalled();
     expect(result.message).toBe("Internal Server Error");
     expect(checkResultRows()[0]).toMatchObject({ duringMaintenance: true });
   });
