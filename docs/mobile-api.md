@@ -23,7 +23,8 @@ Store the refresh token in encrypted storage (e.g. Android Keystore-backed
 new one and the old one stops working. If an old refresh token is presented again,
 the server treats it as leaked and signs that device out.
 
-Sessions end when the user signs out, changes their password (all devices), or the
+Sessions end when the user signs out, signs the device out from the web app
+(*Account → Security → Mobile app*), changes their password (all devices), or the
 account is deleted. A revoked session makes every call return `401 UNAUTHORIZED`;
 the app should then send the user to the sign-in screen.
 
