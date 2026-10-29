@@ -221,12 +221,6 @@ export default async function MonitorDetailPage({
         degradationAlertEnabled={m.degradationAlertEnabled}
         aboveCharts={
           <>
-            {(m.type === "http" || m.type === "keyword") && !m.degradationAlertEnabled && (
-              <DegradationAlertCallout
-                monitorId={m.id}
-                hasEmailAlerts={!!m.alertEmail}
-              />
-            )}
             {recentIncidents.length > 0 && (
               <section
                 className="overflow-hidden rounded-2xl border border-status-down/20 bg-status-down-soft shadow-sm"
@@ -247,6 +241,12 @@ export default async function MonitorDetailPage({
                   <RecentIncidentsList incidents={recentIncidents} />
                 </div>
               </section>
+            )}
+            {(m.type === "http" || m.type === "keyword") && !m.degradationAlertEnabled && (
+              <DegradationAlertCallout
+                monitorId={m.id}
+                hasEmailAlerts={!!m.alertEmail}
+              />
             )}
           </>
         }
