@@ -45,15 +45,18 @@ const CONFIRMATION_COUNT = 2;
  */
 const defaultConnector = buildConnector({});
 
-/** The monitor URL's host and the IP that `checkUrlAllowed` validated for it. */
-type PinnedHost = { hostname: string; ip: string };
+/**
+ * The monitor URL's host, the IP that `checkUrlAllowed` validated for it, and how
+ * long that lookup took (it runs before the request, so it is reported as DNS time).
+ */
+type PinnedHost = { hostname: string; ip: string; lookupMs?: number };
 
 function bareHostname(hostname: string): string {
   return hostname.toLowerCase().replace(/^\[(.*)\]$/, "$1");
 }
 
-function pinnedHostFor(url: string, resolvedIp: string): PinnedHost {
-  return { hostname: bareHostname(new URL(url).hostname), ip: resolvedIp };
+function pinnedHostFor(url: string, resolvedIp: string, lookupMs: number): PinnedHost {
+  return { hostname: bareHostname(new URL(url).hostname), ip: resolvedIp, lookupMs };
 }
 
 type ConnectFn = buildConnector.connector;
@@ -105,7 +108,7 @@ export function createInstrumentedConnect(timings: PhaseTimings, pinned?: Pinned
     // The pinned IP only belongs to the monitor's own host; redirects to other
     // hosts must be resolved and validated on their own.
     if (pinned && hostname === pinned.hostname) {
-      timings.dnsMs = 0;
+      timings.dnsMs = pinned.lookupMs ?? 0;
       connectToIp(pinned.ip);
     } else if (isIP(hostname)) {
       timings.dnsMs = 0;
@@ -416,7 +419,9 @@ async function runCheckHttp(
   let timings: PhaseTimings = {};
   let finalAttempt = 1;
 
+  const lookupStart = performance.now();
   const urlCheck = await checkUrlAllowed(m.url);
+  const lookupMs = Math.round(performance.now() - lookupStart);
   if (!urlCheck.allowed) {
     message = urlCheck.reason;
   } else {
@@ -429,7 +434,7 @@ async function runCheckHttp(
       statusCode = undefined;
       message = undefined;
       timings = {};
-      const agent = createInstrumentedAgent(timings, pinnedHostFor(m.url, urlCheck.resolvedHost));
+      const agent = createInstrumentedAgent(timings, pinnedHostFor(m.url, urlCheck.resolvedHost, lookupMs));
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -492,7 +497,9 @@ async function runCheckKeyword(
   let timings: PhaseTimings = {};
   let finalAttempt = 1;
 
+  const lookupStart = performance.now();
   const urlCheck = await checkUrlAllowed(m.url);
+  const lookupMs = Math.round(performance.now() - lookupStart);
   if (!urlCheck.allowed) {
     message = urlCheck.reason;
   } else {
@@ -505,7 +512,7 @@ async function runCheckKeyword(
       statusCode = undefined;
       message = undefined;
       timings = {};
-      const agent = createInstrumentedAgent(timings, pinnedHostFor(m.url, urlCheck.resolvedHost));
+      const agent = createInstrumentedAgent(timings, pinnedHostFor(m.url, urlCheck.resolvedHost, lookupMs));
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), timeoutMs);

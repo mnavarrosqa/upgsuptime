@@ -558,6 +558,17 @@ describe("createInstrumentedConnect", () => {
     expect(timings.dnsMs).toBe(0);
   });
 
+  it("reports the pre-request lookup as DNS time for the pinned host", async () => {
+    const timings: PhaseTimings = {};
+    const connect = createInstrumentedConnect(timings, { ...pinned, lookupMs: 12 });
+
+    await new Promise((resolve) =>
+      connect({ hostname: "example.com", host: "example.com", protocol: "https:", port: "443" }, () => resolve(null)),
+    );
+
+    expect(timings.dnsMs).toBe(12);
+  });
+
   it("resolves a redirect target on another host instead of reusing the pinned IP", async () => {
     mocks.dnsLookup.mockResolvedValue([{ address: "151.101.1.1", family: 4 }]);
 

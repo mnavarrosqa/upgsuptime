@@ -50,6 +50,12 @@
   --status-warn: oklch(0.65 0.14 75);
   --status-warn-fg: oklch(0.22 0.04 75);
   --status-warn-soft: oklch(0.65 0.14 75 / 0.12);
+  /* Request timing phases (categorical, validated for CVD separation in this order) */
+  --timing-dns: #2a78d6;
+  --timing-connect: #eb6834;
+  --timing-tls: #1baf7a;
+  --timing-server: #eda100;
+  --timing-download: #e87ba4;
 }
 
 .dark {
@@ -91,6 +97,11 @@
   --status-warn: oklch(0.82 0.14 85);
   --status-warn-fg: oklch(0.22 0.05 85);
   --status-warn-soft: oklch(0.82 0.14 85 / 0.14);
+  --timing-dns: #3987e5;
+  --timing-connect: #d95926;
+  --timing-tls: #199e70;
+  --timing-server: #c98500;
+  --timing-download: #d55181;
 }
 
 @theme inline {
