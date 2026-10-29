@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useActivity } from "@/components/activity-context";
@@ -13,6 +13,7 @@ import {
   statusSoftWarnClass,
 } from "@/lib/monitor-ui";
 import type { ActivityItem } from "@/lib/activity-item";
+import { DEFAULT_TIME_ZONE } from "@/i18n/config";
 import {
   Activity,
   AlertTriangle,
@@ -25,7 +26,16 @@ import {
 
 export type { ActivityItem };
 
-function formatFullTimestamp(iso: string, locale: string): string {
+function subscribeNoop() {
+  return () => {};
+}
+
+/** True after hydration; until then render in UTC so server and client agree. */
+function useHydrated(): boolean {
+  return useSyncExternalStore(subscribeNoop, () => true, () => false);
+}
+
+function formatFullTimestamp(iso: string, locale: string, timeZone: string | undefined): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return iso;
   return new Intl.DateTimeFormat(locale, {
@@ -36,23 +46,38 @@ function formatFullTimestamp(iso: string, locale: string): string {
     hour: "numeric",
     minute: "2-digit",
     second: "2-digit",
-    timeZone: "UTC",
+    timeZone,
     timeZoneName: "short",
   }).format(d);
 }
 
-function formatRelativeTime(iso: string): string {
-  const now = Date.now();
-  const then = new Date(iso).getTime();
-  if (Number.isNaN(then)) return iso;
-  const diffSec = Math.max(0, Math.floor((now - then) / 1000));
-  if (diffSec < 60) return "<1m";
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin}m`;
-  const diffHours = Math.floor(diffMin / 60);
-  if (diffHours < 24) return `${diffHours}h`;
-  const diffDays = Math.floor(diffHours / 24);
-  return `${diffDays}d`;
+/** Calendar day key (YYYY-MM-DD) of an instant in the given time zone. */
+function dayKey(date: Date, timeZone: string | undefined): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone, year: "numeric", month: "2-digit", day: "2-digit" }).format(date);
+}
+
+type DayGroup = { key: string; label: string; items: ActivityItem[] };
+
+/** Groups newest-first items by calendar day, labelled "today", "yesterday" or the date. */
+function groupByDay(items: ActivityItem[], locale: string, timeZone: string | undefined, now: Date): DayGroup[] {
+  const todayKey = dayKey(now, timeZone);
+  const yesterdayKey = dayKey(new Date(now.getTime() - 24 * 60 * 60 * 1000), timeZone);
+  const relative = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+  const dateLabel = new Intl.DateTimeFormat(locale, { weekday: "long", day: "numeric", month: "long", timeZone });
+  const groups: DayGroup[] = [];
+  for (const item of items) {
+    const at = new Date(item.at);
+    const key = dayKey(at, timeZone);
+    let group = groups.at(-1);
+    if (!group || group.key !== key) {
+      const label =
+        key === todayKey ? relative.format(0, "day") : key === yesterdayKey ? relative.format(-1, "day") : dateLabel.format(at);
+      group = { key, label: label.charAt(0).toLocaleUpperCase(locale) + label.slice(1), items: [] };
+      groups.push(group);
+    }
+    group.items.push(item);
+  }
+  return groups;
 }
 
 type ActivityPageClientProps = {
@@ -76,6 +101,11 @@ export function ActivityPageClient({
   const [dismissingId, setDismissingId] = useState<string | null>(null);
   const t = useTranslations("activity");
   const locale = useLocale();
+  const hydrated = useHydrated();
+  // Viewer's own time zone once hydrated; UTC on the server.
+  const timeZone = hydrated ? undefined : DEFAULT_TIME_ZONE;
+  const [now] = useState(() => new Date());
+  const clock = new Intl.DateTimeFormat(locale, { hour: "2-digit", minute: "2-digit", timeZone });
 
   useEffect(() => {
     markAllRead();
@@ -158,95 +188,71 @@ export function ActivityPageClient({
             </p>
           </div>
         ) : (
-          <div className="space-y-2">
-            {items.map((item, idx) => {
-              const key =
-                item.kind === "status" ? `s-${item.id}` : `d-${item.id}`;
-              const isLast = idx === items.length - 1;
+          <div className="space-y-8">
+            {groupByDay(items, locale, timeZone, now).map((group) => (
+              <section key={group.key} aria-labelledby={`activity-day-${group.key}`}>
+                <h2
+                  id={`activity-day-${group.key}`}
+                  className="text-xs font-medium uppercase tracking-wider text-text-muted"
+                >
+                  {group.label}
+                </h2>
+                <ul className="mt-2 divide-y divide-border/70 border-y border-border/70">
+                  {group.items.map((item) => {
+                    const key = item.kind === "status" ? `s-${item.id}` : `d-${item.id}`;
+                    const common = {
+                      monitorName: item.name,
+                      monitorHref: `/monitors/${item.monitorId}`,
+                      time: clock.format(new Date(item.at)),
+                      fullTime: formatFullTimestamp(item.at, locale, timeZone),
+                      dismissing: dismissingId === item.id,
+                      onDismiss: () => handleDismiss(item),
+                      dismissLabel: t("dismissAriaLabel"),
+                    };
 
-              if (item.kind === "degradation") {
-                const ratio =
-                  item.baselineP75Ms > 0
-                    ? (item.recentAvgMs / item.baselineP75Ms).toFixed(1)
-                    : "—";
-                return (
-                  <ActivityCard
-                    key={key}
-                    icon={
-                      <div
-                        className={`flex size-9 items-center justify-center rounded-full ${statusSoftWarnClass}`}
-                        aria-hidden
-                      >
-                        <AlertTriangle className="size-4" strokeWidth={2.25} />
-                      </div>
-                    }
-                    badge={
-                      <span
-                        className={`inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold leading-none ${statusSoftWarnClass}`}
-                      >
-                        {t("degradationBadge")}
-                      </span>
-                    }
-                    monitorName={item.name}
-                    monitorHref={`/monitors/${item.monitorId}`}
-                    detail={t("degradationDetail", {
-                      recent: item.recentAvgMs,
-                      baseline: item.baselineP75Ms,
-                      ratio,
-                    })}
-                    relativeTime={formatRelativeTime(item.at)}
-                    fullTime={formatFullTimestamp(item.at, locale)}
-                    dismissing={dismissingId === item.id}
-                    onDismiss={() => handleDismiss(item)}
-                    dismissLabel={t("dismissAriaLabel")}
-                    isLast={isLast}
-                  />
-                );
-              }
-
-              const isDown = !item.recovered;
-              return (
-                <ActivityCard
-                  key={key}
-                  icon={
-                    <div
-                      className={cn(
-                        "flex size-9 items-center justify-center rounded-full",
-                        isDown ? statusSoftDownClass : statusSoftUpClass
-                      )}
-                      aria-hidden
-                    >
-                      {isDown ? (
-                        <ArrowDownCircle
-                          className="size-4"
-                          strokeWidth={2.25}
+                    if (item.kind === "degradation") {
+                      const ratio =
+                        item.baselineP75Ms > 0 ? (item.recentAvgMs / item.baselineP75Ms).toFixed(1) : "—";
+                      return (
+                        <ActivityRow
+                          key={key}
+                          {...common}
+                          icon={<AlertTriangle className="size-4 text-status-warn" strokeWidth={2.25} aria-hidden />}
+                          badge={
+                            <span className={`${badgeClass} ${statusSoftWarnClass}`}>{t("degradationBadge")}</span>
+                          }
+                          detail={t("degradationDetail", {
+                            recent: item.recentAvgMs,
+                            baseline: item.baselineP75Ms,
+                            ratio,
+                          })}
                         />
-                      ) : (
-                        <CheckCircle2 className="size-4" strokeWidth={2.25} />
-                      )}
-                    </div>
-                  }
-                  badge={
-                    <span
-                      className={cn(
-                        "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold leading-none",
-                        isDown ? statusSoftDownClass : statusSoftUpClass
-                      )}
-                    >
-                      {isDown ? t("wentDown") : t("recovered")}
-                    </span>
-                  }
-                  monitorName={item.name}
-                  monitorHref={`/monitors/${item.monitorId}`}
-                  relativeTime={formatRelativeTime(item.at)}
-                  fullTime={formatFullTimestamp(item.at, locale)}
-                  dismissing={dismissingId === item.id}
-                  onDismiss={() => handleDismiss(item)}
-                  dismissLabel={t("dismissAriaLabel")}
-                  isLast={isLast}
-                />
-              );
-            })}
+                      );
+                    }
+
+                    const isDown = !item.recovered;
+                    return (
+                      <ActivityRow
+                        key={key}
+                        {...common}
+                        icon={
+                          isDown ? (
+                            <ArrowDownCircle className="size-4 text-status-down" strokeWidth={2.25} aria-hidden />
+                          ) : (
+                            <CheckCircle2 className="size-4 text-status-up" strokeWidth={2.25} aria-hidden />
+                          )
+                        }
+                        badge={
+                          <span className={cn(badgeClass, isDown ? statusSoftDownClass : statusSoftUpClass)}>
+                            {isDown ? t("wentDown") : t("recovered")}
+                          </span>
+                        }
+                      />
+                    );
+                  })}
+                </ul>
+              </section>
+            ))}
           </div>
         )}
 
@@ -299,85 +305,61 @@ export function ActivityPageClient({
   );
 }
 
-function ActivityCard({
+const badgeClass = "inline-flex items-center rounded-md px-1.5 py-0.5 text-[11px] font-semibold leading-none";
+
+function ActivityRow({
   icon,
   badge,
   monitorName,
   monitorHref,
   detail,
-  relativeTime,
+  time,
   fullTime,
   dismissing,
   onDismiss,
   dismissLabel,
-  isLast,
 }: {
   icon: React.ReactNode;
   badge: React.ReactNode;
   monitorName: string;
   monitorHref: string;
   detail?: string;
-  relativeTime: string;
+  time: string;
   fullTime: string;
   dismissing: boolean;
   onDismiss: () => void;
   dismissLabel: string;
-  isLast: boolean;
 }) {
   return (
-    <div className="group relative flex gap-3 sm:gap-4">
-      {/* Timeline connector */}
-      <div className="flex flex-col items-center">
-        {icon}
-        {!isLast && (
-          <div className="mt-1 w-px flex-1 bg-border" aria-hidden />
-        )}
-      </div>
-
-      {/* Card content */}
-      <div className="min-w-0 flex-1 pb-5">
-        <div className="rounded-lg border border-border bg-bg-card p-3 shadow-sm transition-colors sm:p-4">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                {badge}
-                <Link
-                  href={monitorHref}
-                  className="text-sm font-medium text-text-primary hover:underline"
-                >
-                  {monitorName}
-                </Link>
-                <span
-                  className="text-xs tabular-nums text-text-muted/70"
-                  title={fullTime}
-                >
-                  {relativeTime}
-                </span>
-              </div>
-              {detail && (
-                <p className="mt-1.5 text-[13px] leading-snug text-text-muted">
-                  {detail}
-                </p>
-              )}
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon-sm"
-              className="shrink-0 text-text-muted opacity-100 transition-opacity hover:bg-transparent hover:text-text-primary sm:opacity-0 sm:group-hover:opacity-100 sm:data-[state=open]:opacity-100"
-              disabled={dismissing}
-              aria-label={dismissLabel}
-              onClick={onDismiss}
-            >
-              {dismissing ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              ) : (
-                <X className="size-3.5" aria-hidden />
-              )}
-            </Button>
-          </div>
+    <li className="group flex items-start gap-3 py-3">
+      <span className="mt-0.5 shrink-0">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          <Link href={monitorHref} className="text-sm font-medium text-text-primary hover:underline">
+            {monitorName}
+          </Link>
+          {badge}
         </div>
+        {detail && <p className="mt-1 text-[13px] leading-snug text-text-muted">{detail}</p>}
       </div>
-    </div>
+      <time
+        className="mt-0.5 shrink-0 text-xs tabular-nums text-text-muted"
+        title={fullTime}
+        suppressHydrationWarning
+      >
+        {time}
+      </time>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        className="-my-1 shrink-0 text-text-muted opacity-100 transition-opacity hover:bg-transparent hover:text-text-primary sm:opacity-0 sm:group-hover:opacity-100 sm:focus-visible:opacity-100"
+        disabled={dismissing}
+        aria-label={`${dismissLabel}: ${monitorName}`}
+        onClick={onDismiss}
+      >
+        {dismissing ? <Loader2 className="size-3.5 animate-spin" aria-hidden /> : <X className="size-3.5" aria-hidden />}
+      </Button>
+    </li>
   );
 }
