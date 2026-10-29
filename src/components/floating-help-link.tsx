@@ -7,7 +7,28 @@ import { CircleHelp, X } from "lucide-react";
 import { useTranslations } from "next-intl";
 
 const BUBBLE_AUTO_HIDE_MS = 8000;
-const DISMISS_STORAGE_KEY = "upg-floating-help-dismissed";
+/** Contextual tips already shown in this browser; each one appears only once. */
+const SEEN_STORAGE_KEY = "upg-floating-help-seen";
+/** Older builds hid every tip for the session once one was dismissed. */
+const LEGACY_DISMISS_KEY = "upg-floating-help-dismissed";
+
+function readSeen(): string[] {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(SEEN_STORAGE_KEY) ?? "[]") as unknown;
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function markSeen(key: string): void {
+  try {
+    const seen = readSeen();
+    if (!seen.includes(key)) window.localStorage.setItem(SEEN_STORAGE_KEY, JSON.stringify([...seen, key]));
+  } catch {
+    // Storage unavailable (private mode): the tip may show again, which is harmless.
+  }
+}
 
 function getBubbleKey(pathname: string): string {
   if (pathname.startsWith("/dashboard") || pathname.startsWith("/monitors")) {
@@ -28,10 +49,15 @@ export function FloatingHelpLink() {
   useEffect(() => {
     if (pathname.startsWith("/help")) return;
 
-    const dismissed =
-      window.sessionStorage.getItem(DISMISS_STORAGE_KEY) === "true";
-
-    if (dismissed) return;
+    let dismissedForSession = false;
+    try {
+      dismissedForSession = window.sessionStorage.getItem(LEGACY_DISMISS_KEY) === "true";
+    } catch {
+      // ignore
+    }
+    if (dismissedForSession || readSeen().includes(bubbleKey)) return;
+    // Counts as seen once shown, so navigating around does not bring it back.
+    markSeen(bubbleKey);
     const showTimeout = window.setTimeout(() => {
       setBubbleVisible(true);
     }, 0);
@@ -43,12 +69,12 @@ export function FloatingHelpLink() {
       window.clearTimeout(showTimeout);
       window.clearTimeout(hideTimeout);
     };
-  }, [pathname]);
+  }, [pathname, bubbleKey]);
 
   if (pathname.startsWith("/help")) return null;
 
   function dismissBubble() {
-    window.sessionStorage.setItem(DISMISS_STORAGE_KEY, "true");
+    markSeen(bubbleKey);
     setBubbleVisible(false);
   }
 
