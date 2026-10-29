@@ -13,6 +13,7 @@ import { AccountOnboardingSection } from "@/components/account-onboarding-sectio
 import { AccountDataPortability } from "@/components/account-data-portability";
 import { ApiAccessSection } from "@/components/api-access-section";
 import { AppSessionsSection } from "@/components/app-sessions-section";
+import { NotificationSettings } from "@/components/notification-settings";
 import { AccountTabs } from "@/components/account-tabs";
 import { getTranslations } from "next-intl/server";
 
@@ -180,6 +181,7 @@ export default async function AccountPage() {
             <AppSessionsSection />
           </div>
         }
+        notifications={<NotificationSettings />}
         guide={
           <AccountOnboardingSection
             onboardingCompleted={userRow?.onboardingCompleted}

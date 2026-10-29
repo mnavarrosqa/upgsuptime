@@ -157,6 +157,20 @@ export const pushDevice = sqliteTable("push_device", {
   lastSeenAt: integer("last_seen_at", { mode: "timestamp" }).notNull(),
 });
 
+/** Browser / installed-PWA push subscriptions (Web Push API), one per browser profile. */
+export const webPushSubscription = sqliteTable("web_push_subscription", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  userAgent: text("user_agent"),
+  createdAt: integer("created_at", { mode: "timestamp" }).notNull(),
+  lastSeenAt: integer("last_seen_at", { mode: "timestamp" }).notNull(),
+});
+
 export type User = typeof user.$inferSelect;
 export type NewUser = typeof user.$inferInsert;
 export type Monitor = typeof monitor.$inferSelect;
@@ -171,3 +185,4 @@ export type ApiKey = typeof apiKey.$inferSelect;
 export type NewApiKey = typeof apiKey.$inferInsert;
 export type MobileSession = typeof mobileSession.$inferSelect;
 export type PushDevice = typeof pushDevice.$inferSelect;
+export type WebPushSubscription = typeof webPushSubscription.$inferSelect;

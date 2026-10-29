@@ -6,9 +6,11 @@ import type { AppLocale } from "@/i18n/config";
 import { getEmailMessages } from "@/lib/email-i18n";
 import type { RunCheckResult } from "@/lib/run-check";
 import { uptimeAlertSubject } from "@/lib/notify";
+import { getWebPushPublicKey, sendWebPushToUser } from "@/lib/web-push";
 
 /**
- * Push notifications through Firebase Cloud Messaging (HTTP v1 API).
+ * Push notifications through Firebase Cloud Messaging (HTTP v1 API) for the
+ * native app; browser notifications go through `@/lib/web-push`.
  * Configure with FCM_SERVICE_ACCOUNT_JSON (the service account key file contents);
  * without it every send is a no-op.
  */
@@ -151,27 +153,43 @@ export async function sendPushToUser(
   };
 }
 
-/** Push for a confirmed down/recovery transition, worded like the alert email. */
+/**
+ * Push for a confirmed down/recovery transition, worded like the alert email:
+ * to the Android app via FCM and to subscribed browsers/PWAs via Web Push.
+ */
 export async function sendMonitorStatusPush(
   m: Pick<Monitor, "id" | "userId" | "name" | "type">,
   newStatus: boolean,
   result: Pick<RunCheckResult, "message" | "statusCode">,
   locale: AppLocale,
 ): Promise<void> {
-  if (!isPushConfigured()) return;
+  const fcm = isPushConfigured();
+  const web = getWebPushPublicKey() !== null;
+  if (!fcm && !web) return;
+
   const messages = await getEmailMessages(locale);
+  const title = uptimeAlertSubject(m, newStatus, messages);
   const body = newStatus
     ? messages.statusUp
     : result.message ?? (result.statusCode != null ? `HTTP ${result.statusCode}` : messages.statusDown);
-  await sendPushToUser(m.userId, {
-    title: uptimeAlertSubject(m, newStatus, messages),
-    body,
-    data: {
-      type: "monitor_status",
-      monitorId: m.id,
-      status: newStatus ? "up" : "down",
-    },
-  });
+
+  const sends: Promise<unknown>[] = [];
+  if (fcm) {
+    sends.push(
+      sendPushToUser(m.userId, {
+        title,
+        body,
+        data: { type: "monitor_status", monitorId: m.id, status: newStatus ? "up" : "down" },
+      }),
+    );
+  }
+  if (web) {
+    sends.push(sendWebPushToUser(m.userId, { title, body, url: `/monitors/${m.id}`, tag: `monitor-${m.id}` }));
+  }
+  const outcomes = await Promise.allSettled(sends);
+  for (const outcome of outcomes) {
+    if (outcome.status === "rejected") console.error("[push] alert delivery failed", outcome.reason);
+  }
 }
 
 /** Test hook: forget the cached OAuth token. */

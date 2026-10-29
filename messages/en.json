@@ -318,7 +318,8 @@
     "appSessionsConfirmAllBody": "Every device signed in to the app will need to sign in again and stop receiving push alerts.",
     "appSessionsSignedOut": "Device signed out",
     "appSessionsAllSignedOut": "All devices signed out",
-    "appSessionsPasswordNote": "Changing your password also signs out every device."
+    "appSessionsPasswordNote": "Changing your password also signs out every device.",
+    "tabNotifications": "Notifications"
   },
   "errors": {
     "fallback": "Request failed",
@@ -1352,5 +1353,32 @@
     "skipConfirmCancel": "Cancel",
     "skipConfirmSkip": "Skip",
     "welcomeHeading": "Welcome to UPG Monitor"
+  },
+  "notifications": {
+    "title": "Push notifications",
+    "subtitle": "Get an alert on this device when a monitor goes down or recovers, even with the app closed.",
+    "onTitle": "On for this browser",
+    "onBody": "You'll get a notification here when any of your monitors goes down or comes back.",
+    "offTitle": "Off for this browser",
+    "offBody": "Turn them on to hear about outages without keeping the app open.",
+    "enable": "Turn on notifications",
+    "disable": "Turn off",
+    "sendTest": "Send test",
+    "enabledToast": "Notifications are on for this browser",
+    "disabledToast": "Notifications turned off for this browser",
+    "enableFailed": "Couldn't turn on notifications. Try again.",
+    "testSent": "Test notification sent",
+    "testFailed": "Couldn't send the test notification",
+    "testTitle": "UPG Monitor notifications work",
+    "testBody": "This is how you'll hear about outages and recoveries.",
+    "serverDisabledTitle": "Not set up on this server",
+    "serverDisabledBody": "An administrator needs to set VAPID_PUBLIC_KEY and VAPID_PRIVATE_KEY to enable push notifications.",
+    "unsupportedTitle": "Not available in this browser",
+    "unsupportedBody": "This browser can't receive push notifications from the app. Try a recent Chrome, Edge, Firefox or Safari, or install the app.",
+    "iosInstallTitle": "Install the app first",
+    "iosInstallBody": "On iPhone and iPad, notifications work once the app is on your home screen: tap Share, then Add to Home Screen, and open it from there.",
+    "deniedTitle": "Notifications are blocked",
+    "deniedBody": "This browser is blocking notifications from this site. Allow them in the site settings (the icon next to the address), then reload the page.",
+    "perBrowserNote": "Each browser and device is set up separately. Email alerts are configured per monitor."
   }
 }
