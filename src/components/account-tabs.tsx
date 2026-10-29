@@ -10,9 +10,10 @@ import {
   Lock,
   BookOpen,
   Code2,
+  Bell,
 } from "lucide-react";
 
-const TAB_VALUES = ["profile", "security", "status", "guide", "developer"] as const;
+const TAB_VALUES = ["profile", "security", "notifications", "status", "guide", "developer"] as const;
 type TabValue = (typeof TAB_VALUES)[number];
 
 function isTabValue(v: string): v is TabValue {
@@ -23,6 +24,7 @@ const TAB_ICONS: Record<TabValue, typeof User> = {
   profile: User,
   status: Globe,
   security: Lock,
+  notifications: Bell,
   guide: BookOpen,
   developer: Code2,
 };
@@ -45,6 +47,7 @@ const sidebarTriggerClass = cn(
 interface AccountTabsProps {
   profile: ReactNode;
   security: ReactNode;
+  notifications: ReactNode;
   status: ReactNode;
   guide: ReactNode;
   developer: ReactNode;
@@ -54,6 +57,7 @@ interface AccountTabsProps {
 export function AccountTabs({
   profile,
   security,
+  notifications,
   status,
   guide,
   developer,
@@ -69,6 +73,8 @@ export function AccountTabs({
         setTab("guide");
       } else if (hash === "status") {
         setTab("status");
+      } else if (hash === "notifications") {
+        setTab("notifications");
       }
     }, 0);
     return () => window.clearTimeout(id);
@@ -78,6 +84,7 @@ export function AccountTabs({
     { value: "profile", labelKey: "tabProfile" },
     { value: "status", labelKey: "tabStatusPage" },
     { value: "security", labelKey: "tabSecurity" },
+    { value: "notifications", labelKey: "tabNotifications" },
     { value: "guide", labelKey: "tabGuide" },
     { value: "developer", labelKey: "tabDeveloper" },
   ];
@@ -114,6 +121,7 @@ export function AccountTabs({
           <TabPanels
             profile={profile}
             security={security}
+            notifications={notifications}
             status={status}
             guide={guide}
             developer={developer}
@@ -148,6 +156,7 @@ export function AccountTabs({
           <TabPanels
             profile={profile}
             security={security}
+            notifications={notifications}
             status={status}
             guide={guide}
             developer={developer}
@@ -161,6 +170,7 @@ export function AccountTabs({
 function TabPanels({
   profile,
   security,
+  notifications,
   status,
   guide,
   developer,
@@ -173,6 +183,9 @@ function TabPanels({
       </Tabs.Content>
       <Tabs.Content value="security" className={panelClass}>
         {security}
+      </Tabs.Content>
+      <Tabs.Content value="notifications" className={panelClass}>
+        {notifications}
       </Tabs.Content>
       <Tabs.Content value="status" className={panelClass}>
         {status}

@@ -318,7 +318,8 @@
     "appSessionsConfirmAllBody": "Todos los dispositivos con la app tendrán que volver a iniciar sesión y dejarán de recibir alertas push.",
     "appSessionsSignedOut": "Sesión del dispositivo cerrada",
     "appSessionsAllSignedOut": "Sesión cerrada en todos los dispositivos",
-    "appSessionsPasswordNote": "Cambiar la contraseña también cierra la sesión en todos los dispositivos."
+    "appSessionsPasswordNote": "Cambiar la contraseña también cierra la sesión en todos los dispositivos.",
+    "tabNotifications": "Notificaciones"
   },
   "errors": {
     "fallback": "Falló la petición",
@@ -1353,5 +1354,32 @@
     "skipConfirmCancel": "Cancelar",
     "skipConfirmSkip": "Saltar",
     "welcomeHeading": "Bienvenido a UPG Monitor"
+  },
+  "notifications": {
+    "title": "Notificaciones push",
+    "subtitle": "Recibe un aviso en este dispositivo cuando un monitor se cae o se recupera, aunque la app esté cerrada.",
+    "onTitle": "Activadas en este navegador",
+    "onBody": "Te avisaremos aquí cuando alguno de tus monitores se caiga o vuelva.",
+    "offTitle": "Desactivadas en este navegador",
+    "offBody": "Actívalas para enterarte de las caídas sin tener la app abierta.",
+    "enable": "Activar notificaciones",
+    "disable": "Desactivar",
+    "sendTest": "Enviar prueba",
+    "enabledToast": "Notificaciones activadas en este navegador",
+    "disabledToast": "Notificaciones desactivadas en este navegador",
+    "enableFailed": "No se pudieron activar las notificaciones. Inténtalo de nuevo.",
+    "testSent": "Notificación de prueba enviada",
+    "testFailed": "No se pudo enviar la notificación de prueba",
+    "testTitle": "Las notificaciones de UPG Monitor funcionan",
+    "testBody": "Así te enterarás de caídas y recuperaciones.",
+    "serverDisabledTitle": "No configuradas en este servidor",
+    "serverDisabledBody": "Un administrador tiene que definir VAPID_PUBLIC_KEY y VAPID_PRIVATE_KEY para habilitar las notificaciones push.",
+    "unsupportedTitle": "No disponibles en este navegador",
+    "unsupportedBody": "Este navegador no puede recibir notificaciones push de la app. Prueba con Chrome, Edge, Firefox o Safari actualizados, o instala la app.",
+    "iosInstallTitle": "Primero instala la app",
+    "iosInstallBody": "En iPhone y iPad las notificaciones funcionan con la app en la pantalla de inicio: toca Compartir, luego Agregar a inicio, y ábrela desde ahí.",
+    "deniedTitle": "Notificaciones bloqueadas",
+    "deniedBody": "Este navegador bloquea las notificaciones de este sitio. Permítelas en la configuración del sitio (el icono junto a la dirección) y recarga la página.",
+    "perBrowserNote": "Cada navegador y dispositivo se configura por separado. Las alertas por correo se configuran en cada monitor."
   }
 }

@@ -2,14 +2,15 @@ import { generateKeyPairSync } from "crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestDb, type TestDb } from "@/test/sqlite-test-db";
 
-const holder = vi.hoisted(() => ({ db: null as unknown }));
+const holder = vi.hoisted(() => ({ db: null as unknown, sendWebPush: vi.fn() }));
+vi.mock("web-push", () => ({ default: { sendNotification: holder.sendWebPush } }));
 vi.mock("@/db", () => ({
   get db() {
     return holder.db;
   },
 }));
 
-import { pushDevice, user } from "@/db/schema";
+import { pushDevice, user, webPushSubscription } from "@/db/schema";
 import { ANDROID_ALERT_CHANNEL_ID, readServiceAccount, resetPushAuthCache, sendMonitorStatusPush, sendPushToUser } from "./push";
 
 const { privateKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
@@ -175,5 +176,32 @@ describe("sendMonitorStatusPush", () => {
     const message = JSON.parse(sendCalls()[0][1].body).message;
     expect(message.notification.title).toContain("Shop");
     expect(message.data.status).toBe("up");
+  });
+
+  it("also notifies subscribed browsers via Web Push, even without FCM", async () => {
+    vi.stubEnv("FCM_SERVICE_ACCOUNT_JSON", "");
+    vi.stubEnv("VAPID_PUBLIC_KEY", "BPublicKey");
+    vi.stubEnv("VAPID_PRIVATE_KEY", "privateKey");
+    holder.sendWebPush.mockReset().mockResolvedValue({ statusCode: 201 });
+    const now = new Date();
+    await db.insert(webPushSubscription).values({
+      id: "w1",
+      userId: "user-1",
+      endpoint: "https://fcm.googleapis.com/fcm/send/abc",
+      p256dh: "p",
+      auth: "a",
+      createdAt: now,
+      lastSeenAt: now,
+    });
+
+    await sendMonitorStatusPush({ id: "m1", userId: "user-1", name: "Tienda", type: "http" }, false, { message: "Service Unavailable" }, "es");
+
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(JSON.parse(holder.sendWebPush.mock.calls[0][1])).toEqual({
+      title: "[Caído] Tienda — inalcanzable",
+      body: "Service Unavailable",
+      url: "/monitors/m1",
+      tag: "monitor-m1",
+    });
   });
 });
