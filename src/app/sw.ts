@@ -39,34 +39,14 @@ const serwist = new Serwist({
 
 serwist.addEventListeners();
 
-// ─── Push notifications (payload from src/lib/web-push.ts) ────────────────────
-
-type PushPayload = { title?: string; body?: string; url?: string; tag?: string };
+// ─── Notification clicks ───────────────────────────────────────────────────────
+// Alerts are shown by the open app (src/lib/browser-notifications.ts) through
+// this registration; clicking one focuses the app and opens the monitor.
 
 /** Only same-origin paths can be opened from a notification. */
 function notificationPath(url: unknown): string {
   return typeof url === "string" && url.startsWith("/") && !url.startsWith("//") ? url : "/dashboard";
 }
-
-self.addEventListener("push", (event) => {
-  let payload: PushPayload = {};
-  try {
-    payload = event.data?.json() ?? {};
-  } catch {
-    payload = { body: event.data?.text() };
-  }
-  event.waitUntil(
-    self.registration.showNotification(payload.title || "UPG Monitor", {
-      body: payload.body,
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      tag: payload.tag,
-      // A newer alert for the same monitor replaces the old one but still alerts.
-      renotify: Boolean(payload.tag),
-      data: { url: notificationPath(payload.url) },
-    } as NotificationOptions),
-  );
-});
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
