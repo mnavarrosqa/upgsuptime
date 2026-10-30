@@ -22,6 +22,10 @@
 # Optional env: OCPUS (A1 only, default 1), MEMORY_GB (A1 only, default 4),
 # RETRY_SECONDS (default 90), DISPLAY_NAME (default upgsuptime / upgsuptime-micro),
 # COMPARTMENT_ID, AD, SUBNET_ID, IMAGE_ID.
+#
+# It refuses to create anything that would go over the Always Free limits (A1: 2 OCPU /
+# 12 GB in total; two E2.1.Micro; 200 GB of boot + block volumes), since a Pay As You
+# Go account is billed for the excess. Only instances in the root compartment count.
 set -euo pipefail
 
 TYPE="${TYPE:-a1}"
@@ -95,6 +99,59 @@ echo "Image:               $IMAGE_ID"
 echo "Shape:               $SHAPE_DESC"
 echo
 
+# ── Stay inside Always Free ──────────────────────────────────────────────────
+# On a Pay As You Go account Oracle bills whatever goes over these, so refuse to
+# create an instance that would. Override only if Oracle changes the limits.
+FREE_A1_OCPUS="${FREE_A1_OCPUS:-2}"
+FREE_A1_MEMORY_GB="${FREE_A1_MEMORY_GB:-12}"
+FREE_MICRO_COUNT="${FREE_MICRO_COUNT:-2}"
+FREE_STORAGE_GB="${FREE_STORAGE_GB:-200}"
+NEW_BOOT_GB=50   # the default boot volume is ~47 GB; count it as 50
+
+sum() { tr -d '[] \n' | tr ',' '\n' | awk '{s+=$1} END {print s+0}'; }
+
+check_free_tier() {
+  local live='"lifecycle-state" != `TERMINATED`'
+  if [ "$TYPE" = a1 ]; then
+    local used_ocpus used_mem
+    used_ocpus="$(oci compute instance list --compartment-id "$COMPARTMENT_ID" --all \
+      --query "data[?shape == '$SHAPE' && $live].\"shape-config\".ocpus" --raw-output | sum)"
+    used_mem="$(oci compute instance list --compartment-id "$COMPARTMENT_ID" --all \
+      --query "data[?shape == '$SHAPE' && $live].\"shape-config\".\"memory-in-gbs\"" --raw-output | sum)"
+    echo "Always Free A1 in use: $used_ocpus/$FREE_A1_OCPUS OCPU, $used_mem/$FREE_A1_MEMORY_GB GB"
+    if awk -v u="$used_ocpus" -v n="$OCPUS" -v f="$FREE_A1_OCPUS" 'BEGIN{exit !(u+n>f)}' \
+      || awk -v u="$used_mem" -v n="$MEMORY_GB" -v f="$FREE_A1_MEMORY_GB" 'BEGIN{exit !(u+n>f)}'; then
+      echo "Refusing: $OCPUS OCPU / $MEMORY_GB GB more would go over the Always Free A1 allowance (and be billed)."
+      exit 1
+    fi
+  else
+    local micros
+    micros="$(oci compute instance list --compartment-id "$COMPARTMENT_ID" --all \
+      --query "length(data[?shape == '$SHAPE' && $live])" --raw-output)"
+    echo "Always Free micro VMs in use: $micros/$FREE_MICRO_COUNT"
+    if [ "${micros:-0}" -ge "$FREE_MICRO_COUNT" ]; then
+      echo "Refusing: a third E2.1.Micro is not Always Free (it would be billed)."
+      exit 1
+    fi
+  fi
+
+  # Boot and block volumes share 200 GB in total.
+  local storage=0 ad gb
+  for ad in $(oci iam availability-domain list --compartment-id "$COMPARTMENT_ID" --query 'data[].name' --raw-output | tr -d '[]",'); do
+    gb="$(oci bv boot-volume list --compartment-id "$COMPARTMENT_ID" --availability-domain "$ad" --all \
+      --query "data[?$live].\"size-in-gbs\"" --raw-output | sum)"
+    storage=$((storage + gb))
+  done
+  gb="$(oci bv volume list --compartment-id "$COMPARTMENT_ID" --all \
+    --query "data[?$live].\"size-in-gbs\"" --raw-output | sum)"
+  storage=$((storage + gb))
+  echo "Always Free storage in use: $storage/$FREE_STORAGE_GB GB (+$NEW_BOOT_GB for this VM)"
+  if [ $((storage + NEW_BOOT_GB)) -gt "$FREE_STORAGE_GB" ]; then
+    echo "Refusing: another boot volume would go over the 200 GB of free storage (and be billed)."
+    exit 1
+  fi
+}
+
 # ── Already there? ───────────────────────────────────────────────────────────
 EXISTING="$(oci compute instance list --compartment-id "$COMPARTMENT_ID" --display-name "$DISPLAY_NAME" \
   --query 'data[?"lifecycle-state" != `TERMINATED`] | [0].id' --raw-output 2>/dev/null || true)"
@@ -102,6 +159,8 @@ if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
   echo "An instance named '$DISPLAY_NAME' already exists: $EXISTING"
   INSTANCE_ID="$EXISTING"
 else
+  check_free_tier
+  echo
   # ── Retry until created ──────────────────────────────────────────────────
   attempt=0
   backoff=0

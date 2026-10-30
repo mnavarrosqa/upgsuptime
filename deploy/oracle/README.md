@@ -186,9 +186,18 @@ copiá de vez en cuando alguno a tu computadora:
   de los límites Always Free y es lo que suele usarse para evitar la recuperación; no se
   puede volver atrás. Detalle en el
   [FAQ del Free Tier](https://www.oracle.com/cloud/free/faq/).
-- **Si pasás a Pay As You Go**, creá un **presupuesto con alerta** (por ejemplo 1 USD)
-  para enterarte si algo empieza a cobrarse:
-  [Budgets](https://docs.oracle.com/en-us/iaas/Content/Billing/Concepts/budgetsoverview.htm).
-  Mantené la instancia dentro de 2 OCPU / 12 GB.
+- **Si pasás a Pay As You Go**, solo se cobra lo que exceda Always Free. Para no
+  pasarte:
+  - Creá un **presupuesto con alerta**: ☰ → *Billing & Cost Management* → *Budgets* →
+    *Create Budget*, monto **1 USD** mensual, con una alerta al **1 %** del gasto real
+    (*Actual Spend*) a tu email. Si algo empieza a cobrarse, te enterás por centavos.
+    [Budgets](https://docs.oracle.com/en-us/iaas/Content/Billing/Concepts/budgetsoverview.htm).
+  - `create-instance.sh` se niega a crear una VM que exceda los límites gratis
+    (A1: 2 OCPU / 12 GB en total; dos E2.1.Micro; 200 GB de discos en total).
+  - Al crear algo a mano en la consola, buscá la etiqueta **"Always Free-eligible"**.
+    No crees *Load Balancers* que no sean el flexible de 10 Mbps, ni IPs públicas
+    reservadas de más, ni backups de disco por encima de 5.
+  - Revisá de vez en cuando *Billing & Cost Management* → *Cost Analysis*: tiene que
+    marcar 0.
 - **Cuenta inactiva:** las cuentas sin uso durante 30 días pueden considerarse
   abandonadas; entrá a la consola de vez en cuando.
