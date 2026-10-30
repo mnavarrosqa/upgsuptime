@@ -4,13 +4,20 @@
 #
 #   curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-instance.sh -o create-instance.sh
 #   bash create-instance.sh ssh-key.key.pub                  # Ampere A1 (ARM), the better VM
-#   TYPE=micro bash create-instance.sh ssh-key.key.pub       # AMD E2.1.Micro, almost always in stock
+#   TYPE=micro bash create-instance.sh ssh-key.key.pub       # AMD E2.1.Micro, usually in stock
+#   TYPE=any bash create-instance.sh ssh-key.key.pub         # alternate both, keep the first that fits
 #
 # TYPE=a1 (default): VM.Standard.A1.Flex, 1 OCPU / 4 GB. Often "Out of capacity", so the
 #   script keeps retrying until Oracle has room.
 # TYPE=micro: VM.Standard.E2.1.Micro, 1/8 OCPU (bursts higher) / 1 GB. Usually created at
 #   once. Enough to run the app; builds are slow and lean on swap (install.sh adds it).
 #   Always Free allows two of these.
+# TYPE=any: alternates A1 and micro attempts (same request rate) and stops at the first
+#   one created.
+#
+# To keep it running for hours, run it on any always-on Linux box with the OCI CLI
+# configured (`oci setup config`), e.g. inside tmux or with nohup; Cloud Shell closes
+# after ~20 minutes without keyboard input.
 #
 # The argument is the PUBLIC key you downloaded when you first tried to create the
 # instance (upload it to Cloud Shell with the gear menu → Upload). With no argument a
@@ -20,8 +27,8 @@
 # "429 TooManyRequests" the wait doubles each time, up to 15 minutes.
 #
 # Optional env: OCPUS (A1 only, default 1), MEMORY_GB (A1 only, default 4),
-# RETRY_SECONDS (default 90), DISPLAY_NAME (default upgsuptime / upgsuptime-micro),
-# COMPARTMENT_ID, AD, SUBNET_ID, IMAGE_ID.
+# RETRY_SECONDS (default 90), COMPARTMENT_ID, SUBNET_ID. Instances are named
+# upgsuptime (A1) and upgsuptime-micro.
 #
 # It refuses to create anything that would go over the Always Free limits (A1: 2 OCPU /
 # 12 GB in total; two E2.1.Micro; 200 GB of boot + block volumes), since a Pay As You
@@ -34,20 +41,28 @@ MEMORY_GB="${MEMORY_GB:-4}"
 RETRY_SECONDS="${RETRY_SECONDS:-90}"
 MAX_BACKOFF_SECONDS=900
 case "$TYPE" in
-  a1)
-    SHAPE=VM.Standard.A1.Flex
-    SHAPE_ARGS=(--shape-config "{\"ocpus\": $OCPUS, \"memoryInGBs\": $MEMORY_GB}")
-    SHAPE_DESC="$SHAPE ($OCPUS OCPU, $MEMORY_GB GB)"
-    DISPLAY_NAME="${DISPLAY_NAME:-upgsuptime}"
-    ;;
-  micro)
-    SHAPE=VM.Standard.E2.1.Micro
-    SHAPE_ARGS=()
-    SHAPE_DESC="$SHAPE (1/8 OCPU, 1 GB)"
-    DISPLAY_NAME="${DISPLAY_NAME:-upgsuptime-micro}"
-    ;;
-  *) echo "TYPE must be a1 or micro"; exit 1 ;;
+  a1|micro) TYPES=("$TYPE") ;;
+  any) TYPES=(a1 micro) ;;
+  *) echo "TYPE must be a1, micro or any"; exit 1 ;;
 esac
+
+# Sets SHAPE, SHAPE_ARGS, SHAPE_DESC and DISPLAY_NAME for one type.
+use_type() {
+  case "$1" in
+    a1)
+      SHAPE=VM.Standard.A1.Flex
+      SHAPE_ARGS=(--shape-config "{\"ocpus\": $OCPUS, \"memoryInGBs\": $MEMORY_GB}")
+      SHAPE_DESC="$SHAPE ($OCPUS OCPU, $MEMORY_GB GB)"
+      DISPLAY_NAME=upgsuptime
+      ;;
+    micro)
+      SHAPE=VM.Standard.E2.1.Micro
+      SHAPE_ARGS=()
+      SHAPE_DESC="$SHAPE (1/8 OCPU, 1 GB)"
+      DISPLAY_NAME=upgsuptime-micro
+      ;;
+  esac
+}
 
 command -v oci >/dev/null || { echo "OCI CLI not found. Run this in OCI Cloud Shell."; exit 1; }
 
@@ -68,17 +83,6 @@ grep -q "PRIVATE KEY" "$PUBKEY" && { echo "$PUBKEY is a PRIVATE key. Pass the .p
 COMPARTMENT_ID="${COMPARTMENT_ID:-${OCI_TENANCY:-$(awk -F= '/^tenancy/{gsub(/ /,"",$2); print $2; exit}' ~/.oci/config 2>/dev/null)}}"
 [ -n "$COMPARTMENT_ID" ] || { echo "Could not find your tenancy OCID; set COMPARTMENT_ID."; exit 1; }
 
-# First availability domain that offers the shape (the micro lives in only one of them).
-if [ -z "${AD:-}" ]; then
-  for ad in $(oci iam availability-domain list --compartment-id "$COMPARTMENT_ID" --query 'data[].name' --raw-output | tr -d '[]",'); do
-    if oci compute shape list --compartment-id "$COMPARTMENT_ID" --availability-domain "$ad" --all \
-        --query "data[?shape=='$SHAPE'] | [0].shape" --raw-output 2>/dev/null | grep -q "$SHAPE"; then
-      AD="$ad"; break
-    fi
-  done
-fi
-[ -n "${AD:-}" ] || { echo "No availability domain offers $SHAPE in this region; set AD."; exit 1; }
-
 SUBNET_ID="${SUBNET_ID:-$(oci network subnet list --compartment-id "$COMPARTMENT_ID" \
   --query 'data[?"prohibit-public-ip-on-vnic" == `false`] | [0].id' --raw-output)}"
 if [ -z "$SUBNET_ID" ] || [ "$SUBNET_ID" = "null" ]; then
@@ -86,18 +90,31 @@ if [ -z "$SUBNET_ID" ] || [ "$SUBNET_ID" = "null" ]; then
   echo "→ 'Create VCN with Internet Connectivity', then run this again."
   exit 1
 fi
+echo "Subnet: $SUBNET_ID"
 
-IMAGE_ID="${IMAGE_ID:-$(oci compute image list --compartment-id "$COMPARTMENT_ID" \
-  --operating-system "Canonical Ubuntu" --operating-system-version "24.04" --shape "$SHAPE" \
-  --sort-by TIMECREATED --sort-order DESC --all \
-  --query 'data[?!contains("display-name", `Minimal`)] | [0].id' --raw-output)}"
-[ -n "$IMAGE_ID" ] && [ "$IMAGE_ID" != "null" ] || { echo "Ubuntu 24.04 image for $SHAPE not found; set IMAGE_ID."; exit 1; }
+ADS="$(oci iam availability-domain list --compartment-id "$COMPARTMENT_ID" --query 'data[].name' --raw-output | tr -d '[]",')"
 
-echo "Availability domain: $AD"
-echo "Subnet:              $SUBNET_ID"
-echo "Image:               $IMAGE_ID"
-echo "Shape:               $SHAPE_DESC"
-echo
+# Per type: the first availability domain that offers the shape (the micro lives in
+# only one of them) and the newest Ubuntu 24.04 image built for it (ARM vs x86).
+declare -A AD_OF IMAGE_OF
+resolve_type() {
+  use_type "$1"
+  local ad image
+  for ad in $ADS; do
+    if oci compute shape list --compartment-id "$COMPARTMENT_ID" --availability-domain "$ad" --all \
+        --query "data[?shape=='$SHAPE'] | [0].shape" --raw-output 2>/dev/null | grep -q "$SHAPE"; then
+      AD_OF[$1]="$ad"; break
+    fi
+  done
+  [ -n "${AD_OF[$1]:-}" ] || { echo "No availability domain offers $SHAPE in this region."; exit 1; }
+  image="$(oci compute image list --compartment-id "$COMPARTMENT_ID" \
+    --operating-system "Canonical Ubuntu" --operating-system-version "24.04" --shape "$SHAPE" \
+    --sort-by TIMECREATED --sort-order DESC --all \
+    --query 'data[?!contains("display-name", `Minimal`)] | [0].id' --raw-output)"
+  [ -n "$image" ] && [ "$image" != "null" ] || { echo "Ubuntu 24.04 image for $SHAPE not found."; exit 1; }
+  IMAGE_OF[$1]="$image"
+  echo "$SHAPE_DESC → ${AD_OF[$1]}, image $image"
+}
 
 # ── Stay inside Always Free ──────────────────────────────────────────────────
 # On a Pay As You Go account Oracle bills whatever goes over these, so refuse to
@@ -110,9 +127,9 @@ NEW_BOOT_GB=50   # the default boot volume is ~47 GB; count it as 50
 
 sum() { tr -d '[] \n' | tr ',' '\n' | awk '{s+=$1} END {print s+0}'; }
 
-check_free_tier() {
+check_free_tier() {  # $1: a1 or micro
   local live='"lifecycle-state" != `TERMINATED`'
-  if [ "$TYPE" = a1 ]; then
+  if [ "$1" = a1 ]; then
     local used_ocpus used_mem
     used_ocpus="$(oci compute instance list --compartment-id "$COMPARTMENT_ID" --all \
       --query "data[?shape == '$SHAPE' && $live].\"shape-config\".ocpus" --raw-output | sum)"
@@ -153,33 +170,47 @@ check_free_tier() {
 }
 
 # ── Already there? ───────────────────────────────────────────────────────────
-EXISTING="$(oci compute instance list --compartment-id "$COMPARTMENT_ID" --display-name "$DISPLAY_NAME" \
-  --query 'data[?"lifecycle-state" != `TERMINATED`] | [0].id' --raw-output 2>/dev/null || true)"
-if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-  echo "An instance named '$DISPLAY_NAME' already exists: $EXISTING"
-  INSTANCE_ID="$EXISTING"
-else
-  check_free_tier
+INSTANCE_ID=""
+for t in "${TYPES[@]}"; do
+  use_type "$t"
+  EXISTING="$(oci compute instance list --compartment-id "$COMPARTMENT_ID" --display-name "$DISPLAY_NAME" \
+    --query 'data[?"lifecycle-state" != `TERMINATED`] | [0].id' --raw-output 2>/dev/null || true)"
+  if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+    echo "An instance named '$DISPLAY_NAME' already exists: $EXISTING"
+    INSTANCE_ID="$EXISTING"
+    break
+  fi
+done
+
+if [ -z "$INSTANCE_ID" ]; then
+  for t in "${TYPES[@]}"; do
+    use_type "$t"
+    check_free_tier "$t"
+    resolve_type "$t"
+  done
   echo
+
   # ── Retry until created ──────────────────────────────────────────────────
   attempt=0
   backoff=0
   while :; do
+    t="${TYPES[attempt % ${#TYPES[@]}]}"
     attempt=$((attempt + 1))
-    printf '[%s] Attempt %d… ' "$(date +%H:%M:%S)" "$attempt"
+    use_type "$t"
+    printf '[%s] Attempt %d (%s)… ' "$(date +%H:%M:%S)" "$attempt" "$t"
     if OUT="$(oci --no-retry compute instance launch \
           --compartment-id "$COMPARTMENT_ID" \
-          --availability-domain "$AD" \
+          --availability-domain "${AD_OF[$t]}" \
           --display-name "$DISPLAY_NAME" \
           --shape "$SHAPE" \
           ${SHAPE_ARGS[@]+"${SHAPE_ARGS[@]}"} \
-          --image-id "$IMAGE_ID" \
+          --image-id "${IMAGE_OF[$t]}" \
           --subnet-id "$SUBNET_ID" \
           --assign-public-ip true \
           --ssh-authorized-keys-file "$PUBKEY" \
           --query 'data.id' --raw-output 2>&1)"; then
       INSTANCE_ID="$OUT"
-      echo "created!"
+      echo "created $SHAPE_DESC!"
       break
     fi
     jitter=$((RANDOM % 20))

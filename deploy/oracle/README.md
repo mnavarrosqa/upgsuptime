@@ -79,6 +79,13 @@ pero compilar es lento (el instalador agrega 4 GB de swap automáticamente).
 TYPE=micro bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub
 ```
 
+**Opción C — las dos alternadas:** intenta A1 y micro por turnos (misma cantidad de
+pedidos) y se queda con la primera que salga.
+
+```bash
+TYPE=any bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub
+```
+
 Las dos pueden convivir (se llaman `upgsuptime` y `upgsuptime-micro`): podés arrancar
 con la micro y, si más adelante sale la A1, mudarte copiando el backup de la base.
 
@@ -87,6 +94,31 @@ Cuando lo logra, muestra la **IP pública**. Si generó una clave nueva, descarg
 
 Cloud Shell se cierra tras ~20 minutos sin que toques el teclado; si pasa, volvé a
 correr el comando (no duplica instancias: si ya existe, solo muestra su IP).
+
+#### Dejarlo reintentando horas o días en otro servidor
+
+Si la región no tiene capacidad por un buen rato, corré el script en cualquier Linux
+que esté siempre prendido (un VPS, una Raspberry, tu servidor actual):
+
+1. Instalá la CLI de Oracle:
+   `bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults`
+   y abrí una terminal nueva.
+2. `oci setup config`. Te pide:
+   - **User OCID:** consola → ícono de perfil → *My profile* → copiar *OCID*.
+   - **Tenancy OCID:** ícono de perfil → *Tenancy* → copiar *OCID*.
+   - **Region:** la tuya (por ejemplo `sa-santiago-1`).
+   - Generar una API key nueva: **Y**, el resto con Enter.
+3. Subí la clave pública que generó: *My profile* → *API keys* → *Add API key* →
+   *Paste a public key* → pegá el contenido de `~/.oci/oci_api_key_public.pem`.
+4. Copiá tu `ssh-key-….key.pub` a ese servidor y lanzalo en segundo plano:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-instance.sh -o create-instance.sh
+   TYPE=any nohup bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub > create-instance.log 2>&1 &
+   tail -f create-instance.log     # Ctrl+C deja de mirar; el script sigue
+   ```
+
+   Sigue aunque cierres la sesión SSH. Para pararlo: `pkill -f create-instance.sh`.
 
 ## 3. Abrir los puertos 80 y 443 en Oracle
 
