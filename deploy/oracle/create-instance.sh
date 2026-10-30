@@ -1,12 +1,16 @@
 #!/usr/bin/env bash
-# Keeps trying to create the Always Free Ampere A1 VM until Oracle has capacity
-# ("Out of capacity for shape VM.Standard.A1.Flex" is common in busy regions).
+# Creates the Always Free VM for UPG Monitor from OCI Cloud Shell (console, top bar,
+# ">_" icon), where the OCI CLI is already configured.
 #
-# Easiest: run it in OCI Cloud Shell (console, top bar, ">_" icon), where the OCI CLI
-# is already configured:
+#   curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-instance.sh -o create-instance.sh
+#   bash create-instance.sh ssh-key.key.pub                  # Ampere A1 (ARM), the better VM
+#   TYPE=micro bash create-instance.sh ssh-key.key.pub       # AMD E2.1.Micro, almost always in stock
 #
-#   curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-a1-instance.sh -o create-a1-instance.sh
-#   bash create-a1-instance.sh ssh-key.key.pub
+# TYPE=a1 (default): VM.Standard.A1.Flex, 1 OCPU / 4 GB. Often "Out of capacity", so the
+#   script keeps retrying until Oracle has room.
+# TYPE=micro: VM.Standard.E2.1.Micro, 1/8 OCPU (bursts higher) / 1 GB. Usually created at
+#   once. Enough to run the app; builds are slow and lean on swap (install.sh adds it).
+#   Always Free allows two of these.
 #
 # The argument is the PUBLIC key you downloaded when you first tried to create the
 # instance (upload it to Cloud Shell with the gear menu → Upload). With no argument a
@@ -15,16 +19,31 @@
 # Gentle on the API: one launch request every RETRY_SECONDS (+ random jitter), and on
 # "429 TooManyRequests" the wait doubles each time, up to 15 minutes.
 #
-# Optional env: OCPUS (default 1), MEMORY_GB (default 4), RETRY_SECONDS (default 90),
-# DISPLAY_NAME (default upgsuptime), COMPARTMENT_ID, SUBNET_ID, IMAGE_ID.
+# Optional env: OCPUS (A1 only, default 1), MEMORY_GB (A1 only, default 4),
+# RETRY_SECONDS (default 90), DISPLAY_NAME (default upgsuptime / upgsuptime-micro),
+# COMPARTMENT_ID, AD, SUBNET_ID, IMAGE_ID.
 set -euo pipefail
 
+TYPE="${TYPE:-a1}"
 OCPUS="${OCPUS:-1}"
 MEMORY_GB="${MEMORY_GB:-4}"
 RETRY_SECONDS="${RETRY_SECONDS:-90}"
 MAX_BACKOFF_SECONDS=900
-DISPLAY_NAME="${DISPLAY_NAME:-upgsuptime}"
-SHAPE=VM.Standard.A1.Flex
+case "$TYPE" in
+  a1)
+    SHAPE=VM.Standard.A1.Flex
+    SHAPE_ARGS=(--shape-config "{\"ocpus\": $OCPUS, \"memoryInGBs\": $MEMORY_GB}")
+    SHAPE_DESC="$SHAPE ($OCPUS OCPU, $MEMORY_GB GB)"
+    DISPLAY_NAME="${DISPLAY_NAME:-upgsuptime}"
+    ;;
+  micro)
+    SHAPE=VM.Standard.E2.1.Micro
+    SHAPE_ARGS=()
+    SHAPE_DESC="$SHAPE (1/8 OCPU, 1 GB)"
+    DISPLAY_NAME="${DISPLAY_NAME:-upgsuptime-micro}"
+    ;;
+  *) echo "TYPE must be a1 or micro"; exit 1 ;;
+esac
 
 command -v oci >/dev/null || { echo "OCI CLI not found. Run this in OCI Cloud Shell."; exit 1; }
 
@@ -45,7 +64,16 @@ grep -q "PRIVATE KEY" "$PUBKEY" && { echo "$PUBKEY is a PRIVATE key. Pass the .p
 COMPARTMENT_ID="${COMPARTMENT_ID:-${OCI_TENANCY:-$(awk -F= '/^tenancy/{gsub(/ /,"",$2); print $2; exit}' ~/.oci/config 2>/dev/null)}}"
 [ -n "$COMPARTMENT_ID" ] || { echo "Could not find your tenancy OCID; set COMPARTMENT_ID."; exit 1; }
 
-AD="$(oci iam availability-domain list --compartment-id "$COMPARTMENT_ID" --query 'data[0].name' --raw-output)"
+# First availability domain that offers the shape (the micro lives in only one of them).
+if [ -z "${AD:-}" ]; then
+  for ad in $(oci iam availability-domain list --compartment-id "$COMPARTMENT_ID" --query 'data[].name' --raw-output | tr -d '[]",'); do
+    if oci compute shape list --compartment-id "$COMPARTMENT_ID" --availability-domain "$ad" --all \
+        --query "data[?shape=='$SHAPE'] | [0].shape" --raw-output 2>/dev/null | grep -q "$SHAPE"; then
+      AD="$ad"; break
+    fi
+  done
+fi
+[ -n "${AD:-}" ] || { echo "No availability domain offers $SHAPE in this region; set AD."; exit 1; }
 
 SUBNET_ID="${SUBNET_ID:-$(oci network subnet list --compartment-id "$COMPARTMENT_ID" \
   --query 'data[?"prohibit-public-ip-on-vnic" == `false`] | [0].id' --raw-output)}"
@@ -64,7 +92,7 @@ IMAGE_ID="${IMAGE_ID:-$(oci compute image list --compartment-id "$COMPARTMENT_ID
 echo "Availability domain: $AD"
 echo "Subnet:              $SUBNET_ID"
 echo "Image:               $IMAGE_ID"
-echo "Shape:               $SHAPE ($OCPUS OCPU, $MEMORY_GB GB)"
+echo "Shape:               $SHAPE_DESC"
 echo
 
 # ── Already there? ───────────────────────────────────────────────────────────
@@ -85,7 +113,7 @@ else
           --availability-domain "$AD" \
           --display-name "$DISPLAY_NAME" \
           --shape "$SHAPE" \
-          --shape-config "{\"ocpus\": $OCPUS, \"memoryInGBs\": $MEMORY_GB}" \
+          ${SHAPE_ARGS[@]+"${SHAPE_ARGS[@]}"} \
           --image-id "$IMAGE_ID" \
           --subnet-id "$SUBNET_ID" \
           --assign-public-ip true \
@@ -111,7 +139,7 @@ else
       echo "$OUT"
       echo
       echo "This is not a capacity problem; fix it before retrying (e.g. LimitExceeded means"
-      echo "you already use your Always Free A1 allowance)."
+      echo "you already use your Always Free allowance for this shape)."
       exit 1
     fi
   done

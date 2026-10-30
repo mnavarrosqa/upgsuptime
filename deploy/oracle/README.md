@@ -18,7 +18,7 @@ Medido con un build de producción:
 
 **Instancia recomendada:** `VM.Standard.A1.Flex` con **1 OCPU y 6 GB**. Desde junio de
 2026 el Always Free de Ampere A1 es de **2 OCPU / 12 GB en total** (antes era 4/24), así
-que con esto usás la mitad. La VM AMD `E2.1.Micro` (1 GB) no alcanza para compilar.
+que con esto usás la mitad. La VM AMD `E2.1.Micro` (1 GB) sirve como alternativa si no hay stock de A1 (ver abajo), con builds lentos.
 
 > Los límites del free tier cambian: confirmalos en
 > [Always Free Resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)
@@ -50,29 +50,43 @@ Cuando esté *Running*, anotá la **IP pública** que figura en la página de la
 
 ### Si da "Out of capacity"
 
-Oracle no tiene capacidad ARM libre en ese momento (muy común). Podés reintentar a mano
-o dejar que un script lo intente cada ~1,5 minutos hasta lograrlo, desde **Cloud Shell**
-(ícono `>_` arriba a la derecha de la consola; ya tiene la CLI configurada):
+Oracle no tiene capacidad ARM libre en ese momento (muy común). Desde **Cloud Shell**
+(ícono `>_` arriba a la derecha de la consola; ya tiene la CLI configurada) hay un script
+con dos opciones.
 
-1. Si al primer intento descargaste la clave pública (`ssh-key-….key.pub`), subila a
-   Cloud Shell: menú ⚙️ → *Upload*. Si no, el script genera una clave nueva.
-2. En Cloud Shell:
+Antes: si al primer intento descargaste la clave pública (`ssh-key-….key.pub`), subila
+a Cloud Shell (menú ⚙️ → *Upload*); si no, el script genera una clave nueva. Y tiene que
+existir una subred pública: si no hay, creala con *Networking → Virtual cloud networks →
+Start VCN Wizard → Create VCN with Internet Connectivity*.
 
-   ```bash
-   curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-a1-instance.sh -o create-a1-instance.sh
-   bash create-a1-instance.sh ssh-key-AAAA-MM-DD.key.pub    # o sin argumento para generar una clave
-   ```
+```bash
+curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-instance.sh -o create-instance.sh
+```
 
-   Usa la subred pública que ya exista (si el primer intento la creó, la reutiliza),
-   Ubuntu 24.04 y 1 OCPU / 4 GB (`MEMORY_GB=6 bash …` para más). Cuando lo logra, muestra
-   la **IP pública** y ya trae la IP asignada. Cuida el *rate limit* de la API: si Oracle
-   responde "TooManyRequests", espera cada vez más (hasta 15 min) antes de reintentar.
-3. Si generó una clave nueva, descargá `~/.ssh/upgsuptime` (⚙️ → *Download*): es la
-   privada para entrar por SSH.
+**Opción A — esperar una A1 (recomendada):** reintenta cada ~1,5 minutos hasta que haya
+lugar. Cuida el *rate limit* de la API: si Oracle responde "TooManyRequests", espera
+cada vez más (hasta 15 min).
+
+```bash
+bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub    # o sin argumento para generar una clave
+```
+
+**Opción B — una AMD E2.1.Micro ya:** casi siempre hay stock y también es Always Free
+(se pueden tener dos). Tiene 1 GB de RAM y 1/8 de OCPU: alcanza para correr la app,
+pero compilar es lento (el instalador agrega 4 GB de swap automáticamente).
+
+```bash
+TYPE=micro bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub
+```
+
+Las dos pueden convivir (se llaman `upgsuptime` y `upgsuptime-micro`): podés arrancar
+con la micro y, si más adelante sale la A1, mudarte copiando el backup de la base.
+
+Cuando lo logra, muestra la **IP pública**. Si generó una clave nueva, descargá
+`~/.ssh/upgsuptime` (⚙️ → *Download*): es la privada para entrar por SSH.
 
 Cloud Shell se cierra tras ~20 minutos sin que toques el teclado; si pasa, volvé a
-correr el comando (no duplica instancias: si ya existe una llamada `upgsuptime`, solo
-muestra su IP).
+correr el comando (no duplica instancias: si ya existe, solo muestra su IP).
 
 ## 3. Abrir los puertos 80 y 443 en Oracle
 
