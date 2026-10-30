@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/require-admin";
 import { db } from "@/db";
 import { monitor, user } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -5,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 import { monitorStatusDownPillClass, monitorStatusUpPillClass } from "@/lib/monitor-ui";
 
 export default async function AdminMonitorsPage() {
+  await requireAdmin();
   const t = await getTranslations("admin.monitors");
 
   const monitors = await db
