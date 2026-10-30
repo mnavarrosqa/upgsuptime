@@ -12,13 +12,17 @@
 # instance (upload it to Cloud Shell with the gear menu → Upload). With no argument a
 # new key pair is generated in ~/.ssh/upgsuptime and you download its private half.
 #
-# Optional env: OCPUS (default 1), MEMORY_GB (default 4), RETRY_SECONDS (default 60),
+# Gentle on the API: one launch request every RETRY_SECONDS (+ random jitter), and on
+# "429 TooManyRequests" the wait doubles each time, up to 15 minutes.
+#
+# Optional env: OCPUS (default 1), MEMORY_GB (default 4), RETRY_SECONDS (default 90),
 # DISPLAY_NAME (default upgsuptime), COMPARTMENT_ID, SUBNET_ID, IMAGE_ID.
 set -euo pipefail
 
 OCPUS="${OCPUS:-1}"
 MEMORY_GB="${MEMORY_GB:-4}"
-RETRY_SECONDS="${RETRY_SECONDS:-60}"
+RETRY_SECONDS="${RETRY_SECONDS:-90}"
+MAX_BACKOFF_SECONDS=900
 DISPLAY_NAME="${DISPLAY_NAME:-upgsuptime}"
 SHAPE=VM.Standard.A1.Flex
 
@@ -72,10 +76,11 @@ if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
 else
   # ── Retry until created ──────────────────────────────────────────────────
   attempt=0
+  backoff=0
   while :; do
     attempt=$((attempt + 1))
     printf '[%s] Attempt %d… ' "$(date +%H:%M:%S)" "$attempt"
-    if OUT="$(oci compute instance launch \
+    if OUT="$(oci --no-retry compute instance launch \
           --compartment-id "$COMPARTMENT_ID" \
           --availability-domain "$AD" \
           --display-name "$DISPLAY_NAME" \
@@ -90,12 +95,17 @@ else
       echo "created!"
       break
     fi
-    if grep -qiE "out of (host )?capacity" <<<"$OUT"; then
-      echo "no capacity yet, retrying in ${RETRY_SECONDS}s"
-      sleep "$RETRY_SECONDS"
-    elif grep -qiE "TooManyRequests|429" <<<"$OUT"; then
-      echo "rate limited, waiting $((RETRY_SECONDS * 3))s"
-      sleep $((RETRY_SECONDS * 3))
+    jitter=$((RANDOM % 20))
+    if grep -qiE "TooManyRequests|\"status\": 429" <<<"$OUT"; then
+      # Back off exponentially while the API keeps saying slow down.
+      backoff=$(( backoff == 0 ? RETRY_SECONDS * 3 : backoff * 2 ))
+      [ "$backoff" -gt "$MAX_BACKOFF_SECONDS" ] && backoff=$MAX_BACKOFF_SECONDS
+      echo "rate limited, waiting $((backoff + jitter))s"
+      sleep $((backoff + jitter))
+    elif grep -qiE "out of (host )?capacity|InternalError" <<<"$OUT"; then
+      backoff=0
+      echo "no capacity yet, retrying in $((RETRY_SECONDS + jitter))s"
+      sleep $((RETRY_SECONDS + jitter))
     else
       echo "failed:"
       echo "$OUT"

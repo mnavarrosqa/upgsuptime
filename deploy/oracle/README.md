@@ -51,7 +51,7 @@ Cuando esté *Running*, anotá la **IP pública** que figura en la página de la
 ### Si da "Out of capacity"
 
 Oracle no tiene capacidad ARM libre en ese momento (muy común). Podés reintentar a mano
-o dejar que un script lo intente cada minuto hasta lograrlo, desde **Cloud Shell**
+o dejar que un script lo intente cada ~1,5 minutos hasta lograrlo, desde **Cloud Shell**
 (ícono `>_` arriba a la derecha de la consola; ya tiene la CLI configurada):
 
 1. Si al primer intento descargaste la clave pública (`ssh-key-….key.pub`), subila a
@@ -65,7 +65,8 @@ o dejar que un script lo intente cada minuto hasta lograrlo, desde **Cloud Shell
 
    Usa la subred pública que ya exista (si el primer intento la creó, la reutiliza),
    Ubuntu 24.04 y 1 OCPU / 4 GB (`MEMORY_GB=6 bash …` para más). Cuando lo logra, muestra
-   la **IP pública** y ya trae la IP asignada.
+   la **IP pública** y ya trae la IP asignada. Cuida el *rate limit* de la API: si Oracle
+   responde "TooManyRequests", espera cada vez más (hasta 15 min) antes de reintentar.
 3. Si generó una clave nueva, descargá `~/.ssh/upgsuptime` (⚙️ → *Download*): es la
    privada para entrar por SSH.
 
