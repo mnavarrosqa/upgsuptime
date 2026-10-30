@@ -48,6 +48,31 @@ Instances → *Create instance*). Guía oficial:
 
 Cuando esté *Running*, anotá la **IP pública** que figura en la página de la instancia.
 
+### Si da "Out of capacity"
+
+Oracle no tiene capacidad ARM libre en ese momento (muy común). Podés reintentar a mano
+o dejar que un script lo intente cada minuto hasta lograrlo, desde **Cloud Shell**
+(ícono `>_` arriba a la derecha de la consola; ya tiene la CLI configurada):
+
+1. Si al primer intento descargaste la clave pública (`ssh-key-….key.pub`), subila a
+   Cloud Shell: menú ⚙️ → *Upload*. Si no, el script genera una clave nueva.
+2. En Cloud Shell:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-a1-instance.sh -o create-a1-instance.sh
+   bash create-a1-instance.sh ssh-key-AAAA-MM-DD.key.pub    # o sin argumento para generar una clave
+   ```
+
+   Usa la subred pública que ya exista (si el primer intento la creó, la reutiliza),
+   Ubuntu 24.04 y 1 OCPU / 4 GB (`MEMORY_GB=6 bash …` para más). Cuando lo logra, muestra
+   la **IP pública** y ya trae la IP asignada.
+3. Si generó una clave nueva, descargá `~/.ssh/upgsuptime` (⚙️ → *Download*): es la
+   privada para entrar por SSH.
+
+Cloud Shell se cierra tras ~20 minutos sin que toques el teclado; si pasa, volvé a
+correr el comando (no duplica instancias: si ya existe una llamada `upgsuptime`, solo
+muestra su IP).
+
 ## 3. Abrir los puertos 80 y 443 en Oracle
 
 Oracle tiene **dos firewalls**: el de la red (Security List) y el del sistema operativo.
