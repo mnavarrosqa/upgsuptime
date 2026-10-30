@@ -1,0 +1,12 @@
+[Unit]
+Description=Deploy UPG Monitor when main has new commits
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/upgsuptime-update --auto
+# Builds take many minutes on small VMs; keep the running app responsive meanwhile.
+TimeoutStartSec=2h
+Nice=10
+IOSchedulingClass=idle
