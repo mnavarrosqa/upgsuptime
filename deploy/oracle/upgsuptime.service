@@ -1,0 +1,25 @@
+[Unit]
+Description=UPG Monitor (Next.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=upg
+Group=upg
+WorkingDirectory=/opt/upgsuptime
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/upgsuptime/.env
+# Only Caddy talks to the app; it is not reachable from outside the VM.
+ExecStart=/opt/upgsuptime/node_modules/.bin/next start -p 3077 -H 127.0.0.1
+Restart=always
+RestartSec=5
+# Hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=true
+ReadWritePaths=/opt/upgsuptime /var/lib/upgsuptime
+
+[Install]
+WantedBy=multi-user.target

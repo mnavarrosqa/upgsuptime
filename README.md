@@ -15,6 +15,8 @@ After pulling code, if the schema changed or you see DB errors: `npm run db:push
 
 ## Production
 
+**Oracle Cloud (Always Free):** step-by-step guide with an install script, systemd service, HTTPS via Caddy and daily backups in [deploy/oracle/README.md](deploy/oracle/README.md).
+
 Configure `.env` like local development, but set `NEXTAUTH_URL` to your real HTTPS URL (same URL users open in the browser; no trailing slash). Use a persistent `DATABASE_URL` and back up that file. Full list of variables: `.env.example`.
 
 Deploy — **always run `db:push` before `build`** (the production build queries the database):
