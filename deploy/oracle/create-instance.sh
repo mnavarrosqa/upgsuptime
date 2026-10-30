@@ -78,6 +78,16 @@ if [ -z "$PUBKEY" ]; then
 fi
 [ -f "$PUBKEY" ] || { echo "Public key file not found: $PUBKEY"; exit 1; }
 grep -q "PRIVATE KEY" "$PUBKEY" && { echo "$PUBKEY is a PRIVATE key. Pass the .pub file."; exit 1; }
+# A key pasted into an editor often gets split across lines or cut short; Oracle then
+# answers "Invalid format for ssh public key" only after the first launch request.
+if [ "$(grep -c . "$PUBKEY")" -ne 1 ] \
+  || ! grep -qE '^(ssh-(rsa|ed25519|dss)|ecdsa-sha2-[a-z0-9-]+) [A-Za-z0-9+/]+=* ?.*$' "$PUBKEY" \
+  || { command -v ssh-keygen >/dev/null && ! ssh-keygen -l -f "$PUBKEY" >/dev/null 2>&1; }; then
+  echo "$PUBKEY is not a valid SSH public key: it must be ONE line like 'ssh-rsa AAAA… name'."
+  echo "If you pasted it, it probably got split or cut. Recreate it from the private key with"
+  echo "  ssh-keygen -y -f <private-key-file> > $PUBKEY"
+  exit 1
+fi
 
 # ── Discover what we need ────────────────────────────────────────────────────
 COMPARTMENT_ID="${COMPARTMENT_ID:-${OCI_TENANCY:-$(awk -F= '/^tenancy/{gsub(/ /,"",$2); print $2; exit}' ~/.oci/config 2>/dev/null)}}"
@@ -145,8 +155,9 @@ check_free_tier() {  # $1: a1 or micro
     local micros
     micros="$(oci compute instance list --compartment-id "$COMPARTMENT_ID" --all \
       --query "length(data[?shape == '$SHAPE' && $live])" --raw-output)"
+    micros="${micros:-0}"
     echo "Always Free micro VMs in use: $micros/$FREE_MICRO_COUNT"
-    if [ "${micros:-0}" -ge "$FREE_MICRO_COUNT" ]; then
+    if [ "$micros" -ge "$FREE_MICRO_COUNT" ]; then
       echo "Refusing: a third E2.1.Micro is not Always Free (it would be billed)."
       exit 1
     fi
