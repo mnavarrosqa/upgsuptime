@@ -23,6 +23,12 @@ const serwist = new Serwist({
         request.headers.get("RSC") === "1" || url.searchParams.has("_rsc"),
       handler: new NetworkOnly(),
     },
+    // API responses are live account data (and exports can be many MB): never
+    // cache them. The default rule stores them, which fails on large downloads.
+    {
+      matcher: ({ sameOrigin, url }) => sameOrigin && url.pathname.startsWith("/api/"),
+      handler: new NetworkOnly(),
+    },
     ...defaultCache,
   ],
   fallbacks: {
