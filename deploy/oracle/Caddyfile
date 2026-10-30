@@ -1,0 +1,6 @@
+# Caddy gets and renews the HTTPS certificate for this hostname automatically.
+# The DNS A record for it must point at the VM's public IP before Caddy starts.
+__DOMAIN__ {
+	encode zstd gzip
+	reverse_proxy 127.0.0.1:3077
+}

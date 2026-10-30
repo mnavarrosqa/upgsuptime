@@ -1,0 +1,8 @@
+[Unit]
+Description=UPG Monitor database backup
+
+[Service]
+Type=oneshot
+User=upg
+Group=upg
+ExecStart=/usr/local/bin/upgsuptime-backup
