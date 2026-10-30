@@ -5,13 +5,15 @@
 #   DOMAIN=monitor.example.com sudo -E bash install.sh
 #
 # Optional: REPO_URL (default: the GitHub repo over HTTPS), BRANCH (default: main),
-# SWAP_GB (default: 2; 0 to skip). Safe to re-run: existing .env and data are kept.
+# SWAP_GB (default: 2, or 4 on VMs under 2 GB of RAM; 0 to skip). Safe to re-run: existing .env and data are kept.
 set -euo pipefail
 
 DOMAIN="${DOMAIN:?Set DOMAIN to the hostname that points at this VM, e.g. DOMAIN=monitor.example.com}"
 REPO_URL="${REPO_URL:-https://github.com/mnavarrosqa/upgsuptime.git}"
 BRANCH="${BRANCH:-main}"
-SWAP_GB="${SWAP_GB:-2}"
+# Small VMs (the 1 GB E2.1.Micro) need more swap: the build peaks around 2 GB.
+MEM_MB="$(awk '/MemTotal/{print int($2/1024)}' /proc/meminfo)"
+if [ "$MEM_MB" -lt 2048 ]; then SWAP_GB="${SWAP_GB:-4}"; else SWAP_GB="${SWAP_GB:-2}"; fi
 
 APP_USER=upg
 APP_DIR=/opt/upgsuptime

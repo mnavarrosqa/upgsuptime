@@ -18,7 +18,7 @@ Medido con un build de producción:
 
 **Instancia recomendada:** `VM.Standard.A1.Flex` con **1 OCPU y 6 GB**. Desde junio de
 2026 el Always Free de Ampere A1 es de **2 OCPU / 12 GB en total** (antes era 4/24), así
-que con esto usás la mitad. La VM AMD `E2.1.Micro` (1 GB) no alcanza para compilar.
+que con esto usás la mitad. La VM AMD `E2.1.Micro` (1 GB) sirve como alternativa si no hay stock de A1 (ver abajo), con builds lentos.
 
 > Los límites del free tier cambian: confirmalos en
 > [Always Free Resources](https://docs.oracle.com/en-us/iaas/Content/FreeTier/freetier_topic-Always_Free_Resources.htm)
@@ -47,6 +47,78 @@ Instances → *Create instance*). Guía oficial:
    *Availability Domain*; es frecuente en regiones populares.
 
 Cuando esté *Running*, anotá la **IP pública** que figura en la página de la instancia.
+
+### Si da "Out of capacity"
+
+Oracle no tiene capacidad ARM libre en ese momento (muy común). Desde **Cloud Shell**
+(ícono `>_` arriba a la derecha de la consola; ya tiene la CLI configurada) hay un script
+con dos opciones.
+
+Antes: si al primer intento descargaste la clave pública (`ssh-key-….key.pub`), subila
+a Cloud Shell (menú ⚙️ → *Upload*); si no, el script genera una clave nueva. Y tiene que
+existir una subred pública: si no hay, creala con *Networking → Virtual cloud networks →
+Start VCN Wizard → Create VCN with Internet Connectivity*.
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-instance.sh -o create-instance.sh
+```
+
+**Opción A — esperar una A1 (recomendada):** reintenta cada ~1,5 minutos hasta que haya
+lugar. Cuida el *rate limit* de la API: si Oracle responde "TooManyRequests", espera
+cada vez más (hasta 15 min).
+
+```bash
+bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub    # o sin argumento para generar una clave
+```
+
+**Opción B — una AMD E2.1.Micro ya:** casi siempre hay stock y también es Always Free
+(se pueden tener dos). Tiene 1 GB de RAM y 1/8 de OCPU: alcanza para correr la app,
+pero compilar es lento (el instalador agrega 4 GB de swap automáticamente).
+
+```bash
+TYPE=micro bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub
+```
+
+**Opción C — las dos alternadas:** intenta A1 y micro por turnos (misma cantidad de
+pedidos) y se queda con la primera que salga.
+
+```bash
+TYPE=any bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub
+```
+
+Las dos pueden convivir (se llaman `upgsuptime` y `upgsuptime-micro`): podés arrancar
+con la micro y, si más adelante sale la A1, mudarte copiando el backup de la base.
+
+Cuando lo logra, muestra la **IP pública**. Si generó una clave nueva, descargá
+`~/.ssh/upgsuptime` (⚙️ → *Download*): es la privada para entrar por SSH.
+
+Cloud Shell se cierra tras ~20 minutos sin que toques el teclado; si pasa, volvé a
+correr el comando (no duplica instancias: si ya existe, solo muestra su IP).
+
+#### Dejarlo reintentando horas o días en otro servidor
+
+Si la región no tiene capacidad por un buen rato, corré el script en cualquier Linux
+que esté siempre prendido (un VPS, una Raspberry, tu servidor actual):
+
+1. Instalá la CLI de Oracle:
+   `bash -c "$(curl -L https://raw.githubusercontent.com/oracle/oci-cli/master/scripts/install/install.sh)" -- --accept-all-defaults`
+   y abrí una terminal nueva.
+2. `oci setup config`. Te pide:
+   - **User OCID:** consola → ícono de perfil → *My profile* → copiar *OCID*.
+   - **Tenancy OCID:** ícono de perfil → *Tenancy* → copiar *OCID*.
+   - **Region:** la tuya (por ejemplo `sa-santiago-1`).
+   - Generar una API key nueva: **Y**, el resto con Enter.
+3. Subí la clave pública que generó: *My profile* → *API keys* → *Add API key* →
+   *Paste a public key* → pegá el contenido de `~/.oci/oci_api_key_public.pem`.
+4. Copiá tu `ssh-key-….key.pub` a ese servidor y lanzalo en segundo plano:
+
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/create-instance.sh -o create-instance.sh
+   TYPE=any nohup bash create-instance.sh ssh-key-AAAA-MM-DD.key.pub > create-instance.log 2>&1 &
+   tail -f create-instance.log     # Ctrl+C deja de mirar; el script sigue
+   ```
+
+   Sigue aunque cierres la sesión SSH. Para pararlo: `pkill -f create-instance.sh`.
 
 ## 3. Abrir los puertos 80 y 443 en Oracle
 
@@ -146,9 +218,18 @@ copiá de vez en cuando alguno a tu computadora:
   de los límites Always Free y es lo que suele usarse para evitar la recuperación; no se
   puede volver atrás. Detalle en el
   [FAQ del Free Tier](https://www.oracle.com/cloud/free/faq/).
-- **Si pasás a Pay As You Go**, creá un **presupuesto con alerta** (por ejemplo 1 USD)
-  para enterarte si algo empieza a cobrarse:
-  [Budgets](https://docs.oracle.com/en-us/iaas/Content/Billing/Concepts/budgetsoverview.htm).
-  Mantené la instancia dentro de 2 OCPU / 12 GB.
+- **Si pasás a Pay As You Go**, solo se cobra lo que exceda Always Free. Para no
+  pasarte:
+  - Creá un **presupuesto con alerta**: ☰ → *Billing & Cost Management* → *Budgets* →
+    *Create Budget*, monto **1 USD** mensual, con una alerta al **1 %** del gasto real
+    (*Actual Spend*) a tu email. Si algo empieza a cobrarse, te enterás por centavos.
+    [Budgets](https://docs.oracle.com/en-us/iaas/Content/Billing/Concepts/budgetsoverview.htm).
+  - `create-instance.sh` se niega a crear una VM que exceda los límites gratis
+    (A1: 2 OCPU / 12 GB en total; dos E2.1.Micro; 200 GB de discos en total).
+  - Al crear algo a mano en la consola, buscá la etiqueta **"Always Free-eligible"**.
+    No crees *Load Balancers* que no sean el flexible de 10 Mbps, ni IPs públicas
+    reservadas de más, ni backups de disco por encima de 5.
+  - Revisá de vez en cuando *Billing & Cost Management* → *Cost Analysis*: tiene que
+    marcar 0.
 - **Cuenta inactiva:** las cuentas sin uso durante 30 días pueden considerarse
   abandonadas; entrá a la consola de vez en cuando.
