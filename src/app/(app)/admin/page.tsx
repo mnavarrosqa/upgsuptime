@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/require-admin";
 import Link from "next/link";
 import { db } from "@/db";
 import { user, monitor, checkResult } from "@/db/schema";
@@ -7,6 +8,7 @@ import { Activity, ArrowRight, CheckCircle2, Monitor, Users, XCircle } from "luc
 import { getTranslations } from "next-intl/server";
 
 export default async function AdminPage() {
+  await requireAdmin();
   const t = await getTranslations("admin");
   const since = hoursAgoUtc(24);
 

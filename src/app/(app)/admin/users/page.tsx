@@ -1,5 +1,4 @@
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/require-admin";
 import { db } from "@/db";
 import { user, monitor } from "@/db/schema";
 import { count, eq } from "drizzle-orm";
@@ -16,8 +15,8 @@ export interface AdminUser {
 }
 
 export default async function AdminUsersPage() {
+  const session = await requireAdmin();
   const t = await getTranslations("admin.users");
-  const session = await getServerSession(authOptions);
 
   const rows = await db
     .select({
@@ -51,7 +50,7 @@ export default async function AdminUsersPage() {
           {t("subtitle")}
         </p>
       </div>
-      <AdminUsersClient users={users} currentUserId={session!.user.id} />
+      <AdminUsersClient users={users} currentUserId={session.user.id} />
     </div>
   );
 }

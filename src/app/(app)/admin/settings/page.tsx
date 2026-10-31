@@ -1,3 +1,4 @@
+import { requireAdmin } from "@/lib/require-admin";
 import { db } from "@/db";
 import { settings } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -13,6 +14,7 @@ export interface AdminSettings {
 const SMTP_VARS = ["SMTP_HOST", "SMTP_PORT", "SMTP_USER", "SMTP_PASS", "SMTP_FROM"];
 
 export default async function AdminSettingsPage() {
+  await requireAdmin();
   const t = await getTranslations("admin.settings");
 
   const [row] = await db

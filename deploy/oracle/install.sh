@@ -27,7 +27,7 @@ export DEBIAN_FRONTEND=noninteractive
 
 echo "==> System packages"
 apt-get update -y
-apt-get install -y ca-certificates curl git gnupg sqlite3 build-essential python3 \
+apt-get install -y ca-certificates curl git gnupg sqlite3 build-essential python3 rsync \
   debian-keyring debian-archive-keyring apt-transport-https iptables-persistent
 
 echo "==> Node.js 22"
@@ -101,12 +101,16 @@ echo "==> Services"
 install -m 644 "$HERE/upgsuptime.service" /etc/systemd/system/upgsuptime.service
 install -m 644 "$HERE/upgsuptime-backup.service" /etc/systemd/system/upgsuptime-backup.service
 install -m 644 "$HERE/upgsuptime-backup.timer" /etc/systemd/system/upgsuptime-backup.timer
+install -m 644 "$HERE/upgsuptime-update.service" /etc/systemd/system/upgsuptime-update.service
+install -m 644 "$HERE/upgsuptime-update.timer" /etc/systemd/system/upgsuptime-update.timer
 install -m 755 "$HERE/backup.sh" /usr/local/bin/upgsuptime-backup
+install -m 755 "$HERE/update.sh" /usr/local/bin/upgsuptime-update
 sed "s#__DOMAIN__#${DOMAIN}#g" "$HERE/Caddyfile" > /etc/caddy/Caddyfile
 systemctl daemon-reload
-systemctl enable --now upgsuptime.service upgsuptime-backup.timer
+systemctl enable --now upgsuptime.service upgsuptime-backup.timer upgsuptime-update.timer
 systemctl reload caddy || systemctl restart caddy
 
 echo
 echo "Done. Open https://${DOMAIN} and create the first admin account."
-echo "Logs: journalctl -u upgsuptime -f    Update later: sudo bash $HERE/update.sh"
+echo "Logs: journalctl -u upgsuptime -f"
+echo "Updates deploy by themselves when main changes (journalctl -u upgsuptime-update); now: sudo upgsuptime-update"

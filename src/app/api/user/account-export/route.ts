@@ -119,7 +119,7 @@ export async function GET(request: Request) {
   const date = new Date().toISOString().slice(0, 10);
   const filename = `upg-account-${date}.json`;
 
-  return new Response(JSON.stringify(payload, null, 2), {
+  return new Response(JSON.stringify(payload), {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,

@@ -174,17 +174,38 @@ Editá `/opt/upgsuptime/.env` con `sudo nano /opt/upgsuptime/.env` y reiniciá c
 
 ## Actualizar
 
+**Es automático.** Cada 5 minutos el servidor mira si `main` tiene commits nuevos
+(`upgsuptime-update.timer`). Si hay:
+
+1. Compila la versión nueva en `/opt/upgsuptime-build`, **sin tocar la que está
+   corriendo** (en la micro tarda bastante; mientras tanto la app sigue andando).
+2. Si compila bien: backup de la base, aplica el esquema (`db:push`), para la app,
+   copia la versión nueva y la arranca. Corte: unos segundos.
+3. Si la versión nueva no responde, **vuelve sola a la anterior** y no reintenta ese
+   commit hasta que haya uno nuevo.
+
+| Qué | Comando |
+|---|---|
+| Ver qué hizo | `journalctl -u upgsuptime-update -n 50` |
+| Actualizar ya (sin esperar) | `sudo upgsuptime-update` |
+| Reinstalar la misma versión | `sudo FORCE=1 upgsuptime-update` |
+| Apagar las actualizaciones automáticas | `sudo systemctl disable --now upgsuptime-update.timer` |
+| Volver a prenderlas | `sudo systemctl enable --now upgsuptime-update.timer` |
+
+Si `db:push` necesita confirmar pérdida de datos (por ejemplo al eliminar una tabla que
+dejó de usarse), el deploy automático **se frena** en vez de elegir por vos: el log dice
+`db:push needs attention`. Corré `cd /opt/upgsuptime-build && sudo -u upg bash -c 'set -a; . ./.env; set +a; npm run db:push'`,
+leé qué tabla es, confirmá y después `sudo upgsuptime-update`.
+
+Los cambios hechos a mano en `/opt/upgsuptime` se pisan en cada actualización (el
+`.env` se conserva).
+
+**Servidores instalados antes de esto:** una vez, para pasar al sistema automático:
+
 ```bash
-sudo bash /opt/upgsuptime/deploy/oracle/update.sh
+curl -fsSL https://raw.githubusercontent.com/mnavarrosqa/upgsuptime/main/deploy/oracle/update.sh -o /tmp/update.sh
+sudo bash /tmp/update.sh
 ```
-
-Hace un backup, trae `main`, instala dependencias exactas (`npm ci`), aplica el esquema
-de base de datos, compila y reinicia. Descarta cambios locales en `/opt/upgsuptime`
-(nunca se editan a mano allí; el `.env` se conserva), así que no vuelve a aparecer el
-error *"Your local changes … would be overwritten by merge"*.
-
-Si `db:push` pregunta por pérdida de datos (por ejemplo al eliminar una tabla que dejó
-de usarse), leé qué tabla es antes de confirmar.
 
 ## Operación
 
