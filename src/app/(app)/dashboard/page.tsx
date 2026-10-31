@@ -268,7 +268,7 @@ export default async function DashboardPage() {
       nextSsl={nextSslSummary}
       nowMs={nowMs}
       allPaused={allPaused}
-      checkLocation={getCheckLocationLabel()}
+      checkLocation={await getCheckLocationLabel()}
       username={session.user.name ?? null}
       attention={attention}
       activity={activityAll}

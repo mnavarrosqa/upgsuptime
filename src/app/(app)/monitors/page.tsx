@@ -31,7 +31,7 @@ export default async function MonitorsPage() {
     { id: string; ok: boolean; responseTimeMs: number | null; createdAt: string; message: string | null }[]
   > = {};
   const uptimeByMonitor: Record<string, number | null> = {};
-  const checkLocation = getCheckLocationLabel();
+  const checkLocation = await getCheckLocationLabel();
 
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
