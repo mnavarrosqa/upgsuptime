@@ -203,6 +203,7 @@ export function buildUptimeAlertHtml(
     ackEmailUrl?: string | null;
     monitorDetailUrl?: string | null;
     incidentDurationMs?: number | null;
+    startedAt?: string | null;
   },
 ): string {
   const isUp = newStatus;
@@ -226,19 +227,35 @@ export function buildUptimeAlertHtml(
   }
 
   const rawRows: string[] = [];
-  if (result.statusCode != null) {
-    rawRows.push(detailRow(messages.statusCode, String(result.statusCode)));
+  if (!isUp) {
+    const cause =
+      result.statusCode != null
+        ? `${messages.statusCode} ${result.statusCode}`
+        : result.message ?? "—";
+    rawRows.push(detailRow(messages.uptime.cause, escHtml(cause)));
+    rawRows.push(detailRow(messages.uptime.startedAt, escHtml(checkedAt)));
+  } else {
+    if (options?.startedAt) {
+      rawRows.push(detailRow(messages.uptime.startedAt, escHtml(options.startedAt)));
+    }
+    rawRows.push(detailRow(messages.uptime.resolvedAt, escHtml(checkedAt)));
+    if (options?.incidentDurationMs != null && options.incidentDurationMs > 0) {
+      rawRows.push(detailRow(messages.uptime.duration, formatDurationMs(options.incidentDurationMs)));
+    }
+    if (result.statusCode != null) {
+      rawRows.push(detailRow(messages.statusCode, String(result.statusCode)));
+    }
   }
   if (result.responseTimeMs != null) {
+    rawRows.push(detailRow(messages.responseTime, `${result.responseTimeMs} ms`));
+  }
+  if (!isUp && result.statusCode != null && result.message) {
     rawRows.push(
-      detailRow(messages.responseTime, `${result.responseTimeMs} ms`),
+      detailRow(
+        messages.uptime.response,
+        `<span style="display:block;background:${COLORS.cardBg};border:1px solid ${COLORS.border};border-radius:6px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-word;">${escHtml(result.message)}</span>`,
+      ),
     );
-  }
-  if (!isUp && result.message) {
-    rawRows.push(detailRow(messages.error, escHtml(result.message)));
-  }
-  if (isUp && options?.incidentDurationMs != null && options.incidentDurationMs > 0) {
-    rawRows.push(detailRow(messages.uptime.duration, formatDurationMs(options.incidentDurationMs)));
   }
   const rows = finalizeDetailRows(rawRows);
 

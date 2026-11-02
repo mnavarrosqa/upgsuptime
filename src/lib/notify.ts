@@ -137,6 +137,7 @@ export async function sendEmailAlert(
     monitorDetailUrl,
     incidentDurationMs:
       newStatus && m.lastStatusChangedAt ? Date.now() - m.lastStatusChangedAt.getTime() : null,
+    startedAt: newStatus && m.lastStatusChangedAt ? m.lastStatusChangedAt.toUTCString() : null,
   });
 
   await transporter.sendMail({
