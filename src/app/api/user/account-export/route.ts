@@ -2,9 +2,10 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
 import { checkResult, monitor, user } from "@/db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, asc, eq, gt, or } from "drizzle-orm";
 import {
   ACCOUNT_DATA_VERSION,
+  type AccountExportCheckResult,
   type AccountExportPayload,
   toIsoTimestamp,
 } from "@/lib/account-data";
@@ -32,15 +33,7 @@ export async function GET(request: Request) {
 
   const monitorIds = monitors.map((m) => m.id);
 
-  let resultsRows: (typeof checkResult.$inferSelect)[] = [];
-  if (includeCheckResults && monitorIds.length > 0) {
-    resultsRows = await db
-      .select()
-      .from(checkResult)
-      .where(inArray(checkResult.monitorId, monitorIds));
-  }
-
-  const payload: AccountExportPayload = {
+  const payload: Omit<AccountExportPayload, "checkResults"> = {
     upgAccountExportVersion: ACCOUNT_DATA_VERSION,
     exportedAt: new Date().toISOString(),
     user: {
@@ -99,30 +92,95 @@ export async function GET(request: Request) {
       baselineResetAt: toIsoTimestamp(m.baselineResetAt ?? undefined),
       createdAt: toIsoTimestamp(m.createdAt) ?? new Date().toISOString(),
     })),
-    checkResults: resultsRows.map((r) => ({
-      id: r.id,
-      monitorId: r.monitorId,
-      statusCode: r.statusCode ?? null,
-      responseTimeMs: r.responseTimeMs ?? null,
-      dnsMs: r.dnsMs ?? null,
-      connectMs: r.connectMs ?? null,
-      tlsMs: r.tlsMs ?? null,
-      ttfbMs: r.ttfbMs ?? null,
-      attempts: r.attempts ?? null,
-      ok: r.ok,
-      message: r.message ?? null,
-      duringMaintenance: r.duringMaintenance ?? null,
-      createdAt: toIsoTimestamp(r.createdAt) ?? new Date().toISOString(),
-    })),
   };
 
   const date = new Date().toISOString().slice(0, 10);
   const filename = `upg-account-${date}.json`;
 
-  return new Response(JSON.stringify(payload), {
+  // Check history can be hundreds of MB: stream it in pages instead of loading it
+  // all (loading it at once ran a 1 GB server out of memory).
+  const head = JSON.stringify(payload).slice(0, -1);
+  const pending = includeCheckResults ? monitorIds.slice() : [];
+  const encoder = new TextEncoder();
+  let cursor: { createdAt: Date; id: string } | null = null;
+  let first = true;
+  let started = false;
+
+  const body = new ReadableStream<Uint8Array>({
+    async pull(controller) {
+      if (!started) {
+        started = true;
+        controller.enqueue(encoder.encode(`${head},"checkResults":[`));
+        return;
+      }
+      // Each pull must enqueue something (or close): a pull that returns empty-handed
+      // is not called again and the download stalls. Skip monitors with no rows.
+      for (;;) {
+        const monitorId = pending[0];
+        if (monitorId === undefined) {
+          controller.enqueue(encoder.encode("]}"));
+          controller.close();
+          return;
+        }
+        const rows = await db
+          .select()
+          .from(checkResult)
+          .where(
+            and(
+              eq(checkResult.monitorId, monitorId),
+              cursor
+                ? or(
+                    gt(checkResult.createdAt, cursor.createdAt),
+                    and(eq(checkResult.createdAt, cursor.createdAt), gt(checkResult.id, cursor.id)),
+                  )
+                : undefined,
+            ),
+          )
+          .orderBy(asc(checkResult.createdAt), asc(checkResult.id))
+          .limit(EXPORT_PAGE_SIZE);
+        if (rows.length < EXPORT_PAGE_SIZE) {
+          pending.shift();
+          cursor = null;
+        } else {
+          const last = rows[rows.length - 1];
+          cursor = { createdAt: last.createdAt, id: last.id };
+        }
+        if (rows.length === 0) continue;
+        let chunk = "";
+        for (const r of rows) {
+          chunk += (first ? "" : ",") + JSON.stringify(toExportCheckResult(r));
+          first = false;
+        }
+        controller.enqueue(encoder.encode(chunk));
+        return;
+      }
+    },
+  });
+
+  return new Response(body, {
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Content-Disposition": `attachment; filename="${filename}"`,
     },
   });
+}
+
+const EXPORT_PAGE_SIZE = 2000;
+
+function toExportCheckResult(r: typeof checkResult.$inferSelect): AccountExportCheckResult {
+  return {
+    id: r.id,
+    monitorId: r.monitorId,
+    statusCode: r.statusCode ?? null,
+    responseTimeMs: r.responseTimeMs ?? null,
+    dnsMs: r.dnsMs ?? null,
+    connectMs: r.connectMs ?? null,
+    tlsMs: r.tlsMs ?? null,
+    ttfbMs: r.ttfbMs ?? null,
+    attempts: r.attempts ?? null,
+    ok: r.ok,
+    message: r.message ?? null,
+    duringMaintenance: r.duringMaintenance ?? null,
+    createdAt: toIsoTimestamp(r.createdAt) ?? new Date().toISOString(),
+  };
 }
