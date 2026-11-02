@@ -1126,6 +1126,7 @@
     "uptime": {
       "badgeUp": "Up",
       "badgeDown": "Down",
+      "duration": "Downtime duration",
       "subjectUp": "[Up] {name} — back online",
       "subjectDown": "[Down] {name} — unreachable",
       "subjectDownDns": "[Down] {name} — DNS check failed",

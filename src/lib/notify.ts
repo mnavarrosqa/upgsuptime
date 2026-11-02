@@ -135,6 +135,8 @@ export async function sendEmailAlert(
   const html = buildUptimeAlertHtml(m, newStatus, result, checkedAt, messages, locale, {
     ackEmailUrl,
     monitorDetailUrl,
+    incidentDurationMs:
+      newStatus && m.lastStatusChangedAt ? Date.now() - m.lastStatusChangedAt.getTime() : null,
   });
 
   await transporter.sendMail({

@@ -21,6 +21,7 @@ export type EmailMessages = {
   uptime: {
     badgeUp: string;
     badgeDown: string;
+    duration: string;
     subjectUp: string;
     subjectDown: string;
     subjectDownDns: string;

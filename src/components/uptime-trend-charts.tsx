@@ -248,19 +248,23 @@ function ResponseTooltip({
   const bc = row.bucketCheckCount;
   const timeLabel = typeof label === "string" ? formatAxisTime(label) : String(label);
   return (
-    <div className="rounded-md border border-border bg-bg-card px-3 py-2 text-xs shadow-sm">
-      <p className="text-text-muted">{timeLabel}</p>
+    <div className="min-w-[150px] rounded-lg border border-border bg-bg-card px-3 py-2.5 text-xs shadow-lg">
+      <p className="font-medium text-text-primary">{timeLabel}</p>
       {bc != null && bc > 1 && (
         <p className="mt-0.5 text-text-muted">{labelBucketChecks(bc)}</p>
       )}
-      <p className="mt-1 font-medium text-text-primary">{row.ok ? labelUp : labelDown}</p>
-      <p className="mt-0.5 text-text-muted">
-        {labelResponse}:{" "}
-        {ms != null ? (
-          <span className="font-medium text-text-primary">{ms} ms</span>
-        ) : (
-          <span className="text-text-muted">—</span>
-        )}
+      <p className="mt-2 flex items-center gap-1.5 font-medium text-text-primary">
+        <span
+          aria-hidden
+          className={`size-2 rounded-full ${row.ok ? "bg-status-up" : "bg-status-down"}`}
+        />
+        {row.ok ? labelUp : labelDown}
+      </p>
+      <p className="mt-1 flex items-baseline justify-between gap-4 text-text-muted">
+        <span>{labelResponse}</span>
+        <span className="text-sm font-semibold tabular-nums text-text-primary">
+          {ms != null ? `${ms} ms` : "—"}
+        </span>
       </p>
     </div>
   );
@@ -633,6 +637,7 @@ export function UptimeTrendCharts({
                 width={52}
               />
               <Tooltip
+                cursor={{ stroke: "var(--color-text-muted)", strokeWidth: 1, strokeDasharray: "4 3" }}
                 content={
                   <ResponseTooltip
                     labelUp={t("statusBadgeUp")}
@@ -650,7 +655,7 @@ export function UptimeTrendCharts({
                 fill={`url(#${gradientId})`}
                 connectNulls={false}
                 dot={false}
-                activeDot={{ r: 4, fill: "var(--color-accent)" }}
+                activeDot={{ r: 5, fill: "var(--color-accent)", stroke: "var(--color-bg-card)", strokeWidth: 2 }}
                 isAnimationActive={false}
               />
             </AreaChart>
