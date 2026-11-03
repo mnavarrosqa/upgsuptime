@@ -126,6 +126,8 @@ function MonitorGridCard({
       trendResults={trendByMonitor[m.id] ?? []}
       uptimePct={uptimeByMonitor[m.id] ?? null}
       lastCheckAt={m.lastCheckAt}
+      currentStatus={m.currentStatus ?? null}
+      lastStatusChangedAt={m.lastStatusChangedAt ?? null}
       sslMonitoring={!!m.sslMonitoring}
       sslValid={m.sslValid ?? null}
       sslExpiresAt={m.sslExpiresAt ?? null}

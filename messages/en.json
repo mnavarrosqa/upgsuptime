@@ -590,6 +590,7 @@
     "checking": "Checking…",
     "uptimeTrend": "Uptime trend",
     "uptimeLabel": "Uptime · 90d",
+    "downFor": "Down for {duration}",
     "trendCheckMs": "{ms}ms",
     "moreActions": "More actions for {name}",
     "openSite": "Open site",
