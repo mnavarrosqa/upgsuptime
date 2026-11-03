@@ -89,7 +89,7 @@ export function AppShell({
 
   return (
     <div className="min-h-svh bg-bg-page text-text-primary md:grid md:grid-cols-[15rem_minmax(0,1fr)]">
-      <aside className="hidden h-svh flex-col border-r border-border/60 bg-bg-card md:flex">
+      <aside className="sticky top-0 hidden h-svh flex-col border-r border-border/60 bg-bg-card md:flex">
         <AppSidebar
           role={role}
           email={email}
