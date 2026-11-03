@@ -5,9 +5,8 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { ExternalLink, CircleCheck, CircleX, TriangleAlert, ShieldAlert, Timer, Clock, CircleDashed, ChartSpline } from "lucide-react";
+import { ExternalLink, ShieldAlert, ChartSpline } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
-import { CheckNowButton } from "@/components/check-now-button";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
 import { FleetTrendClient } from "@/components/dashboard-charts-client";
 import { OnboardingOverlay } from "@/components/onboarding-overlay";
@@ -42,6 +41,23 @@ export type OverviewNamedStat = {
   type: string;
 };
 
+export type MonitorCardData = {
+  id: string;
+  name: string;
+  url: string;
+  type: string;
+  kind: "up" | "down" | "degraded" | "overdue" | "pending" | "paused";
+  acked: boolean;
+  responseMs: number | null;
+  baselineMs: number | null;
+  uptimePct: number | null;
+  downtimeMin: number;
+  detail: string | null;
+  consecutiveFailures: number | null;
+  since: string | null;
+  strip: ("ok" | "fail" | "partial" | "empty")[];
+};
+
 export type DashboardOverviewProps = {
   hasMonitors: boolean;
   downCount: number;
@@ -67,6 +83,7 @@ export type DashboardOverviewProps = {
     onboardingStep?: string | null;
   };
   userId: string;
+  monitorCards: MonitorCardData[];
 };
 
 function faviconSrc(url: string, type?: string | null): string {
@@ -378,6 +395,111 @@ function ActivityDigest({ activity, userId, nowMs }: { activity: ActivityItem[];
   );
 }
 
+function UptimeStrip({ strip }: { strip: MonitorCardData["strip"] }) {
+  return (
+    <div className="mt-2 flex gap-px" role="img" aria-label="30-day uptime">
+      {strip.map((s, i) => (
+        <div
+          key={i}
+          className={cn(
+            "h-[18px] flex-1 first:rounded-l-sm last:rounded-r-sm",
+            s === "ok" && "bg-status-up",
+            s === "fail" && "bg-status-down",
+            s === "partial" && "bg-status-warn",
+            s === "empty" && "bg-border-muted"
+          )}
+        />
+      ))}
+    </div>
+  );
+}
+
+function MonitorCard({ card, nowMs, t }: { card: MonitorCardData; nowMs: number; t: ReturnType<typeof useTranslations<"overview">> }) {
+  const isDown = card.kind === "down";
+  const isDegraded = card.kind === "degraded";
+  const isWarn = card.kind === "overdue" || card.kind === "pending";
+  const isPaused = card.kind === "paused";
+
+  const statusText = isDown
+    ? card.since
+      ? `${t("down")} · ${formatRelativeTime(card.since, nowMs)}`
+      : t("down")
+    : isDegraded && card.responseMs != null
+      ? `${card.responseMs} ms`
+      : card.kind === "overdue"
+        ? t("overdue")
+        : card.kind === "pending"
+          ? t("pending")
+          : isPaused
+            ? "Paused"
+            : card.responseMs != null
+              ? `${card.responseMs} ms`
+              : null;
+
+  const detail = isDown
+    ? [
+        card.detail,
+        card.consecutiveFailures != null && card.consecutiveFailures > 1
+          ? t("failedChecks", { n: card.consecutiveFailures })
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : isDegraded && card.responseMs != null && card.baselineMs != null
+      ? t("degradedDetail", { recent: card.responseMs, baseline: card.baselineMs })
+      : null;
+
+  return (
+    <Link
+      href={`/monitors/${card.id}`}
+      className="group block rounded-lg border border-border bg-bg-card p-3 transition-colors hover:border-border-strong focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+    >
+      <div className="flex items-center gap-2">
+        <span
+          className={cn(
+            "size-[7px] shrink-0 rounded-full",
+            isDown && "bg-status-down",
+            isDegraded && "bg-status-warn",
+            isWarn && "bg-status-warn",
+            isPaused && "bg-text-muted/70",
+            card.kind === "up" && "bg-status-up"
+          )}
+          aria-hidden
+        />
+        <MonitorFavicon src={faviconSrc(card.url, card.type)} size="sm" />
+        <span className="min-w-0 flex-1 truncate text-sm font-medium text-text-primary">
+          {card.name}
+        </span>
+        {statusText ? (
+          <span
+            className={cn(
+              "shrink-0 text-xs font-medium tabular-nums",
+              isDown && "text-status-down",
+              (isDegraded || isWarn) && "text-status-warn",
+              isPaused && "text-text-muted",
+              card.kind === "up" && "text-text-muted"
+            )}
+          >
+            {statusText}
+          </span>
+        ) : null}
+      </div>
+      <UptimeStrip strip={card.strip} />
+      {detail ? (
+        <p className="mt-1.5 truncate text-xs text-text-muted" title={detail}>
+          {detail}
+        </p>
+      ) : null}
+      <div className="mt-1 flex justify-between text-[11px] tabular-nums text-text-muted">
+        <span>{card.uptimePct != null ? `${card.uptimePct}%` : "—"} · 90d</span>
+        {isDegraded && card.baselineMs != null ? (
+          <span>baseline {card.baselineMs} ms</span>
+        ) : null}
+      </div>
+    </Link>
+  );
+}
+
 export function DashboardOverview({
   hasMonitors,
   downCount,
@@ -399,6 +521,7 @@ export function DashboardOverview({
   ssl,
   onboarding,
   userId,
+  monitorCards,
 }: DashboardOverviewProps) {
   const router = useRouter();
   const t = useTranslations("overview");
@@ -459,6 +582,7 @@ export function DashboardOverview({
           </div>
         ) : (
           <>
+            {/* ── Status header ── */}
             <div className="min-w-0">
               <h1
                 className={cn(
@@ -517,129 +641,42 @@ export function DashboardOverview({
               </p>
             </div>
 
-            <div className="mt-6 flex flex-wrap items-center gap-3">
-              <Link href="/monitors" className="inline-flex min-h-10 items-center rounded-md border border-border px-4 text-sm font-medium text-text-primary transition-colors hover:bg-bg-card focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
-                {t("seeMonitors")}
-              </Link>
-              <DashboardAddMonitor />
-            </div>
-
-            <dl className="mt-8 grid grid-cols-2 gap-x-6 gap-y-6 border-y border-border py-5 lg:grid-cols-4">
+            {/* ── Stat bar ── */}
+            <dl className="mt-6 grid grid-cols-2 gap-x-0 border-y border-border py-4 lg:grid-cols-4">
               {[
                 { label: t("availability7d"), value: weekUptime == null ? "—" : `${weekUptime}%`, detail: weekChecks > 0 ? t("chartTrendChecks", { n: weekChecks }) : t("awaitingData") },
-                { label: t("response7d"), value: weekAvgMs == null ? "—" : `${weekAvgMs} ms`, detail: t("successfulChecks") },
-                { label: t("downtimeLabel"), value: t("downtimeMinutes", { n: downtimeMin90d }), detail: t("downtimeEstimate") },
+                { label: t("response7d"), value: weekAvgMs == null ? "—" : `${weekAvgMs} ms` },
+                { label: t("downtimeLabel"), value: t("downtimeMinutes", { n: downtimeMin90d }) },
                 {
                   label: t("certificateLabel"),
                   value: nextSsl ? (nextSsl.days < 0 ? t("sslExpired") : t("sslDays", { n: nextSsl.days })) : "—",
                   detail: nextSsl?.name ?? t("noCertificate"),
                   warn: nextSsl?.atRisk ?? false,
                 },
-              ].map((stat) => (
-                <div key={stat.label} className="min-w-0">
-                  <dt className="text-xs font-medium text-text-muted">{stat.label}</dt>
-                  <dd className="mt-2 flex items-center gap-1.5 text-2xl font-semibold tracking-tight tabular-nums text-text-primary">
+              ].map((stat, i) => (
+                <div key={stat.label} className={cn("min-w-0 px-3 first:pl-0 last:pr-0", i > 0 && "max-lg:[&:nth-child(odd)]:border-l-0 max-lg:[&:nth-child(even)]:border-l max-lg:[&:nth-child(n+3)]:mt-4 max-lg:[&:nth-child(n+3)]:border-t max-lg:[&:nth-child(n+3)]:pt-4 lg:border-l border-border")}>
+                  <dt className="text-xs text-text-muted">{stat.label}</dt>
+                  <dd className="mt-1.5 flex items-center gap-1.5 text-xl font-semibold tracking-tight tabular-nums text-text-primary">
                     {"warn" in stat && stat.warn ? (
-                      <ShieldAlert className="size-5 shrink-0 text-status-warn" aria-hidden />
+                      <ShieldAlert className="size-4 shrink-0 text-status-warn" aria-hidden />
                     ) : null}
                     {stat.value}
                   </dd>
-                  <dd className="mt-1 break-words text-xs leading-relaxed text-text-muted">{stat.detail}</dd>
+                  {"detail" in stat && stat.detail ? (
+                    <dd className="mt-0.5 break-words text-[11px] leading-relaxed text-text-muted">{stat.detail}</dd>
+                  ) : null}
                 </div>
               ))}
             </dl>
 
-            {attention.length > 0 && (
-              <section className="mt-10">
-                <SectionHeading icon={TriangleAlert}>{t("attention")} · {attention.length}</SectionHeading>
-                <ul className="divide-y divide-border/70 text-sm">
-                  {attention.map((row) => {
-                    const tone =
-                      row.kind === "degraded" || row.kind === "overdue" || row.kind === "pending"
-                        ? "warn"
-                        : row.acked
-                          ? "muted"
-                          : "down";
-                    const Icon =
-                      row.kind === "degraded"
-                        ? Timer
-                        : row.kind === "overdue"
-                          ? Clock
-                          : row.kind === "pending"
-                            ? CircleDashed
-                            : row.acked
-                              ? CircleCheck
-                              : CircleX;
-                    const label =
-                      row.kind === "degraded"
-                        ? t("degraded")
-                        : row.kind === "overdue"
-                          ? t("overdue")
-                          : row.kind === "pending"
-                            ? t("pending")
-                            : row.acked
-                              ? t("acked")
-                              : t("down");
-                    const detail =
-                      row.kind === "pending"
-                        ? t("pendingDetail")
-                        : row.kind === "degraded" && row.latestMs != null && row.baselineMs != null
-                          ? t("degradedDetail", { recent: row.latestMs, baseline: row.baselineMs })
-                          : row.kind === "down" && row.consecutiveFailures != null && row.consecutiveFailures > 1
-                            ? [row.detail, t("failedChecks", { n: row.consecutiveFailures })]
-                                .filter(Boolean)
-                                .join(" · ")
-                            : row.detail;
-                    const openHref = httpHref(row.url);
-                    return (
-                      <li key={row.id} className="flex flex-col items-stretch gap-2 py-3 sm:flex-row sm:flex-wrap sm:items-start sm:gap-x-3 sm:gap-y-1 sm:py-2.5">
-                        <Link href={`/monitors/${row.id}`} className="group min-w-0 flex-1 max-sm:py-1">
-                          <SiteLabel name={row.name} url={row.url} type={row.type} />
-                          {detail ? (
-                            <p className="mt-0.5 break-words pl-6 text-sm sm:truncate sm:text-xs text-text-muted" title={detail}>
-                              {detail}
-                            </p>
-                          ) : null}
-                        </Link>
-                        <div className="mt-0.5 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 sm:shrink-0 sm:justify-end sm:gap-2">
-                          {openHref ? (
-                            <a
-                              href={openHref}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="inline-flex min-h-11 items-center text-sm font-medium text-text-muted underline-offset-4 transition-colors hover:text-text-primary hover:underline sm:min-h-0 sm:text-xs"
-                            >
-                              {t("openSite")}
-                            </a>
-                          ) : null}
-                          <CheckNowButton monitorId={row.id} appearance="link" />
-                          {row.kind === "down" && !row.acked ? (
-                            <AttentionAckButton monitorId={row.id} />
-                          ) : null}
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1.5 text-xs font-medium",
-                              tone === "warn" && "text-status-warn",
-                              tone === "muted" && "text-text-muted",
-                              tone === "down" && "text-status-down"
-                            )}
-                          >
-                            <Icon className="size-3.5 shrink-0" aria-hidden />
-                            {label}
-                            {row.since ? (
-                              <span className="tabular-nums text-text-muted">
-                                · {formatRelativeTime(row.since, nowMs)}
-                              </span>
-                            ) : null}
-                          </span>
-                        </div>
-                      </li>
-                    );
-                  })}
-                </ul>
-              </section>
-            )}
+            {/* ── Monitor grid ── */}
+            <div className="mt-6 grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+              {monitorCards.map((card) => (
+                <MonitorCard key={card.id} card={card} nowMs={nowMs} t={t} />
+              ))}
+            </div>
 
+            {/* ── Activity + Rankings ── */}
             <ActivityDigest activity={activity} userId={userId} nowMs={nowMs} />
 
             {showTrend ? (

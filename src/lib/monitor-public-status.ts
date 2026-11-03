@@ -166,6 +166,49 @@ export async function getRecentChecksByMonitor(
   );
 }
 
+export type PerMonitorDailyStat = {
+  monitorId: string;
+  day: string;
+  total: number;
+  okCount: number;
+};
+
+export async function getPerMonitorDailyStats(
+  monitorIds: string[],
+  since: Date
+): Promise<Map<string, PerMonitorDailyStat[]>> {
+  const map = new Map<string, PerMonitorDailyStat[]>();
+  if (monitorIds.length === 0) return map;
+
+  const { db } = await import("@/db");
+  const dayExpr = sql<string>`strftime('%Y-%m-%d', ${checkResult.createdAt}, 'unixepoch')`;
+  const rows = await db
+    .select({
+      monitorId: checkResult.monitorId,
+      day: dayExpr,
+      total: sql<number>`cast(count(*) as integer)`.mapWith(Number),
+      okCount: sql<number>`coalesce(cast(sum(case when ${checkResult.ok} = 1 then 1 else 0 end) as integer), 0)`.mapWith(Number),
+    })
+    .from(checkResult)
+    .where(
+      and(
+        inArray(checkResult.monitorId, monitorIds),
+        gte(checkResult.createdAt, since),
+        notDuringMaintenance()
+      )
+    )
+    .groupBy(checkResult.monitorId, dayExpr);
+
+  for (const row of rows) {
+    const day = row.day?.slice(0, 10);
+    if (!day) continue;
+    const arr = map.get(row.monitorId) ?? [];
+    arr.push({ monitorId: row.monitorId, day, total: row.total, okCount: row.okCount });
+    map.set(row.monitorId, arr);
+  }
+  return map;
+}
+
 export async function getFleetDailyStats(
   monitorIds: string[],
   since: Date
