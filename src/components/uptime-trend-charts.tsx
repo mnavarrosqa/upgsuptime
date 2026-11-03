@@ -26,12 +26,15 @@ import {
   Scatter,
   ZAxis,
 } from "recharts";
+import { TIMING_PHASES, type TimingBreakdown, type TimingPhase } from "@/lib/timing-breakdown";
+import { PHASE_COLOR, PHASE_LABEL_KEY } from "@/components/check-timing-breakdown";
 
 export type ChartResultRow = {
   id: string;
   createdAt: string;
   ok: boolean;
   responseTimeMs: number | null;
+  timings?: TimingBreakdown | null;
   /** Set when this row is a time-bucket aggregate (averages mode). */
   bucketCheckCount?: number;
 };
@@ -214,12 +217,22 @@ function buildAveragedChartSeries(
         ? Math.round(okTimes.reduce((a, b) => a + b, 0) / okTimes.length)
         : null;
     const allOk = checks.every((c) => c.ok);
+    const withTimings = checks.filter((c) => c.ok && c.timings).map((c) => c.timings!);
+    const timings = withTimings.length
+      ? (Object.fromEntries(
+          TIMING_PHASES.map((phase) => {
+            const vals = withTimings.map((b) => b[phase]).filter((v): v is number => v != null);
+            return [phase, vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null];
+          }),
+        ) as TimingBreakdown)
+      : null;
 
     out.push({
       id: `avg-bucket-${i}`,
       createdAt: new Date(midMs).toISOString(),
       ok: allOk,
       responseTimeMs: avgMs,
+      timings,
       bucketCheckCount: checks.length,
     });
   }
@@ -236,32 +249,52 @@ function ResponseTooltip({
   labelDown,
   labelResponse,
   labelBucketChecks,
+  phaseLabel,
 }: TooltipProps<number, string> & {
   labelUp: string;
   labelDown: string;
   labelResponse: string;
   labelBucketChecks: (n: number) => string;
+  phaseLabel: (phase: TimingPhase) => string;
 }) {
   if (!active || !payload?.length) return null;
   const row = payload[0].payload as ChartResultRow;
+  const phases = row.ok && row.timings ? TIMING_PHASES.filter((p) => (row.timings![p] ?? 0) > 0) : [];
   const ms = row.responseTimeMs;
   const bc = row.bucketCheckCount;
   const timeLabel = typeof label === "string" ? formatAxisTime(label) : String(label);
   return (
-    <div className="rounded-md border border-border bg-bg-card px-3 py-2 text-xs shadow-sm">
-      <p className="text-text-muted">{timeLabel}</p>
+    <div className="min-w-[150px] rounded-lg border border-border bg-bg-card px-3 py-2.5 text-xs shadow-lg">
+      <p className="font-medium text-text-primary">{timeLabel}</p>
       {bc != null && bc > 1 && (
         <p className="mt-0.5 text-text-muted">{labelBucketChecks(bc)}</p>
       )}
-      <p className="mt-1 font-medium text-text-primary">{row.ok ? labelUp : labelDown}</p>
-      <p className="mt-0.5 text-text-muted">
-        {labelResponse}:{" "}
-        {ms != null ? (
-          <span className="font-medium text-text-primary">{ms} ms</span>
-        ) : (
-          <span className="text-text-muted">—</span>
-        )}
+      <p className="mt-2 flex items-center gap-1.5 font-medium text-text-primary">
+        <span
+          aria-hidden
+          className={`size-2 rounded-full ${row.ok ? "bg-status-up" : "bg-status-down"}`}
+        />
+        {row.ok ? labelUp : labelDown}
       </p>
+      <p className="mt-1 flex items-baseline justify-between gap-4 text-text-muted">
+        <span>{labelResponse}</span>
+        <span className="text-sm font-semibold tabular-nums text-text-primary">
+          {ms != null ? `${ms} ms` : "—"}
+        </span>
+      </p>
+      {phases.length > 0 && (
+        <ul className="mt-2 space-y-1 border-t border-border pt-2">
+          {phases.map((p) => (
+            <li key={p} className="flex items-center justify-between gap-4 text-text-muted">
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden className="size-2 rounded-sm" style={{ backgroundColor: PHASE_COLOR[p] }} />
+                {phaseLabel(p)}
+              </span>
+              <span className="tabular-nums text-text-primary">{row.timings![p]} ms</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -633,12 +666,14 @@ export function UptimeTrendCharts({
                 width={52}
               />
               <Tooltip
+                cursor={{ stroke: "var(--color-text-muted)", strokeWidth: 1, strokeDasharray: "4 3" }}
                 content={
                   <ResponseTooltip
                     labelUp={t("statusBadgeUp")}
                     labelDown={t("statusBadgeDown")}
                     labelResponse={t("tooltipResponse")}
                     labelBucketChecks={(n) => t("tooltipBucketChecks", { n })}
+                    phaseLabel={(phase) => t(PHASE_LABEL_KEY[phase])}
                   />
                 }
               />
@@ -650,7 +685,7 @@ export function UptimeTrendCharts({
                 fill={`url(#${gradientId})`}
                 connectNulls={false}
                 dot={false}
-                activeDot={{ r: 4, fill: "var(--color-accent)" }}
+                activeDot={{ r: 5, fill: "var(--color-accent)", stroke: "var(--color-bg-card)", strokeWidth: 2 }}
                 isAnimationActive={false}
               />
             </AreaChart>

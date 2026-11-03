@@ -21,7 +21,9 @@ import { MonitorDetailAckFeedback } from "@/components/monitor-detail-ack-feedba
 import { MonitorFavicon } from "@/components/monitor-favicon";
 import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { CheckTimingBreakdown } from "@/components/check-timing-breakdown";
-import { summarizeTimings } from "@/lib/timing-breakdown";
+import { breakdownCheck, summarizeTimings } from "@/lib/timing-breakdown";
+import { getAvailability } from "@/lib/availability";
+import { AvailabilityTable } from "@/components/availability-table";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns" || monitorType === "tcp") return "";
@@ -75,6 +77,8 @@ export default async function MonitorDetailPage({
   ]);
   if (!m) notFound();
 
+  const availability = await getAvailability(m.id, m.intervalMinutes, unixNowMs());
+
   const serializedResults = results.map((r) => ({
     id: r.id,
     createdAt:
@@ -101,6 +105,7 @@ export default async function MonitorDetailPage({
     createdAt: r.createdAt,
     ok: r.ok,
     responseTimeMs: r.responseTimeMs,
+    timings: breakdownCheck(r),
   }));
 
   const monitorType = m.type ?? "http";
@@ -298,6 +303,8 @@ export default async function MonitorDetailPage({
             );
           })()}
       </MonitorDetailHistoryClient>
+
+      <AvailabilityTable rows={availability} />
 
       {timingSummary && <CheckTimingBreakdown summary={timingSummary} />}
 

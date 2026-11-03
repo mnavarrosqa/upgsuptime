@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AlertTriangle, Percent, Timer, Zap } from "lucide-react";
+import { breakdownCheck } from "@/lib/timing-breakdown";
 import type { ChartDetailMode, ChartResultRow } from "@/components/uptime-trend-charts";
 
 const UptimeTrendChartsInner = dynamic(
@@ -89,12 +90,17 @@ export function MonitorDetailHistoryClient({
           createdAt: string | Date;
           ok: boolean;
           responseTimeMs: number | null;
+          dnsMs: number | null;
+          connectMs: number | null;
+          tlsMs: number | null;
+          ttfbMs: number | null;
         }>;
         const normalized: ChartResultRow[] = data.map((r) => ({
           id: r.id,
           createdAt: new Date(r.createdAt).toISOString(),
           ok: r.ok,
           responseTimeMs: r.responseTimeMs,
+          timings: breakdownCheck(r),
         }));
         setRangeResults(normalized);
       })

@@ -4,6 +4,7 @@ import type { SslAlertType } from "@/lib/notify";
 import type { SslCheckResult } from "@/lib/check-ssl";
 import type { AppLocale } from "@/i18n/config";
 import { emailFormat, type EmailMessages } from "@/lib/email-i18n";
+import { formatDurationMs } from "@/lib/format-duration";
 
 // ─── shared primitives ────────────────────────────────────────────────────────
 
@@ -59,8 +60,12 @@ function escAttr(str: string): string {
     .replace(/</g, "&lt;");
 }
 
-function primaryButton(href: string, label: string) {
-  return `<a href="${escAttr(href)}" style="display:inline-block;background:${COLORS.textPrimary};color:#fafaf9;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;font-family:${FONT_STACK};min-height:44px;line-height:20px;box-sizing:border-box;">${label}</a>`;
+function primaryButton(href: string, label: string, bg?: string) {
+  return `<a href="${escAttr(href)}" style="display:inline-block;background:${bg ?? COLORS.textPrimary};color:#fafaf9;padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;font-family:${FONT_STACK};min-height:44px;line-height:20px;box-sizing:border-box;">${label}</a>`;
+}
+
+function outlineButton(href: string, label: string) {
+  return `<a href="${escAttr(href)}" style="display:inline-block;background:${COLORS.cardBg};color:${COLORS.textPrimary};padding:12px 20px;border-radius:8px;font-size:14px;font-weight:600;text-decoration:none;font-family:${FONT_STACK};min-height:44px;line-height:20px;box-sizing:border-box;border:1px solid ${COLORS.border};">${label}</a>`;
 }
 
 function buildMonitorDetailCtaBlock(
@@ -78,7 +83,7 @@ function buildMonitorDetailCtaBlock(
     </table>`;
 }
 
-function buildDownAckEmailBlock(messages: EmailMessages, ackEmailUrl: string): string {
+function buildDownAckEmailBlock(messages: EmailMessages): string {
   return `
     <table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:24px 0 0;">
       <tr>
@@ -86,10 +91,9 @@ function buildDownAckEmailBlock(messages: EmailMessages, ackEmailUrl: string): s
           <p style="margin:0 0 8px;font-size:14px;font-weight:600;color:${COLORS.warnText};font-family:${FONT_STACK};">
             ${escHtml(messages.uptime.ackTitle)}
           </p>
-          <p style="margin:0 0 16px;font-size:13px;color:${COLORS.textMuted};line-height:1.55;font-family:${FONT_STACK};">
+          <p style="margin:0;font-size:13px;color:${COLORS.textMuted};line-height:1.55;font-family:${FONT_STACK};">
             ${escHtml(messages.uptime.ackBody)}
           </p>
-          ${primaryButton(ackEmailUrl, escHtml(messages.uptime.ackButton))}
         </td>
       </tr>
     </table>`;
@@ -120,7 +124,11 @@ function detailsPanel(rows: string[]): string {
     </table>`;
 }
 
-function wrap(body: string, messages: EmailMessages, locale: AppLocale) {
+function wrap(body: string, messages: EmailMessages, locale: AppLocale, accentColor?: string) {
+  const stripe = accentColor
+    ? `<tr><td style="background:${accentColor};height:4px;border-radius:16px 16px 0 0;font-size:0;line-height:0;">&nbsp;</td></tr>`
+    : "";
+  const cardRadius = accentColor ? "0 0 16px 16px" : "16px";
   return `<!DOCTYPE html>
 <html lang="${locale}">
 <head>
@@ -138,8 +146,9 @@ function wrap(body: string, messages: EmailMessages, locale: AppLocale) {
               <span style="font-size:13px;color:${COLORS.textFaint};font-weight:500;font-family:${FONT_STACK};">${escHtml(messages.wordmark)}</span>
             </td>
           </tr>
+          ${stripe}
           <tr>
-            <td style="background:${COLORS.cardBg};border:1px solid ${COLORS.border};border-radius:16px;padding:32px;">
+            <td style="background:${COLORS.cardBg};border:1px solid ${COLORS.border};border-radius:${cardRadius};padding:32px;">
               ${body}
             </td>
           </tr>
@@ -191,7 +200,12 @@ export function buildUptimeAlertHtml(
   checkedAt: string,
   messages: EmailMessages,
   locale: AppLocale,
-  options?: { ackEmailUrl?: string | null; monitorDetailUrl?: string | null },
+  options?: {
+    ackEmailUrl?: string | null;
+    monitorDetailUrl?: string | null;
+    incidentDurationMs?: number | null;
+    startedAt?: string | null;
+  },
 ): string {
   const isUp = newStatus;
   const statusBadge = isUp
@@ -214,25 +228,63 @@ export function buildUptimeAlertHtml(
   }
 
   const rawRows: string[] = [];
-  if (result.statusCode != null) {
-    rawRows.push(detailRow(messages.statusCode, String(result.statusCode)));
+  if (!isUp) {
+    const cause =
+      result.statusCode != null
+        ? `${messages.statusCode} ${result.statusCode}`
+        : result.message ?? "—";
+    rawRows.push(detailRow(messages.uptime.cause, escHtml(cause)));
+    rawRows.push(detailRow(messages.uptime.startedAt, escHtml(checkedAt)));
+  } else {
+    if (options?.startedAt) {
+      rawRows.push(detailRow(messages.uptime.startedAt, escHtml(options.startedAt)));
+    }
+    rawRows.push(detailRow(messages.uptime.resolvedAt, escHtml(checkedAt)));
+    if (options?.incidentDurationMs != null && options.incidentDurationMs > 0) {
+      rawRows.push(detailRow(messages.uptime.duration, formatDurationMs(options.incidentDurationMs)));
+    }
+    if (result.statusCode != null) {
+      rawRows.push(detailRow(messages.statusCode, String(result.statusCode)));
+    }
   }
   if (result.responseTimeMs != null) {
-    rawRows.push(
-      detailRow(messages.responseTime, `${result.responseTimeMs} ms`),
-    );
+    rawRows.push(detailRow(messages.responseTime, `${result.responseTimeMs} ms`));
   }
-  if (!isUp && result.message) {
-    rawRows.push(detailRow(messages.error, escHtml(result.message)));
+  if (!isUp && result.statusCode != null && result.message) {
+    rawRows.push(
+      detailRow(
+        messages.uptime.response,
+        `<span style="display:block;background:${COLORS.cardBg};border:1px solid ${COLORS.border};border-radius:6px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px;word-break:break-word;">${escHtml(result.message)}</span>`,
+      ),
+    );
   }
   const rows = finalizeDetailRows(rawRows);
 
   const ackBlock =
     !isUp && options?.ackEmailUrl
-      ? buildDownAckEmailBlock(messages, options.ackEmailUrl)
+      ? buildDownAckEmailBlock(messages)
       : "";
 
-  const monitorCta = buildMonitorDetailCtaBlock(messages, options?.monitorDetailUrl);
+  // Side-by-side action buttons
+  const buttons: string[] = [];
+  if (!isUp && options?.ackEmailUrl) {
+    buttons.push(primaryButton(options.ackEmailUrl, escHtml(messages.uptime.ackButton), COLORS.down));
+  }
+  if (options?.monitorDetailUrl) {
+    buttons.push(
+      buttons.length === 0
+        ? primaryButton(options.monitorDetailUrl, escHtml(messages.viewMonitor))
+        : outlineButton(options.monitorDetailUrl, escHtml(messages.viewMonitor)),
+    );
+  }
+  const buttonBar = buttons.length > 0
+    ? `<table width="100%" cellpadding="0" cellspacing="0" role="presentation" style="margin:24px 0 0;">
+        <tr><td>
+          ${buttons.map((b) => `<span style="display:inline-block;margin-right:10px;margin-bottom:8px;">${b}</span>`).join("")}
+        </td></tr>
+      </table>`
+    : "";
+
   const checkedAtLabel = emailFormat(messages.checkedAt, { at: escHtml(checkedAt) });
   const detailsBlock = detailsPanel(rows);
 
@@ -242,14 +294,15 @@ export function buildUptimeAlertHtml(
       ${headline}
     </h1>
     <p style="margin:0;font-size:14px;color:${COLORS.textMuted};line-height:1.5;font-family:${FONT_STACK};word-break:break-all;">${escHtml(m.url)}</p>
-    ${monitorCta}
-    ${ackBlock}
+    ${buttonBar}
+    ${!isUp && options?.ackEmailUrl ? ackBlock : ""}
     ${detailsBlock}
     <p style="margin:${rows.length > 0 || ackBlock ? "20px" : "24px"} 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">
       ${checkedAtLabel}
     </p>`;
 
-  return wrap(body, messages, locale);
+  const accentColor = isUp ? COLORS.up : COLORS.down;
+  return wrap(body, messages, locale, accentColor);
 }
 
 // ─── SSL alert ────────────────────────────────────────────────────────────────

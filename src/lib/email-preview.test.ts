@@ -94,7 +94,11 @@ describe("email preview generator", () => {
         checkedAt,
         messages,
         "en",
-        { monitorDetailUrl },
+        {
+          monitorDetailUrl,
+          incidentDurationMs: 19 * 60_000,
+          startedAt: "Mon, 19 May 2026 11:41:00 GMT",
+        },
       ),
       "email-preview-ssl-expiring.html": buildSslAlertHtml(
         fixtureMonitor,
