@@ -21,7 +21,7 @@ import { MonitorDetailAckFeedback } from "@/components/monitor-detail-ack-feedba
 import { MonitorFavicon } from "@/components/monitor-favicon";
 import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { CheckTimingBreakdown } from "@/components/check-timing-breakdown";
-import { summarizeTimings } from "@/lib/timing-breakdown";
+import { breakdownCheck, summarizeTimings } from "@/lib/timing-breakdown";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
   if (monitorType === "dns" || monitorType === "tcp") return "";
@@ -101,6 +101,7 @@ export default async function MonitorDetailPage({
     createdAt: r.createdAt,
     ok: r.ok,
     responseTimeMs: r.responseTimeMs,
+    timings: breakdownCheck(r),
   }));
 
   const monitorType = m.type ?? "http";

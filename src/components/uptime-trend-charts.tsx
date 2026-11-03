@@ -26,12 +26,15 @@ import {
   Scatter,
   ZAxis,
 } from "recharts";
+import { TIMING_PHASES, type TimingBreakdown, type TimingPhase } from "@/lib/timing-breakdown";
+import { PHASE_COLOR, PHASE_LABEL_KEY } from "@/components/check-timing-breakdown";
 
 export type ChartResultRow = {
   id: string;
   createdAt: string;
   ok: boolean;
   responseTimeMs: number | null;
+  timings?: TimingBreakdown | null;
   /** Set when this row is a time-bucket aggregate (averages mode). */
   bucketCheckCount?: number;
 };
@@ -214,12 +217,22 @@ function buildAveragedChartSeries(
         ? Math.round(okTimes.reduce((a, b) => a + b, 0) / okTimes.length)
         : null;
     const allOk = checks.every((c) => c.ok);
+    const withTimings = checks.filter((c) => c.ok && c.timings).map((c) => c.timings!);
+    const timings = withTimings.length
+      ? (Object.fromEntries(
+          TIMING_PHASES.map((phase) => {
+            const vals = withTimings.map((b) => b[phase]).filter((v): v is number => v != null);
+            return [phase, vals.length ? Math.round(vals.reduce((a, b) => a + b, 0) / vals.length) : null];
+          }),
+        ) as TimingBreakdown)
+      : null;
 
     out.push({
       id: `avg-bucket-${i}`,
       createdAt: new Date(midMs).toISOString(),
       ok: allOk,
       responseTimeMs: avgMs,
+      timings,
       bucketCheckCount: checks.length,
     });
   }
@@ -236,14 +249,17 @@ function ResponseTooltip({
   labelDown,
   labelResponse,
   labelBucketChecks,
+  phaseLabel,
 }: TooltipProps<number, string> & {
   labelUp: string;
   labelDown: string;
   labelResponse: string;
   labelBucketChecks: (n: number) => string;
+  phaseLabel: (phase: TimingPhase) => string;
 }) {
   if (!active || !payload?.length) return null;
   const row = payload[0].payload as ChartResultRow;
+  const phases = row.ok && row.timings ? TIMING_PHASES.filter((p) => (row.timings![p] ?? 0) > 0) : [];
   const ms = row.responseTimeMs;
   const bc = row.bucketCheckCount;
   const timeLabel = typeof label === "string" ? formatAxisTime(label) : String(label);
@@ -266,6 +282,19 @@ function ResponseTooltip({
           {ms != null ? `${ms} ms` : "—"}
         </span>
       </p>
+      {phases.length > 0 && (
+        <ul className="mt-2 space-y-1 border-t border-border pt-2">
+          {phases.map((p) => (
+            <li key={p} className="flex items-center justify-between gap-4 text-text-muted">
+              <span className="flex items-center gap-1.5">
+                <span aria-hidden className="size-2 rounded-sm" style={{ backgroundColor: PHASE_COLOR[p] }} />
+                {phaseLabel(p)}
+              </span>
+              <span className="tabular-nums text-text-primary">{row.timings![p]} ms</span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
@@ -644,6 +673,7 @@ export function UptimeTrendCharts({
                     labelDown={t("statusBadgeDown")}
                     labelResponse={t("tooltipResponse")}
                     labelBucketChecks={(n) => t("tooltipBucketChecks", { n })}
+                    phaseLabel={(phase) => t(PHASE_LABEL_KEY[phase])}
                   />
                 }
               />

@@ -7,7 +7,7 @@ import {
   type TimingSummary,
 } from "@/lib/timing-breakdown";
 
-const PHASE_COLOR: Record<TimingPhase, string> = {
+export const PHASE_COLOR: Record<TimingPhase, string> = {
   dns: "var(--timing-dns)",
   connect: "var(--timing-connect)",
   tls: "var(--timing-tls)",
@@ -15,7 +15,7 @@ const PHASE_COLOR: Record<TimingPhase, string> = {
   download: "var(--timing-download)",
 };
 
-const PHASE_LABEL_KEY = {
+export const PHASE_LABEL_KEY = {
   dns: "timingPhaseDns",
   connect: "timingPhaseConnect",
   tls: "timingPhaseTls",
