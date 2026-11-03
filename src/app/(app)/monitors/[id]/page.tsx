@@ -23,6 +23,7 @@ import { MonitorStatusBadge } from "@/components/monitor-status-badge";
 import { CheckTimingBreakdown } from "@/components/check-timing-breakdown";
 import { breakdownCheck, summarizeTimings } from "@/lib/timing-breakdown";
 import { getAvailability } from "@/lib/availability";
+import { formatDurationMs } from "@/lib/format-duration";
 import { AvailabilityTable } from "@/components/availability-table";
 
 function getFaviconUrl(url: string, monitorType?: string | null): string {
@@ -115,6 +116,7 @@ export default async function MonitorDetailPage({
   const allMessagesNull = serializedResults.every((r) => r.message === null);
 
   const t = await getTranslations("monitorDetail");
+  const showStatusTile = !m.paused && m.currentStatus != null && !!m.lastStatusChangedAt;
   const showDowntimeAckUi = !m.paused && m.currentStatus === false;
 
   return (
@@ -220,7 +222,7 @@ export default async function MonitorDetailPage({
       <MonitorDetailHistoryClient
         monitorId={m.id}
         initialResults={chartRows}
-        hasSslCard={!!m.sslMonitoring}
+        extraTileCount={(m.sslMonitoring ? 1 : 0) + (showStatusTile ? 1 : 0)}
         showStatsGrid={results.length > 0}
         baselineP75Ms={m.baselineP75Ms}
         degradationAlertEnabled={m.degradationAlertEnabled}
@@ -256,6 +258,23 @@ export default async function MonitorDetailPage({
           </>
         }
       >
+        {showStatusTile && (
+          <div className="flex min-h-full flex-col rounded-xl border border-border/60 bg-bg-page/50 px-3 py-3 sm:px-4 sm:py-3.5">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+              {m.currentStatus ? t("statUpFor") : t("statDownFor")}
+            </span>
+            <p
+              className={`mt-2 text-xl font-semibold tabular-nums sm:text-2xl ${m.currentStatus ? "text-status-up" : "text-status-down"}`}
+            >
+              {formatDurationMs(unixNowMs() - m.lastStatusChangedAt!.getTime())}
+            </p>
+            {m.lastCheckAt && (
+              <p className="mt-1 text-xs text-text-muted">
+                {t("statLastChecked", { ago: formatDurationMs(unixNowMs() - m.lastCheckAt.getTime()) })}
+              </p>
+            )}
+          </div>
+        )}
         {m.sslMonitoring &&
           (() => {
             const sslDays = m.sslExpiresAt

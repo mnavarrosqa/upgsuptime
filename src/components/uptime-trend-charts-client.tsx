@@ -52,7 +52,7 @@ function computeStats(rows: ChartResultRow[]) {
 export function MonitorDetailHistoryClient({
   monitorId,
   initialResults,
-  hasSslCard,
+  extraTileCount,
   showStatsGrid,
   baselineP75Ms,
   degradationAlertEnabled,
@@ -61,7 +61,7 @@ export function MonitorDetailHistoryClient({
 }: {
   monitorId: string;
   initialResults: ChartResultRow[];
-  hasSslCard: boolean;
+  extraTileCount: number;
   showStatsGrid: boolean;
   baselineP75Ms?: number | null;
   degradationAlertEnabled?: boolean | null;
@@ -156,7 +156,7 @@ export function MonitorDetailHistoryClient({
           </p>
         </div>
         <div
-          className={`grid grid-cols-2 gap-3 p-4 sm:gap-4 sm:p-5 ${hasSslCard ? "sm:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-4"}`}
+          className={`grid grid-cols-2 gap-3 p-4 sm:gap-4 sm:p-5 ${extraTileCount === 0 ? "sm:grid-cols-4" : extraTileCount === 1 ? "sm:grid-cols-3 xl:grid-cols-5" : "sm:grid-cols-3 xl:grid-cols-6"}`}
         >
         <div className={statTile}>
           <span className={statLabel}>

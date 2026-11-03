@@ -433,6 +433,9 @@ export function UptimeTrendCharts({
       ? chronological
       : buildAveragedChartSeries(chronological, CHART_AVG_MAX_BUCKETS);
 
+  const phaseKeys = TIMING_PHASES.filter((p) => trendSeries.some((r) => (r.timings?.[p] ?? 0) > 0));
+  const hasPhases = phaseKeys.length > 0;
+
   // ── scatter points (same resolution as response trend) ─────────────────────
   const allScatterPoints: ScatterPoint[] = trendSeries.map((r) => ({
     x: new Date(r.createdAt).getTime(),
@@ -632,6 +635,16 @@ export function UptimeTrendCharts({
         <p className="mt-0.5 text-[10px] text-text-muted">
           {detailMode === "averages" ? t("chartResponseTrendSubAverages") : t("chartResponseTrendSubFull")}
         </p>
+        {hasPhases && (
+          <ul className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-text-muted">
+            {phaseKeys.map((p) => (
+              <li key={p} className="flex items-center gap-1.5">
+                <span aria-hidden className="size-2 rounded-sm" style={{ backgroundColor: PHASE_COLOR[p] }} />
+                {t(PHASE_LABEL_KEY[p])}
+              </li>
+            ))}
+          </ul>
+        )}
         <div
           className="mt-2 h-[160px] w-full"
           role="img"
@@ -677,17 +690,36 @@ export function UptimeTrendCharts({
                   />
                 }
               />
-              <Area
-                type="monotone"
-                dataKey="responseTimeMs"
-                stroke="var(--color-accent)"
-                strokeWidth={2}
-                fill={`url(#${gradientId})`}
-                connectNulls={false}
-                dot={false}
-                activeDot={{ r: 5, fill: "var(--color-accent)", stroke: "var(--color-bg-card)", strokeWidth: 2 }}
-                isAnimationActive={false}
-              />
+              {hasPhases ? (
+                phaseKeys.map((phase) => (
+                  <Area
+                    key={phase}
+                    type="monotone"
+                    stackId="phases"
+                    dataKey={(row: ChartResultRow) => row.timings?.[phase] ?? null}
+                    stroke={PHASE_COLOR[phase]}
+                    strokeWidth={1.5}
+                    fill={PHASE_COLOR[phase]}
+                    fillOpacity={0.18}
+                    connectNulls={false}
+                    dot={false}
+                    activeDot={{ r: 4, fill: PHASE_COLOR[phase], stroke: "var(--color-bg-card)", strokeWidth: 2 }}
+                    isAnimationActive={false}
+                  />
+                ))
+              ) : (
+                <Area
+                  type="monotone"
+                  dataKey="responseTimeMs"
+                  stroke="var(--color-accent)"
+                  strokeWidth={2}
+                  fill={`url(#${gradientId})`}
+                  connectNulls={false}
+                  dot={false}
+                  activeDot={{ r: 5, fill: "var(--color-accent)", stroke: "var(--color-bg-card)", strokeWidth: 2 }}
+                  isAnimationActive={false}
+                />
+              )}
             </AreaChart>
           </ResponsiveContainer>
         </div>
