@@ -4,8 +4,7 @@ type BrandMarkProps = {
   animated?: boolean;
 };
 
-/** Orbit geometry is shared with generated icons and native splash images. */
-import orbit from "@/lib/brand-orbit.json";
+import pulse from "@/lib/brand-orbit.json";
 
 export function BrandMark({ className, size, animated = false }: BrandMarkProps) {
   return (
@@ -18,10 +17,18 @@ export function BrandMark({ className, size, animated = false }: BrandMarkProps)
       aria-hidden="true"
       focusable="false"
     >
-      <g className={animated ? "brand-orbit-motion" : undefined}>
-        <path d={orbit.path} stroke="currentColor" strokeWidth={orbit.strokeWidth} />
-        <circle cx={orbit.dot.cx} cy={orbit.dot.cy} r={orbit.dot.r} fill={orbit.color} />
-      </g>
+      <path
+        d={pulse.path}
+        stroke="currentColor"
+        strokeWidth={pulse.strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <circle cx={pulse.dot.cx} cy={pulse.dot.cy} r={pulse.dot.r} fill={pulse.color}>
+        {animated && (
+          <animate attributeName="opacity" values="1;0.3;1" dur="2s" repeatCount="indefinite" />
+        )}
+      </circle>
     </svg>
   );
 }

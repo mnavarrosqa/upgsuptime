@@ -9,7 +9,7 @@ const orbit = JSON.parse(readFileSync(join(root, "src/lib/brand-orbit.json"), "u
 const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
   <rect width="32" height="32" rx="8" fill="#1c1917"/>
   <g transform="translate(3.2 3.2) scale(0.8)">
-    <path d="${orbit.path}" fill="none" stroke="#f4f1ee" stroke-width="${orbit.strokeWidth}"/>
+    <path d="${orbit.path}" fill="none" stroke="#f4f1ee" stroke-width="${orbit.strokeWidth}" stroke-linecap="${orbit.strokeLinecap || "butt"}" stroke-linejoin="${orbit.strokeLinejoin || "miter"}"/>
     <circle cx="${orbit.dot.cx}" cy="${orbit.dot.cy}" r="${orbit.dot.r}" fill="${orbit.color}"/>
   </g>
 </svg>

@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { ExternalLink, ShieldAlert, ChartSpline } from "lucide-react";
+import { Activity, ExternalLink, ShieldAlert, ChartSpline, TrendingDown, Zap } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
 import { FleetTrendClient } from "@/components/dashboard-charts-client";
@@ -344,7 +344,7 @@ function ActivityDigest({ activity, userId, nowMs }: { activity: ActivityItem[];
 
   return (
     <section className="mt-10">
-      <SectionHeading href="/activity" hrefLabel={t("viewAll")}>
+      <SectionHeading href="/activity" hrefLabel={t("viewAll")} icon={Activity}>
         {heading}
       </SectionHeading>
       {items.length === 0 ? (
@@ -699,7 +699,7 @@ export function DashboardOverview({
                 ) : null}
                 {worstUptime.length > 0 ? (
                   <section>
-                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
+                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={TrendingDown}>
                       {t("worstUptime")}
                     </SectionHeading>
                     <RankList
@@ -712,7 +712,7 @@ export function DashboardOverview({
                 ) : null}
                 {slowest.length > 0 ? (
                   <section>
-                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")}>
+                    <SectionHeading href="/monitors" hrefLabel={tNav("monitors")} icon={Zap}>
                       {t("slowest")}
                     </SectionHeading>
                     <StatList items={slowest} empty={t("noLatencyData")} />

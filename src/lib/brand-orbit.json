@@ -1,6 +1,8 @@
 {
-  "path": "M 25.969 11.351 A 11 11 0 1 1 20.649 6.031",
-  "strokeWidth": 4.5,
-  "dot": { "cx": 23.778, "cy": 8.222, "r": 2.55 },
-  "color": "#5266cb"
+  "path": "M 5 16 L 10 16 L 13 8 L 16 24 L 19 12 L 22 16 L 27 16",
+  "strokeWidth": 2.5,
+  "strokeLinecap": "round",
+  "strokeLinejoin": "round",
+  "dot": { "cx": 27, "cy": 16, "r": 2.2 },
+  "color": "#34d399"
 }

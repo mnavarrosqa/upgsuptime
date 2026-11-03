@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import Script from "next/script";
-import { Instrument_Sans, DM_Sans } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { pwaSplashStartupImages } from "@/lib/pwa-splash-startup.generated";
@@ -17,12 +17,7 @@ const themeScript = `
 })();
 `;
 
-const instrumentSans = Instrument_Sans({
-  variable: "--font-display",
-  subsets: ["latin"],
-});
-
-const dmSans = DM_Sans({
+const outfit = Outfit({
   variable: "--font-sans",
   subsets: ["latin"],
 });
@@ -70,7 +65,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={cn(instrumentSans.variable, dmSans.variable)}
+      className={outfit.variable}
       suppressHydrationWarning
     >
       <body className="font-sans antialiased">
