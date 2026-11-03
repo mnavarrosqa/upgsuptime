@@ -315,6 +315,7 @@ export default async function DashboardPage() {
           : overdue && m.lastCheckAt
             ? new Date(m.lastCheckAt).toISOString()
             : null,
+      lastCheckAt: m.lastCheckAt ? new Date(m.lastCheckAt).toISOString() : null,
       strip,
     };
   });

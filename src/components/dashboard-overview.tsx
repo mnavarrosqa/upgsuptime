@@ -5,7 +5,7 @@ import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
-import { Activity, ExternalLink, ShieldAlert, ChartSpline, TrendingDown, Zap } from "lucide-react";
+import { Activity, Clock, ExternalLink, ShieldAlert, ChartSpline, TrendingDown, Zap } from "lucide-react";
 import { AutoRefresh } from "@/components/auto-refresh";
 import { DashboardAddMonitor } from "@/components/dashboard-add-monitor";
 import { FleetTrendClient } from "@/components/dashboard-charts-client";
@@ -55,6 +55,7 @@ export type MonitorCardData = {
   detail: string | null;
   consecutiveFailures: number | null;
   since: string | null;
+  lastCheckAt: string | null;
   strip: ("ok" | "fail" | "partial" | "empty")[];
 };
 
@@ -414,6 +415,12 @@ function UptimeStrip({ strip }: { strip: MonitorCardData["strip"] }) {
   );
 }
 
+function responseTimeColor(ms: number): string {
+  if (ms < 300) return "text-status-up";
+  if (ms < 1000) return "text-status-warn";
+  return "text-status-down";
+}
+
 function MonitorCard({ card, nowMs, t }: { card: MonitorCardData; nowMs: number; t: ReturnType<typeof useTranslations<"overview">> }) {
   const isDown = card.kind === "down";
   const isDegraded = card.kind === "degraded";
@@ -477,7 +484,8 @@ function MonitorCard({ card, nowMs, t }: { card: MonitorCardData; nowMs: number;
               isDown && "text-status-down",
               (isDegraded || isWarn) && "text-status-warn",
               isPaused && "text-text-muted",
-              card.kind === "up" && "text-text-muted"
+              card.kind === "up" && card.responseMs != null && responseTimeColor(card.responseMs),
+              card.kind === "up" && card.responseMs == null && "text-text-muted"
             )}
           >
             {statusText}
@@ -492,7 +500,12 @@ function MonitorCard({ card, nowMs, t }: { card: MonitorCardData; nowMs: number;
       ) : null}
       <div className="mt-1 flex justify-between text-[11px] tabular-nums text-text-muted">
         <span>{card.uptimePct != null ? `${card.uptimePct}%` : "—"} · 90d</span>
-        {isDegraded && card.baselineMs != null ? (
+        {card.lastCheckAt ? (
+          <span className="flex items-center gap-0.5">
+            <Clock className="size-2.5" aria-hidden />
+            {formatRelativeTime(card.lastCheckAt, nowMs)}
+          </span>
+        ) : isDegraded && card.baselineMs != null ? (
           <span>baseline {card.baselineMs} ms</span>
         ) : null}
       </div>
