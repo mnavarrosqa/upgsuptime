@@ -4,6 +4,7 @@ import type { SslAlertType } from "@/lib/notify";
 import type { SslCheckResult } from "@/lib/check-ssl";
 import type { AppLocale } from "@/i18n/config";
 import { emailFormat, type EmailMessages } from "@/lib/email-i18n";
+import { formatDurationMs } from "@/lib/format-duration";
 
 // ─── shared primitives ────────────────────────────────────────────────────────
 
@@ -409,14 +410,6 @@ export function buildDegradationAlertHtml(
     <p style="margin:20px 0 0;font-size:12px;color:${COLORS.textFaint};font-family:${FONT_STACK};">${checkedAtLabel}</p>`;
 
   return wrap(body, messages, locale);
-}
-
-function formatDurationMs(ms: number): string {
-  const totalMin = Math.max(1, Math.round(ms / 60000));
-  const d = Math.floor(totalMin / 1440);
-  const h = Math.floor((totalMin % 1440) / 60);
-  const min = totalMin % 60;
-  return [d && `${d}d`, h && `${h}h`, (min || (!d && !h)) && `${min}m`].filter(Boolean).join(" ");
 }
 
 function escHtml(str: string): string {

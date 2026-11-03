@@ -1105,6 +1105,17 @@
     "timingPhaseTls": "Handshake TLS",
     "timingPhaseServer": "Espera del servidor",
     "timingPhaseDownload": "Descarga",
+    "availTitle": "Disponibilidad",
+    "availPeriod": "Período",
+    "availAvailability": "Disponibilidad",
+    "availDowntime": "Tiempo caído",
+    "availIncidents": "Incidentes",
+    "availLongest": "Más largo",
+    "availAvg": "Promedio",
+    "availPeriodToday": "Hoy",
+    "availPeriod7d": "Últimos 7 días",
+    "availPeriod30d": "Últimos 30 días",
+    "availPeriod365d": "Últimos 365 días",
     "timingNote": "El DNS se resuelve antes de la petición, así que el total puede superar el tiempo de respuesta. La espera del servidor incluye las redirecciones."
   },
   "emails": {
