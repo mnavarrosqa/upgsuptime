@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  AlertTriangle,
+  Clock,
   ExternalLink,
   Globe2,
   MoreHorizontal,
@@ -34,6 +36,8 @@ type MonitorCardProps = {
   trendResults: TrendPoint[];
   uptimePct?: number | null;
   lastCheckAt: Date | null;
+  currentStatus?: boolean | null;
+  lastStatusChangedAt?: Date | null;
   sslMonitoring: boolean;
   sslValid: boolean | null;
   sslExpiresAt: Date | string | null;
@@ -71,6 +75,73 @@ function formatUptimePct(value: number, locale: string): string {
     minimumFractionDigits: value % 1 === 0 ? 0 : 1,
     maximumFractionDigits: 1,
   });
+}
+
+function responseTimeColor(ms: number): string {
+  if (ms < 300) return "text-status-up";
+  if (ms < 1000) return "text-status-warn";
+  return "text-status-down";
+}
+
+function formatDownSince(since: Date | null): string | null {
+  if (!since) return null;
+  const diffMs = Date.now() - new Date(since).getTime();
+  const diffMin = Math.floor(diffMs / 60000);
+  if (diffMin < 1) return "< 1 min";
+  if (diffMin < 60) return `${diffMin} min`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ${diffMin % 60}m`;
+  return `${Math.floor(diffHr / 24)}d ${diffHr % 24}h`;
+}
+
+function MiniUptimeStrip({ results }: { results: TrendPoint[] }) {
+  const chrono = useMemo(() => {
+    const sorted = [...results].sort((a, b) => {
+      const ta = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const tb = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return ta - tb;
+    });
+    const BUCKETS = 30;
+    if (sorted.length <= BUCKETS) {
+      return sorted.map((r) => (r.ok ? "ok" : "fail"));
+    }
+    const up = new Array<number>(BUCKETS).fill(0);
+    const down = new Array<number>(BUCKETS).fill(0);
+    const times = sorted.map((r) => (r.createdAt ? new Date(r.createdAt).getTime() : 0));
+    const tMin = Math.min(...times);
+    const span = Math.max(Math.max(...times) - tMin, 1);
+    for (let i = 0; i < sorted.length; i++) {
+      let idx = Math.floor(((times[i]! - tMin) / span) * BUCKETS);
+      if (idx >= BUCKETS) idx = BUCKETS - 1;
+      if (sorted[i]!.ok) up[idx]!++;
+      else down[idx]!++;
+    }
+    return Array.from({ length: BUCKETS }, (_, i) => {
+      if (up[i]! + down[i]! === 0) return "empty";
+      if (down[i]! === 0) return "ok";
+      if (up[i]! === 0) return "fail";
+      return "partial";
+    });
+  }, [results]);
+
+  if (chrono.length === 0) return null;
+
+  return (
+    <div className="mt-2 flex gap-px" role="img" aria-label="90-day uptime">
+      {chrono.map((s, i) => (
+        <div
+          key={i}
+          className={cn(
+            "h-[5px] flex-1 first:rounded-l-sm last:rounded-r-sm",
+            s === "ok" && "bg-status-up/70",
+            s === "fail" && "bg-status-down/80",
+            s === "partial" && "bg-status-warn/80",
+            s === "empty" && "bg-border-muted/30"
+          )}
+        />
+      ))}
+    </div>
+  );
 }
 
 function StatusDot({
@@ -111,6 +182,8 @@ export function MonitorCard({
   trendResults,
   uptimePct = null,
   lastCheckAt,
+  currentStatus,
+  lastStatusChangedAt,
   sslMonitoring,
   sslValid,
   sslExpiresAt,
@@ -269,10 +342,16 @@ export function MonitorCard({
             </p>
           ) : null}
 
+          {latest && !latest.ok && currentStatus === false && lastStatusChangedAt ? (
+            <p className="mt-1 flex items-center gap-1 text-xs font-medium text-status-down">
+              <AlertTriangle className="size-3 shrink-0" aria-hidden />
+              {t("downFor", { duration: formatDownSince(lastStatusChangedAt) ?? "" })}
+            </p>
+          ) : null}
+
           <div className="mt-4 flex min-w-0 items-baseline gap-2">
             <span
               className="font-display text-[1.5rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
-              title={formatLastChecked(lastCheckAt, tTime)}
             >
               {uptimePct != null ? formatUptimePct(uptimePct, locale) : "—"}
             </span>
@@ -281,11 +360,20 @@ export function MonitorCard({
               {latest?.responseTimeMs != null ? (
                 <>
                   <span aria-hidden> · </span>
-                  <span className="tabular-nums">{t("trendCheckMs", { ms: latest.responseTimeMs })}</span>
+                  <span className={cn("tabular-nums", responseTimeColor(latest.responseTimeMs))}>
+                    {t("trendCheckMs", { ms: latest.responseTimeMs })}
+                  </span>
                 </>
               ) : null}
             </span>
           </div>
+
+          {lastCheckAt ? (
+            <p className="mt-1 flex items-center gap-1 text-[11px] text-text-muted">
+              <Clock className="size-2.5 shrink-0" aria-hidden />
+              {formatLastChecked(lastCheckAt, tTime)}
+            </p>
+          ) : null}
 
           {trendResults.length > 0 ? (
             <Link
@@ -298,6 +386,8 @@ export function MonitorCard({
           ) : (
             <div className="flex-1" aria-hidden />
           )}
+
+          <MiniUptimeStrip results={trendResults} />
         </div>
       </div>
 
