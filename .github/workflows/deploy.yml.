@@ -1,0 +1,31 @@
+name: Deploy
+
+# Despliega en monitor.upgservicios.com cuando CI pasa en main (o a mano desde Actions).
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Deploy por SSH
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          echo '[143.95.187.164]:22022 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIDXgYcmWHhzZWMjBXpMOMUgq2DDF4xTAoGrQNVbPGbW6' > ~/.ssh/known_hosts
+          # La clave solo puede ejecutar el deploy en el servidor (command= en authorized_keys):
+          # construye en paralelo, respalda la base, cambia de version y hace rollback si no arranca.
+          ssh -i ~/.ssh/deploy_key -p 22022 -o BatchMode=yes -o ServerAliveInterval=30 deploy@143.95.187.164
