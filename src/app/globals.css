@@ -119,7 +119,7 @@
   --color-input-border: var(--input-border);
   --color-input-focus: var(--input-focus);
   --font-sans: var(--font-sans);
-  --font-display: var(--font-display), var(--font-sans);
+  --font-display: var(--font-sans);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-destructive: var(--destructive);
@@ -357,24 +357,5 @@ body {
 .safe-top {
   padding-top: env(safe-area-inset-top);
 }
-/* Rotate the complete mark so the satellite stays seated in the ring opening. */
-@keyframes brand-orbit-turn {
-  to { transform: rotate(360deg); }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .brand-orbit-motion {
-    transform-box: view-box;
-    transform-origin: 50% 50%;
-    animation: brand-orbit-turn 2.4s linear infinite;
-  }
-}
-
-/* A single introductory turn; continuous motion is reserved for loading. */
-@media (prefers-reduced-motion: no-preference) {
-  .landing-orbit .brand-orbit-motion {
-    animation-duration: 1.8s;
-    animation-timing-function: var(--motion-ease-out-quart);
-    animation-iteration-count: 1;
-  }
-}
+/* Pulse brand mark no longer uses CSS rotation — the heartbeat dot
+   animates via inline SVG <animate> when the `animated` prop is set. */

@@ -104,7 +104,7 @@ function buildSplashSvg(width, height) {
 
   const logoInner = `
   <g transform="translate(${logoX},${topY}) scale(${logoSize / 32})">
-    <path d="${orbit.path}" fill="none" stroke="#f4f1ee" stroke-width="${orbit.strokeWidth}"/>
+    <path d="${orbit.path}" fill="none" stroke="#f4f1ee" stroke-width="${orbit.strokeWidth}" stroke-linecap="${orbit.strokeLinecap || "butt"}" stroke-linejoin="${orbit.strokeLinejoin || "miter"}"/>
     <circle cx="${orbit.dot.cx}" cy="${orbit.dot.cy}" r="${orbit.dot.r}" fill="${orbit.color}"/>
   </g>`;
 

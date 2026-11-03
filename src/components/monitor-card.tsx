@@ -6,10 +6,14 @@ import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ExternalLink,
+  Globe2,
   MoreHorizontal,
+  Network,
   Pause,
   Play,
+  Plug,
   RefreshCw,
+  Search,
 } from "lucide-react";
 import { toast } from "sonner";
 import { MonitorCardTrend, type TrendPoint } from "@/components/monitor-card-trend";
@@ -233,10 +237,10 @@ export function MonitorCard({
               <MonitorFavicon src={favicon} size="sm" />
             ) : (
               <span
-                className="flex size-4 shrink-0 items-center justify-center rounded bg-bg-page text-[9px] font-semibold text-text-muted"
+                className="flex size-4 shrink-0 items-center justify-center rounded bg-bg-page text-text-muted"
                 aria-hidden
               >
-                {type === "dns" ? "D" : type === "keyword" ? "K" : type === "tcp" ? "T" : "•"}
+                {type === "dns" ? <Network className="size-3" /> : type === "keyword" ? <Search className="size-3" /> : type === "tcp" ? <Plug className="size-3" /> : <Globe2 className="size-3" />}
               </span>
             )}
             <StatusDot paused={paused} latest={latest} label={statusLabel} />
