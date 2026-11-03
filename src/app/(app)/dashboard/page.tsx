@@ -14,6 +14,7 @@ import { getTranslations } from "next-intl/server";
 import {
   fillFleetDayTrend,
   getFleetDailyStats,
+  getPerMonitorDailyStats,
   getRecentChecksByMonitor,
   getUptimeStats90d,
   ninetyDaysAgoFrom,
@@ -76,16 +77,23 @@ export default async function DashboardPage() {
   let downtimeMin90d = 0;
   let trendByDay: FleetTrendPoint[] = [];
 
+  const STRIP_DAYS = 30;
+  const stripDayKeys = utcDaysBack(nowMs, STRIP_DAYS);
+  let perMonitorDaily = new Map<string, { monitorId: string; day: string; total: number; okCount: number }[]>();
+
   if (monitors.length > 0) {
     const monitorIds = monitors.map((m) => m.id);
     const dayKeys = utcDaysBack(nowMs, 7);
     const trendSince = new Date(`${dayKeys[0]}T00:00:00.000Z`);
-    const [recentResults, uptimeStats, dailyRows] = await Promise.all([
+    const stripSince = new Date(`${stripDayKeys[0]}T00:00:00.000Z`);
+    const [recentResults, uptimeStats, dailyRows, perMonitorDailyResult] = await Promise.all([
       getRecentChecksByMonitor(monitorIds, 1),
       getUptimeStats90d(monitorIds, ninetyDaysAgoFrom(nowMs)),
       getFleetDailyStats(monitorIds, trendSince),
+      getPerMonitorDailyStats(monitorIds, stripSince),
     ]);
 
+    perMonitorDaily = perMonitorDailyResult;
     for (const r of recentResults) {
       if (!(r.monitorId in latestByMonitor)) {
         latestByMonitor[r.monitorId] = {
@@ -256,6 +264,75 @@ export default async function DashboardPage() {
   const nextSsl = soonestSsl(monitors, nowMs);
   const nextSslSummary = nextSsl ? { ...nextSsl, atRisk: nextSsl.days <= SSL_WARN_DAYS } : null;
 
+  const monitorCards = monitors.map((m) => {
+    const ok = isLatestOk(m.id, m.currentStatus, latestByMonitor);
+    const latest = latestByMonitor[m.id];
+    const down = ok === false && !m.paused;
+    const overdue = !m.paused && isCheckOverdue(m.lastCheckAt, m.intervalMinutes, nowMs);
+    const pending = !m.paused && m.lastCheckAt == null;
+    const degraded =
+      !m.paused &&
+      ok === true &&
+      ((m.consecutiveDegradedChecks ?? 0) > 0 || m.degradingAlertSentAt != null);
+    const kind = m.paused
+      ? ("paused" as const)
+      : down
+        ? ("down" as const)
+        : overdue
+          ? ("overdue" as const)
+          : pending
+            ? ("pending" as const)
+            : degraded
+              ? ("degraded" as const)
+              : ("up" as const);
+
+    const dailyRows = perMonitorDaily.get(m.id) ?? [];
+    const dailyIndex = new Map(dailyRows.map((r) => [r.day, r]));
+    const strip = stripDayKeys.map((day) => {
+      const r = dailyIndex.get(day);
+      if (!r) return "empty" as const;
+      if (r.okCount === r.total) return "ok" as const;
+      if (r.okCount === 0) return "fail" as const;
+      return "partial" as const;
+    });
+
+    return {
+      id: m.id,
+      name: m.name,
+      url: m.url,
+      type: m.type,
+      kind,
+      acked: down && isDowntimeAcked(m),
+      responseMs: latest?.responseTimeMs ?? null,
+      baselineMs: m.baselineP75Ms ?? null,
+      uptimePct: uptimeByMonitor[m.id] ?? null,
+      downtimeMin: downtimeMinByMonitor[m.id] ?? 0,
+      detail: down ? (latest?.message ?? null) : null,
+      consecutiveFailures: down ? (m.consecutiveFailures ?? null) : null,
+      since:
+        down && m.lastStatusChangedAt
+          ? new Date(m.lastStatusChangedAt).toISOString()
+          : overdue && m.lastCheckAt
+            ? new Date(m.lastCheckAt).toISOString()
+            : null,
+      strip,
+    };
+  });
+
+  // Sort: down first, then degraded/overdue/pending, then up, paused last
+  monitorCards.sort((a, b) => {
+    const rank = (k: string, acked: boolean) => {
+      if (k === "down" && !acked) return 0;
+      if (k === "down") return 1;
+      if (k === "overdue") return 2;
+      if (k === "degraded") return 3;
+      if (k === "pending") return 4;
+      if (k === "up") return 5;
+      return 6; // paused
+    };
+    return rank(a.kind, a.acked) - rank(b.kind, b.acked);
+  });
+
   return (
     <DashboardOverview
       hasMonitors={monitors.length > 0}
@@ -281,6 +358,7 @@ export default async function DashboardPage() {
         onboardingStep: userOnboarding?.onboardingStep,
       }}
       userId={session.user.id}
+      monitorCards={monitorCards}
     />
   );
 }
