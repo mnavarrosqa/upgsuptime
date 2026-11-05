@@ -8,9 +8,9 @@ const FleetTrendInner = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="grid gap-8 lg:grid-cols-2" aria-hidden>
-        <div className="h-[152px] animate-pulse rounded-lg bg-border/40" />
-        <div className="h-[152px] animate-pulse rounded-lg bg-border/40" />
+      <div className="grid gap-8 lg:grid-cols-3" aria-hidden>
+        <div className="h-[224px] animate-pulse rounded-lg bg-border/40 lg:col-span-2" />
+        <div className="h-[176px] animate-pulse rounded-lg bg-border/40" />
       </div>
     ),
   }

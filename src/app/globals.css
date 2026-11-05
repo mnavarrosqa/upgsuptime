@@ -160,43 +160,6 @@
   --animate-soft-pop-in: soft-pop-in 320ms var(--motion-ease-out-quart) both;
   --animate-icon-swap-in: icon-swap-in 220ms var(--motion-ease-out-quart) both;
   --animate-checking-dot: checking-dot 1.05s ease-in-out infinite;
-  /* Calm breath: shorter inhale, soft hold at top, longer exhale (~4 : 6 phase feel) */
-  --animate-monitor-card-radial-glow: monitor-card-radial-glow 12s linear infinite;
-
-  @keyframes monitor-card-radial-glow {
-    0%,
-    100% {
-      opacity: 0.84;
-      transform: scale(1);
-    }
-    /* inhale: soft start → build */
-    14% {
-      opacity: 0.88;
-      transform: scale(1.004);
-    }
-    30% {
-      opacity: 0.95;
-      transform: scale(1.012);
-    }
-    40% {
-      opacity: 1;
-      transform: scale(1.02);
-    }
-    /* brief pause (lungs full) */
-    47% {
-      opacity: 0.98;
-      transform: scale(1.016);
-    }
-    /* exhale: slower release */
-    68% {
-      opacity: 0.9;
-      transform: scale(1.007);
-    }
-    86% {
-      opacity: 0.86;
-      transform: scale(1.002);
-    }
-  }
 
   @keyframes checking-dot {
     0%,
@@ -303,12 +266,6 @@ body {
   .animate-checking-dot {
     animation: none;
     opacity: 1;
-  }
-
-  .animate-monitor-card-radial-glow {
-    animation: none;
-    opacity: 0.9;
-    transform: none;
   }
 }
 

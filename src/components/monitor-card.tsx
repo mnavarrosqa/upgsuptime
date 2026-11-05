@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { formatPercent } from "@/lib/number-format";
 import {
   AlertTriangle,
   Clock,
@@ -67,14 +68,6 @@ function formatLastChecked(
   const diffHr = Math.floor(diffMin / 60);
   if (diffHr < 24) return tTime("hoursAgo", { count: diffHr });
   return tTime("daysAgo", { count: Math.floor(diffHr / 24) });
-}
-
-function formatUptimePct(value: number, locale: string): string {
-  return (value / 100).toLocaleString(locale, {
-    style: "percent",
-    minimumFractionDigits: value % 1 === 0 ? 0 : 1,
-    maximumFractionDigits: 1,
-  });
 }
 
 function responseTimeColor(ms: number): string {
@@ -353,7 +346,7 @@ export function MonitorCard({
             <span
               className="font-display text-[1.5rem] font-semibold leading-none tracking-tight text-text-primary tabular-nums"
             >
-              {uptimePct != null ? formatUptimePct(uptimePct, locale) : "—"}
+              {uptimePct != null ? formatPercent(uptimePct, locale) : "—"}
             </span>
             <span className="min-w-0 truncate text-xs text-text-muted">
               {t("uptimeLabel")}

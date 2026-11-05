@@ -15,7 +15,8 @@ import {
   XCircle,
   AlertTriangle,
 } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useFormatter, useLocale, useTranslations } from "next-intl";
+import { formatNumber, formatPercent } from "@/lib/number-format";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { formatDuration } from "@/lib/format-time";
 import { cn } from "@/lib/utils";
@@ -77,6 +78,7 @@ export function StatusPageShell({
   const router = useRouter();
   const tPublic = useTranslations("publicStatus");
   const format = useFormatter();
+  const locale = useLocale();
   // Relative times are measured from when the page was generated, so server and
   // client render the same text; the page refreshes itself about once a minute.
   const pageNow = new Date(generatedAt);
@@ -225,7 +227,7 @@ export function StatusPageShell({
                               : "text-destructive"
                         )}
                       >
-                        {avgUptime}%
+                        {formatPercent(parseFloat(avgUptime), locale)}
                       </dd>
                       <dd className="text-[0.65rem] text-text-muted">{tPublic("ninetyDayAverage")}</dd>
                     </div>
@@ -252,7 +254,7 @@ export function StatusPageShell({
                       <dd className="mt-1 text-lg font-semibold tabular-nums tracking-tight text-text-primary">
                         {totalChecks > 999
                           ? `${(totalChecks / 1000).toFixed(1)}k`
-                          : totalChecks.toLocaleString()}
+                          : formatNumber(totalChecks, locale)}
                       </dd>
                       <dd className="text-[0.65rem] text-text-muted">{tPublic("ninetyDays")}</dd>
                     </div>
@@ -471,7 +473,7 @@ export function StatusPageShell({
                           </span>
                         )}
                       {m.checkCount90d > 0 && (
-                        <span>{tPublic("checksSampled", { count: m.checkCount90d.toLocaleString() })}</span>
+                        <span>{tPublic("checksSampled", { count: formatNumber(m.checkCount90d, locale) })}</span>
                       )}
                     </div>
                   </li>

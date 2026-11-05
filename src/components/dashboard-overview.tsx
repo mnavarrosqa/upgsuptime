@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatNumber, formatPercent } from "@/lib/number-format";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
@@ -422,6 +423,7 @@ function responseTimeColor(ms: number): string {
 }
 
 function MonitorCard({ card, nowMs, t }: { card: MonitorCardData; nowMs: number; t: ReturnType<typeof useTranslations<"overview">> }) {
+  const locale = useLocale();
   const isDown = card.kind === "down";
   const isDegraded = card.kind === "degraded";
   const isWarn = card.kind === "overdue" || card.kind === "pending";
@@ -499,7 +501,7 @@ function MonitorCard({ card, nowMs, t }: { card: MonitorCardData; nowMs: number;
         </p>
       ) : null}
       <div className="mt-1 flex justify-between text-[11px] tabular-nums text-text-muted">
-        <span>{card.uptimePct != null ? `${card.uptimePct}%` : "—"} · 90d</span>
+        <span>{card.uptimePct != null ? formatPercent(card.uptimePct, locale) : "—"} · 90d</span>
         {card.lastCheckAt ? (
           <span className="flex items-center gap-0.5">
             <Clock className="size-2.5" aria-hidden />
@@ -538,6 +540,7 @@ export function DashboardOverview({
 }: DashboardOverviewProps) {
   const router = useRouter();
   const t = useTranslations("overview");
+  const locale = useLocale();
   const tDash = useTranslations("dashboard");
   const tNav = useTranslations("nav");
   const [showOnboarding, setShowOnboarding] = useState(
@@ -657,8 +660,8 @@ export function DashboardOverview({
             {/* ── Stat bar ── */}
             <dl className="mt-6 grid grid-cols-2 gap-x-0 border-y border-border py-4 lg:grid-cols-4">
               {[
-                { label: t("availability7d"), value: weekUptime == null ? "—" : `${weekUptime}%`, detail: weekChecks > 0 ? t("chartTrendChecks", { n: weekChecks }) : t("awaitingData") },
-                { label: t("response7d"), value: weekAvgMs == null ? "—" : `${weekAvgMs} ms` },
+                { label: t("availability7d"), value: weekUptime == null ? "—" : formatPercent(weekUptime, locale), detail: weekChecks > 0 ? t("chartTrendChecks", { n: weekChecks }) : t("awaitingData") },
+                { label: t("response7d"), value: weekAvgMs == null ? "—" : `${formatNumber(weekAvgMs, locale)} ms` },
                 { label: t("downtimeLabel"), value: t("downtimeMinutes", { n: downtimeMin90d }) },
                 {
                   label: t("certificateLabel"),

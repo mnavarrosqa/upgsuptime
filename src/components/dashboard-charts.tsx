@@ -2,6 +2,7 @@
 
 import { useId } from "react";
 import { useLocale, useTranslations } from "next-intl";
+import { formatNumber, formatPercent } from "@/lib/number-format";
 import {
   ResponsiveContainer,
   Tooltip,
@@ -62,7 +63,8 @@ function TrendTooltip({
   if (value == null) return null;
   const row = payload[0]?.payload;
   const checks = unit === "pct" ? (row?.total ?? 0) : (row?.okCount ?? 0);
-  const display = unit === "pct" ? `${value}%` : `${value} ms`;
+  const display =
+    unit === "pct" ? formatPercent(Number(value), locale) : `${formatNumber(Number(value), locale)} ms`;
   return (
     <ChartTooltipFrame>
       <p className="text-text-muted">{formatDayTick(label, locale)}</p>
@@ -94,14 +96,17 @@ export function FleetTrendCharts({ trend }: { trend: FleetTrendPoint[] }) {
   const uptimeDots = trend.filter((d) => d.uptimePct != null).length <= 2;
   const msDots = trend.filter((d) => d.avgMs != null).length <= 2;
   const checksLabel = (n: number) => t("chartTrendChecks", { n });
-  const grid = hasUptime && hasMs ? "grid gap-8 lg:grid-cols-2" : "grid gap-8";
+  // Availability leads (the question people open the dashboard with); response
+  // time sits beside it smaller, so the two charts don't compete.
+  const both = hasUptime && hasMs;
+  const grid = both ? "grid gap-8 lg:grid-cols-3" : "grid gap-8";
 
   return (
     <div className={grid}>
       {hasUptime ? (
-        <div>
-          <p className="text-[11px] font-medium text-text-muted">{t("chartUptimeTrend")}</p>
-          <div className="mt-2 h-[152px] w-full" role="img" aria-label={t("chartUptimeTrend")}>
+        <div className={both ? "lg:col-span-2" : undefined}>
+          <p className="text-xs font-medium text-text-muted">{t("chartUptimeTrend")}</p>
+          <div className="mt-2 h-[200px] w-full" role="img" aria-label={t("chartUptimeTrend")}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trend} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
                 <defs>
@@ -118,15 +123,15 @@ export function FleetTrendCharts({ trend }: { trend: FleetTrendPoint[] }) {
                 <XAxis
                   dataKey="day"
                   tickFormatter={(d) => formatDayTick(d, locale)}
-                  tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   domain={uptimeYDomain(trend)}
                   width={36}
-                  tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
-                  tickFormatter={(v) => `${v}%`}
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
+                  tickFormatter={(v) => formatPercent(v, locale)}
                   axisLine={false}
                   tickLine={false}
                 />
@@ -152,7 +157,7 @@ export function FleetTrendCharts({ trend }: { trend: FleetTrendPoint[] }) {
       ) : null}
       {hasMs ? (
         <div>
-          <p className="text-[11px] font-medium text-text-muted">{t("chartResponseTrend")}</p>
+          <p className="text-xs font-medium text-text-muted">{t("chartResponseTrend")}</p>
           <div className="mt-2 h-[152px] w-full" role="img" aria-label={t("chartResponseTrend")}>
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={trend} margin={{ top: 8, right: 4, left: 0, bottom: 0 }}>
@@ -170,14 +175,14 @@ export function FleetTrendCharts({ trend }: { trend: FleetTrendPoint[] }) {
                 <XAxis
                   dataKey="day"
                   tickFormatter={(d) => formatDayTick(d, locale)}
-                  tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
                   axisLine={false}
                   tickLine={false}
                 />
                 <YAxis
                   domain={[0, "auto"]}
                   width={44}
-                  tick={{ fontSize: 10, fill: "var(--color-text-muted)" }}
+                  tick={{ fontSize: 11, fill: "var(--color-text-muted)" }}
                   tickFormatter={(v) => `${v}`}
                   axisLine={false}
                   tickLine={false}

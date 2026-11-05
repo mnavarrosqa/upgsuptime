@@ -3,7 +3,8 @@
 import dynamic from "next/dynamic";
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatPercent } from "@/lib/number-format";
 import { AlertTriangle, Percent, Timer, Zap } from "lucide-react";
 import { breakdownCheck } from "@/lib/timing-breakdown";
 import type { ChartDetailMode, ChartResultRow } from "@/components/uptime-trend-charts";
@@ -71,6 +72,7 @@ export function MonitorDetailHistoryClient({
   aboveCharts?: ReactNode;
 }) {
   const t = useTranslations("monitorDetail");
+  const locale = useLocale();
   const [range, setRange] = useState<ChartRange>("24h");
   const [chartDetail, setChartDetail] = useState<ChartDetailMode>("averages");
   const [rangeResults, setRangeResults] = useState<ChartResultRow[]>(initialResults);
@@ -175,7 +177,7 @@ export function MonitorDetailHistoryClient({
             }`}
             style={{ fontFamily: "var(--font-display)" }}
           >
-            {uptimePct != null ? `${uptimePct}%` : "—"}
+            {uptimePct != null ? formatPercent(uptimePct, locale) : "—"}
           </p>
           <p className="mt-1.5 text-xs text-text-muted/70">
             {t("statChecks", { n: rangeResults.length })}
