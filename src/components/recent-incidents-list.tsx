@@ -21,19 +21,19 @@ export function RecentIncidentsList({ incidents }: { incidents: IncidentRow[] })
       <table className="min-w-full divide-y divide-border">
         <thead>
           <tr>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
+            <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">
               {t("colTime")}
             </th>
-            <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
+            <th className="hidden px-4 py-3 text-left text-xs font-medium text-text-muted sm:table-cell">
               {t("colStatus")}
             </th>
-            <th className="hidden px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted sm:table-cell">
+            <th className="hidden px-4 py-3 text-left text-xs font-medium text-text-muted sm:table-cell">
               {t("colCode")}
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
+            <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">
               {t("colResponse")}
             </th>
-            <th className="px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-text-muted">
+            <th className="px-4 py-3 text-left text-xs font-medium text-text-muted">
               {t("colMessage")}
             </th>
           </tr>

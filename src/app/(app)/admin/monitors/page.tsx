@@ -48,7 +48,7 @@ export default async function AdminMonitorsPage() {
       <div className="overflow-x-auto rounded-xl border border-border bg-bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-bg-page/60 text-left text-xs uppercase tracking-[0.12em] text-text-muted">
+            <tr className="border-b border-border bg-bg-page/60 text-left text-xs text-text-muted">
               <th className="px-4 py-3 font-medium">{t("colName")}</th>
               <th className="px-4 py-3 font-medium">{t("colUrl")}</th>
               <th className="px-4 py-3 font-medium">{t("colOwner")}</th>

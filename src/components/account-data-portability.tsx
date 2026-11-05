@@ -255,7 +255,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
 
       <div className="mt-4 space-y-4 rounded-lg border border-border bg-bg-card px-6 py-5">
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          <p className="text-xs font-medium text-text-muted">
             {t("dataExportSection")}
           </p>
           <label className={`${labelClass} mt-3`}>
@@ -308,7 +308,7 @@ export function AccountDataPortability({ className }: { className?: string }) {
               </div>
             </div>
           ) : null}
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          <p className="text-xs font-medium text-text-muted">
             {t("dataImportSection")}
           </p>
           <p className="mt-2 text-sm text-text-muted">

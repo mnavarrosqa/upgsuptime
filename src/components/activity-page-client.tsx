@@ -193,7 +193,7 @@ export function ActivityPageClient({
               <section key={group.key} aria-labelledby={`activity-day-${group.key}`}>
                 <h2
                   id={`activity-day-${group.key}`}
-                  className="text-xs font-medium uppercase tracking-wider text-text-muted"
+                  className="text-xs font-medium text-text-muted"
                 >
                   {group.label}
                 </h2>

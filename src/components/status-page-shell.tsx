@@ -115,7 +115,7 @@ export function StatusPageShell({
         <div className="mx-auto max-w-4xl px-4 py-5 sm:px-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
             <div className="min-w-0">
-              <p className="text-[0.65rem] font-semibold uppercase tracking-[0.14em] text-text-muted">
+              <p className="text-xs font-medium text-text-muted">
                 {tPublic("eyebrow")}
               </p>
               <h1
@@ -211,7 +211,7 @@ export function StatusPageShell({
                 <dl className="flex w-full shrink-0 flex-wrap gap-3 sm:w-auto sm:justify-end sm:gap-4">
                   {avgUptime !== null && (
                     <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
-                      <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
+                      <dt className="flex items-center gap-1 text-xs font-medium text-text-muted">
                         <Activity className="h-3 w-3 shrink-0" aria-hidden />
                         {tPublic("uptime")}
                       </dt>
@@ -232,7 +232,7 @@ export function StatusPageShell({
                   )}
                   {avgResponse !== null && (
                     <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
-                      <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
+                      <dt className="flex items-center gap-1 text-xs font-medium text-text-muted">
                         <Gauge className="h-3 w-3 shrink-0" aria-hidden />
                         {tPublic("response")}
                       </dt>
@@ -245,7 +245,7 @@ export function StatusPageShell({
                   )}
                   {totalChecks > 0 && (
                     <div className="min-w-[5.75rem] flex-1 rounded-lg bg-bg-page px-3 py-2.5 ring-1 ring-border/80 sm:flex-initial">
-                      <dt className="flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
+                      <dt className="flex items-center gap-1 text-xs font-medium text-text-muted">
                         <History className="h-3 w-3 shrink-0" aria-hidden />
                         {tPublic("checks")}
                       </dt>
@@ -401,7 +401,7 @@ export function StatusPageShell({
 
                     {m.checkCount90d > 0 && (
                       <div className="mt-4 border-t border-border/80 pt-4">
-                        <p className="mb-2 text-[0.65rem] font-medium uppercase tracking-wide text-text-muted">
+                        <p className="mb-2 text-xs font-medium text-text-muted">
                           {tPublic("history90d")}
                           <span className="ml-1 font-normal normal-case text-text-muted/90">
                             {tPublic("historySegmentHint")}

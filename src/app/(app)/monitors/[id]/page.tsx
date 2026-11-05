@@ -235,7 +235,7 @@ export default async function MonitorDetailPage({
               >
                 <div className="border-b border-status-down/15 px-5 py-3.5">
                   <h2
-                    className="text-[11px] font-semibold uppercase tracking-widest text-status-down"
+                    className="text-xs font-medium text-status-down"
                     style={{ fontFamily: "var(--font-display)" }}
                   >
                     {t("incidentsTitle")}
@@ -260,7 +260,7 @@ export default async function MonitorDetailPage({
       >
         {showStatusTile && (
           <div className="flex min-h-full flex-col rounded-xl border border-border/60 bg-bg-page/50 px-3 py-3 sm:px-4 sm:py-3.5">
-            <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+            <span className="text-xs font-medium text-text-muted">
               {m.currentStatus ? t("statUpFor") : t("statDownFor")}
             </span>
             <p
@@ -305,7 +305,7 @@ export default async function MonitorDetailPage({
                       : t("sslValid");
             return (
               <div className="flex min-h-full flex-col rounded-xl border border-border/60 bg-bg-page/50 px-3 py-3 sm:px-4 sm:py-3.5">
-                <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+                <span className="text-xs font-medium text-text-muted">
                   {t("statSsl")}
                 </span>
                 <p className={`mt-2 text-xl font-semibold tabular-nums sm:text-2xl ${sslColor}`}>
@@ -331,7 +331,7 @@ export default async function MonitorDetailPage({
       <section className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm">
         <div className="border-b border-border/60 px-5 py-3.5">
           <h2
-            className="text-[11px] font-semibold uppercase tracking-widest text-text-muted"
+            className="text-xs font-medium text-text-muted"
             style={{ fontFamily: "var(--font-display)" }}
           >
             {t("checkLogTitle")}

@@ -92,7 +92,7 @@ export function AdminUsersClient({
       <div className="overflow-x-auto rounded-2xl border border-border bg-bg-card shadow-sm">
         <table className="w-full text-sm">
           <thead>
-            <tr className="border-b border-border bg-bg-page/60 text-left text-xs uppercase tracking-[0.12em] text-text-muted">
+            <tr className="border-b border-border bg-bg-page/60 text-left text-xs text-text-muted">
               <th className="px-4 py-3 font-medium">{t("colEmail")}</th>
               <th className="px-4 py-3 font-medium">{t("colUsername")}</th>
               <th className="px-4 py-3 font-medium">{t("colRole")}</th>

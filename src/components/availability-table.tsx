@@ -13,13 +13,13 @@ const dur = (ms: number) => (ms > 0 ? formatDurationMs(ms) : "—");
 
 export function AvailabilityTable({ rows }: { rows: AvailabilityRow[] }) {
   const t = useTranslations("monitorDetail");
-  const th = "px-4 py-3 text-right text-[11px] font-medium uppercase tracking-wider text-text-muted";
+  const th = "px-4 py-3 text-right text-xs font-medium text-text-muted";
 
   return (
     <section className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm">
       <div className="border-b border-border/60 px-5 py-3.5">
         <h2
-          className="text-[11px] font-semibold uppercase tracking-widest text-text-muted"
+          className="text-xs font-medium text-text-muted"
           style={{ fontFamily: "var(--font-display)" }}
         >
           {t("availTitle")}

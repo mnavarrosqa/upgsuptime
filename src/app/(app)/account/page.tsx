@@ -114,7 +114,7 @@ export default async function AccountPage() {
               <div className="flex items-center gap-3 px-5 py-3.5">
                 <User className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+                  <p className="text-xs font-medium text-text-muted">
                     {tCommon("username")}
                   </p>
                   <p className="mt-0.5 text-sm text-text-primary">
@@ -125,7 +125,7 @@ export default async function AccountPage() {
               <div className="flex items-center gap-3 px-5 py-3.5">
                 <Mail className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+                  <p className="text-xs font-medium text-text-muted">
                     {tCommon("email")}
                   </p>
                   <p className="mt-0.5 truncate text-sm text-text-primary">
@@ -136,7 +136,7 @@ export default async function AccountPage() {
               <div className="flex items-center gap-3 px-5 py-3.5">
                 <Shield className="h-4 w-4 shrink-0 text-text-muted" aria-hidden />
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+                  <p className="text-xs font-medium text-text-muted">
                     {tAccount("role")}
                   </p>
                   <p className="mt-0.5 capitalize text-sm text-text-primary">

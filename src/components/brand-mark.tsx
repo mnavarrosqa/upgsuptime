@@ -2,11 +2,13 @@ type BrandMarkProps = {
   className?: string;
   size?: number;
   animated?: boolean;
+  /** Keep drawing the pulse (loading indicators). Otherwise it draws once and stays. */
+  loop?: boolean;
 };
 
 import pulse from "@/lib/brand-orbit.json";
 
-export function BrandMark({ className, size, animated = false }: BrandMarkProps) {
+export function BrandMark({ className, size, animated = false, loop = false }: BrandMarkProps) {
   return (
     <svg
       viewBox="0 0 32 32"
@@ -28,23 +30,41 @@ export function BrandMark({ className, size, animated = false }: BrandMarkProps)
           strokeDashoffset: 60,
         })}
       >
-        {animated && (
-          <animate
-            attributeName="stroke-dashoffset"
-            values="60;0;0;60"
-            keyTimes="0;0.4;0.7;1"
-            dur="2.4s"
-            repeatCount="indefinite"
-          />
-        )}
+        {animated &&
+          (loop ? (
+            <animate
+              attributeName="stroke-dashoffset"
+              values="60;0;0;60"
+              keyTimes="0;0.4;0.7;1"
+              dur="2.4s"
+              repeatCount="indefinite"
+            />
+          ) : (
+            // Once, then it stays: a looping draw/erase next to the headline read
+            // as broken and pulled the eye from the copy.
+            <animate
+              attributeName="stroke-dashoffset"
+              values="60;0"
+              dur="1.2s"
+              calcMode="spline"
+              keySplines="0.22 1 0.36 1"
+              fill="freeze"
+            />
+          ))}
       </path>
       <circle cx={pulse.dot.cx} cy={pulse.dot.cy} r={pulse.dot.r} fill={pulse.color}>
-        {animated && (
-          <>
-            <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.35;0.45;0.7;1" dur="2.4s" repeatCount="indefinite" />
-            <animate attributeName="r" values="0;2.2;3;2.2;0" keyTimes="0;0.35;0.5;0.7;1" dur="2.4s" repeatCount="indefinite" />
-          </>
-        )}
+        {animated &&
+          (loop ? (
+            <>
+              <animate attributeName="opacity" values="0;0;1;1;0" keyTimes="0;0.35;0.45;0.7;1" dur="2.4s" repeatCount="indefinite" />
+              <animate attributeName="r" values="0;2.2;3;2.2;0" keyTimes="0;0.35;0.5;0.7;1" dur="2.4s" repeatCount="indefinite" />
+            </>
+          ) : (
+            <>
+              <animate attributeName="opacity" values="0;0;1" keyTimes="0;0.8;1" dur="1.4s" fill="freeze" />
+              <animate attributeName="r" values="0;0;3;2.2" keyTimes="0;0.8;0.9;1" dur="1.4s" fill="freeze" />
+            </>
+          ))}
       </circle>
     </svg>
   );

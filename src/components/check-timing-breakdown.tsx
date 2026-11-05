@@ -78,7 +78,7 @@ export function CheckTimingBreakdown({ summary }: { summary: TimingSummary }) {
     <section className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm">
       <div className="border-b border-border/60 px-5 py-3.5">
         <h2
-          className="text-[11px] font-semibold uppercase tracking-widest text-text-muted"
+          className="text-xs font-medium text-text-muted"
           style={{ fontFamily: "var(--font-display)" }}
         >
           {t("timingTitle")}
@@ -94,7 +94,7 @@ export function CheckTimingBreakdown({ summary }: { summary: TimingSummary }) {
         <table className="w-full text-sm">
           <caption className="sr-only">{t("timingMedianOf", { n: summary.sampleCount })}</caption>
           <thead>
-            <tr className="text-left text-[11px] font-medium uppercase tracking-wider text-text-muted">
+            <tr className="text-left text-xs font-medium text-text-muted">
               <th scope="col" className="pb-2 font-medium">{t("timingPhase")}</th>
               <th scope="col" className="pb-2 text-right font-medium">{t("timingLatest")}</th>
               <th scope="col" className="pb-2 text-right font-medium">{t("timingMedian")}</th>

@@ -147,7 +147,7 @@ export function LandingHeroCarousel({
             {slideIdx === 0 && (
               <div>
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between">
-                  <span className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.12em]">
+                  <span className="text-xs font-medium text-text-muted">
                     {labels.panelTitle}
                   </span>
                   <span className="flex items-center gap-1.5">
@@ -196,7 +196,7 @@ export function LandingHeroCarousel({
             {slideIdx === 1 && (
               <div>
                 <div className="px-4 py-2.5 border-b border-border/80 bg-muted/30 dark:bg-muted/20">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">{labels.detailOverview}</span>
+                  <span className="text-xs font-medium text-text-muted">{labels.detailOverview}</span>
                 </div>
                 <div className="px-4 py-3 border-b border-border">
                   <div className="flex items-center justify-between gap-2 mb-0.5">
@@ -217,12 +217,12 @@ export function LandingHeroCarousel({
                   </div>
                 </div>
                 <div className="px-4 py-2 border-b border-border bg-gradient-to-b from-muted/35 to-transparent dark:from-muted/20">
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-muted">{labels.checkLogTitle}</span>
+                  <span className="text-xs font-medium text-text-muted">{labels.checkLogTitle}</span>
                 </div>
                 <div className="px-4 py-2 border-b border-border grid grid-cols-[1fr_auto_auto] gap-3">
-                  <span className="text-[9px] uppercase tracking-wider text-text-muted font-semibold">{labels.colTime}</span>
-                  <span className="text-[9px] uppercase tracking-wider text-text-muted font-semibold">{labels.colCode}</span>
-                  <span className="text-[9px] uppercase tracking-wider text-text-muted font-semibold text-right">{labels.colResponse}</span>
+                  <span className="text-xs text-text-muted font-medium">{labels.colTime}</span>
+                  <span className="text-xs text-text-muted font-medium">{labels.colCode}</span>
+                  <span className="text-xs text-text-muted font-medium text-right">{labels.colResponse}</span>
                 </div>
                 <div className="divide-y divide-border">
                   {detailRows.map((row) => (
@@ -242,7 +242,7 @@ export function LandingHeroCarousel({
               <div>
                 <div className="px-4 py-3 border-b border-border flex items-center justify-between">
                   <div>
-                    <span className="text-[11px] font-semibold text-text-muted uppercase tracking-[0.12em] block">
+                    <span className="text-xs font-medium text-text-muted block">
                       {labels.activityTitle}
                     </span>
                     <span className="text-[10px] text-text-muted">{labels.activityEventCount}</span>
