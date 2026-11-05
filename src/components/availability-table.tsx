@@ -1,4 +1,5 @@
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { formatPercent } from "@/lib/number-format";
 import type { AvailabilityRow } from "@/lib/availability";
 import { formatDurationMs } from "@/lib/format-duration";
 
@@ -13,6 +14,7 @@ const dur = (ms: number) => (ms > 0 ? formatDurationMs(ms) : "—");
 
 export function AvailabilityTable({ rows }: { rows: AvailabilityRow[] }) {
   const t = useTranslations("monitorDetail");
+  const locale = useLocale();
   const th = "px-4 py-3 text-right text-xs font-medium text-text-muted";
 
   return (
@@ -44,7 +46,7 @@ export function AvailabilityTable({ rows }: { rows: AvailabilityRow[] }) {
                   {t(PERIOD_KEY[r.period])}
                 </th>
                 <td className="px-4 py-3 text-right tabular-nums text-text-primary">
-                  {r.availabilityPct == null ? "—" : `${r.availabilityPct.toFixed(4)}%`}
+                  {r.availabilityPct == null ? "—" : formatPercent(r.availabilityPct, locale, 4)}
                 </td>
                 <td className="px-4 py-3 text-right tabular-nums text-text-muted">{dur(r.downtimeMs)}</td>
                 <td className="px-4 py-3 text-right tabular-nums text-text-muted">{r.incidents}</td>

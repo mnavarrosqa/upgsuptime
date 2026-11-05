@@ -499,7 +499,7 @@
     "lastIncident": "Last incident {when} ago",
     "quietWeek": "No downtime in 7 days",
     "downtime90d": "{n, plural, one {# min of downtime (90d)} other {# min of downtime (90d)}}",
-    "downtimeMinutes": "{n} min",
+    "downtimeMinutes": "{n, number} min",
     "nextSsl": "{name} SSL in {n, plural, one {# day} other {# days}}",
     "openSite": "Open",
     "sinceVisit": "Since you last looked",

@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
+import { formatPercent } from "@/lib/number-format";
 import { BrandMark } from "@/components/brand-mark";
 import { ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
 import {
@@ -73,6 +75,7 @@ export function LandingHeroCarousel({
   upCount,
   labels,
 }: LandingHeroCarouselProps) {
+  const locale = useLocale();
   const [activeSlide, setActiveSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [userInteracted, setUserInteracted] = useState(false);
@@ -182,7 +185,7 @@ export function LandingHeroCarousel({
                         </div>
                       </div>
                       <span className={`text-[12px] font-semibold tabular-nums flex-shrink-0 ${m.status ? "text-text-muted" : "text-status-down"}`}>
-                        {m.uptime}%
+                        {formatPercent(parseFloat(m.uptime), locale, 2)}
                       </span>
                     </div>
                   ))}
