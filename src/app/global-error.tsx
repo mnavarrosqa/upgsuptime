@@ -100,9 +100,7 @@ export default function GlobalError({
               </div>
               <p style={{
                 fontSize: "0.75rem",
-                fontWeight: 600,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
+                fontWeight: 500,
                 color: "var(--text-muted)",
               }}>
                 UPG Monitor

@@ -153,7 +153,7 @@ export function HelpPageClient({ categories }: Props) {
             className={`${indexOpen ? "mt-2" : "mt-0"} rounded-lg border border-border bg-bg-card p-3 md:sticky md:top-20 md:mt-0 md:block ${indexOpen ? "block" : "hidden md:block"}`}
             aria-label={t("indexHeading")}
           >
-            <p className="mb-2 hidden text-xs font-semibold uppercase tracking-wide text-text-muted md:block">
+            <p className="mb-2 hidden text-xs font-medium text-text-muted md:block">
               {t("indexHeading")}
             </p>
             <ul className="space-y-4 text-sm">

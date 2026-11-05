@@ -22,7 +22,7 @@ export default async function MaintenancePage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-accent text-bg-page">
             <Activity size={26} strokeWidth={2.5} aria-hidden />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-text-muted font-display">
+          <p className="text-xs font-medium text-text-muted font-display">
             UPG Monitor
           </p>
         </div>

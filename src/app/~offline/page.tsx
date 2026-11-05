@@ -18,7 +18,7 @@ export default async function OfflinePage() {
           <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--accent)] text-[var(--bg-page)]">
             <BrandMark size={26} />
           </div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] font-display">
+          <p className="text-xs font-medium text-[var(--text-muted)] font-display">
             UPG Monitor
           </p>
         </div>

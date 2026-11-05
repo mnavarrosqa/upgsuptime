@@ -166,7 +166,7 @@ export function ApiAccessSection({
 
       <div className="mt-4 space-y-6 rounded-lg border border-border bg-bg-card px-6 py-5">
         <div className="space-y-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">{t("apiEndpointLabel")}</p>
+          <p className="text-xs font-medium text-text-muted">{t("apiEndpointLabel")}</p>
           <div className="flex flex-wrap items-center gap-2">
             <code className="rounded border border-border bg-bg-page px-2 py-1 text-xs text-text-primary">{endpoint}</code>
             <Button type="button" variant="outline" onClick={() => void copy(endpoint, t("apiCopiedEndpoint"))}>
@@ -181,7 +181,7 @@ export function ApiAccessSection({
         </div>
 
         <div className="space-y-3 border-t border-border pt-6">
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">{t("apiExamplesTitle")}</p>
+          <p className="text-xs font-medium text-text-muted">{t("apiExamplesTitle")}</p>
           <p className="text-sm text-text-muted">{t("apiExamplesIntro")}</p>
           <ul className="list-inside list-disc text-sm text-text-muted">
             <li>{t("apiExampleCorsHint")}</li>
@@ -288,7 +288,7 @@ export function ApiAccessSection({
         </form>
 
         <div className="space-y-3">
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          <p className="text-xs font-medium text-text-muted">
             {t("apiKeysListTitle")}
           </p>
           {loading ? (

@@ -97,7 +97,7 @@ export default async function HomePage() {
         <div className="flex flex-col gap-5 sm:gap-6 md:gap-5 lg:gap-6 lg:pt-2">
           <div className="flex items-center gap-4">
             <BrandMark animated className="landing-orbit size-14 shrink-0 sm:size-16" />
-            <p className="max-w-[24ch] text-[11px] uppercase tracking-[0.18em] text-text-muted font-semibold">
+            <p className="max-w-[24ch] text-xs text-text-muted font-medium">
               {t("eyebrow")}
             </p>
           </div>
@@ -123,15 +123,11 @@ export default async function HomePage() {
               {t("explore")} <span aria-hidden className="ml-2">↓</span>
             </Link>
           </div>
-          <p className="text-xs text-text-muted">
-            {t("heroReassurance")}
-          </p>
-
           <ul className="flex flex-wrap items-center gap-2.5 pt-1">
             {([t("bullet1"), t("bullet2"), t("bullet3")] as const).map((label) => (
               <li
                 key={label}
-                className="inline-flex items-center gap-2 py-1.5 text-[11px] sm:text-[12px] text-text-muted"
+                className="inline-flex items-center gap-2 py-1.5 text-xs text-text-muted"
               >
                 <span className="size-1 rounded-full bg-text-muted/45 inline-block flex-shrink-0" />
                 {label}
@@ -182,7 +178,7 @@ export default async function HomePage() {
       {/* ── Why it matters ── */}
       <section id="how-it-works" className="scroll-mt-8 max-w-6xl mx-auto w-full px-6 pt-10 pb-14 sm:pt-12 sm:pb-16 md:pt-14 md:pb-18 border-t border-border">
         <div className="mb-8 sm:mb-9 md:mb-10">
-          <p className="text-[11px] uppercase tracking-[0.18em] text-text-muted font-semibold mb-3">
+          <p className="text-xs text-text-muted font-medium mb-3">
             {t("whyEyebrow")}
           </p>
           <h2 className="font-display font-semibold text-[clamp(1.4rem,3vw,1.875rem)] leading-tight tracking-tight text-text-primary max-w-lg">
@@ -197,7 +193,7 @@ export default async function HomePage() {
             { num: "03", title: t("why3Title"), body: t("why3Body") },
           ] as const).map((item) => (
             <div key={item.num} className="py-5 sm:py-6 grid md:grid-cols-[2rem_1fr_2fr] gap-3 md:gap-10 items-baseline">
-              <span className="text-[11px] text-text-muted tabular-nums font-semibold">{item.num}</span>
+              <span className="text-xs text-text-muted tabular-nums font-medium">{item.num}</span>
               <h3 className="font-display font-semibold text-text-primary">{item.title}</h3>
               <p className="text-sm text-text-muted leading-relaxed">{item.body}</p>
             </div>
@@ -216,7 +212,7 @@ export default async function HomePage() {
             { step: "04", title: t("feature4Title"), body: t("feature4Body") },
           ] as const).map((f) => (
             <div key={f.title} className="border-t border-border pt-5 pb-3">
-              <span className="inline-flex mb-3 h-5 min-w-5 items-center justify-center rounded-full border border-border bg-bg-page px-1.5 text-[10px] font-semibold tabular-nums text-text-muted">
+              <span className="mb-3 inline-block text-xs font-medium tabular-nums text-text-muted">
                 {f.step}
               </span>
               <h3 className="font-display font-semibold text-text-primary mb-2.5 leading-snug">

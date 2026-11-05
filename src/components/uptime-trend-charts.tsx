@@ -531,7 +531,7 @@ export function UptimeTrendCharts({
       <div>
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+            <p className="text-xs font-medium text-text-muted">
               {t("chartUptime")}
             </p>
             <p className="mt-0.5 text-[10px] text-text-muted">{t("chartUptimeLastHourOnly")}</p>
@@ -629,7 +629,7 @@ export function UptimeTrendCharts({
 
       {/* ── 2. Response time trend ──────────────────────────────────────── */}
       <div>
-        <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+        <p className="text-xs font-medium text-text-muted">
           {t("chartResponseTrend")}
         </p>
         <p className="mt-0.5 text-[10px] text-text-muted">
@@ -728,7 +728,7 @@ export function UptimeTrendCharts({
       {/* ── 3. Response time distribution ───────────────────────────────── */}
       {hasHistData && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          <p className="text-xs font-medium text-text-muted">
             {t("chartDistribution")}
           </p>
           <p className="mt-0.5 text-[10px] text-text-muted">{t("chartDistributionSub")}</p>
@@ -784,7 +784,7 @@ export function UptimeTrendCharts({
       {/* ── 4. Check dot timeline ────────────────────────────────────────── */}
       {allScatterPoints.length > 0 && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          <p className="text-xs font-medium text-text-muted">
             {t("chartTimeline")}
           </p>
           <p className="mt-0.5 text-[10px] text-text-muted">
@@ -852,7 +852,7 @@ export function UptimeTrendCharts({
       {/* ── 5. Baseline vs recent comparison ─────────────────────────────── */}
       {showBaseline && (
         <div>
-          <p className="text-xs font-medium uppercase tracking-wider text-text-muted">
+          <p className="text-xs font-medium text-text-muted">
             {t("chartBaseline")}
           </p>
           <p className="mt-0.5 text-[10px] text-text-muted">

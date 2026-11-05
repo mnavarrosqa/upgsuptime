@@ -141,7 +141,7 @@ export function MonitorDetailHistoryClient({
   const statTile =
     "flex min-w-0 flex-col rounded-xl border border-border/60 bg-bg-page/50 px-3 py-3 sm:px-4 sm:py-4";
   const statLabel =
-    "flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-widest text-text-muted";
+    "flex items-center gap-1.5 text-xs font-medium text-text-muted";
 
   return (
     <div className="space-y-6">
@@ -149,7 +149,7 @@ export function MonitorDetailHistoryClient({
       <div className="overflow-hidden rounded-2xl border border-border/60 bg-bg-card shadow-sm">
         <div className="border-b border-border/60 px-5 py-3.5">
           <p
-            className="text-[11px] font-semibold uppercase tracking-widest text-text-muted"
+            className="text-xs font-medium text-text-muted"
             style={{ fontFamily: "var(--font-display)" }}
           >
             {t("statsHeading")}
@@ -236,7 +236,7 @@ export function MonitorDetailHistoryClient({
         <div className="flex flex-col gap-4 border-b border-border/60 px-5 py-4 sm:flex-row sm:items-start sm:justify-between">
           <div className="min-w-0">
             <h2
-              className="text-[11px] font-semibold uppercase tracking-widest text-text-muted"
+              className="text-xs font-medium text-text-muted"
               style={{ fontFamily: "var(--font-display)" }}
             >
               {t("historyTitle")}
@@ -245,7 +245,7 @@ export function MonitorDetailHistoryClient({
           </div>
           <div className="flex shrink-0 flex-col items-stretch gap-3 sm:items-end">
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+              <span className="text-xs font-medium text-text-muted">
                 {t("chartRangeLabel")}
               </span>
               <div className="inline-flex rounded-lg border border-border/60 bg-bg-page p-0.5">
@@ -278,7 +278,7 @@ export function MonitorDetailHistoryClient({
               )}
             </div>
             <div className="flex flex-wrap items-center gap-2 sm:justify-end">
-              <span className="text-[11px] font-semibold uppercase tracking-widest text-text-muted">
+              <span className="text-xs font-medium text-text-muted">
                 {t("chartDetailLabel")}
               </span>
               <div className="inline-flex rounded-lg border border-border/60 bg-bg-page p-0.5">

@@ -55,7 +55,7 @@ type MonitorGridProps = {
 };
 
 const sectionLabelClass =
-  "text-xs font-semibold uppercase tracking-wider text-text-muted";
+  "text-xs font-medium text-text-muted";
 
 function StatusLiveDot({ tone }: { tone: "up" | "down" | "paused" }) {
   return (
@@ -285,7 +285,7 @@ export function DashboardContent({
         <div className="min-w-0">
           {hasMonitors ? (
             <>
-              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+              <p className="text-xs font-medium text-text-muted">
                 {tNav("monitors")}
               </p>
               <h1
@@ -356,7 +356,7 @@ export function DashboardContent({
             </>
           ) : (
             <>
-              <p className="text-xs font-semibold uppercase tracking-wider text-text-muted">
+              <p className="text-xs font-medium text-text-muted">
                 {tNav("monitors")}
               </p>
               <h1 className="mt-1.5 font-display text-[clamp(1.65rem,3.2vw,2.15rem)] font-semibold leading-[1.15] tracking-tight text-text-primary">

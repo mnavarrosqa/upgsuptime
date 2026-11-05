@@ -201,7 +201,7 @@ function SectionHeading({
 }) {
   return (
     <div className="mb-3 flex items-center justify-between gap-3">
-      <h2 className="inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-text-muted">
+      <h2 className="inline-flex items-center gap-1.5 text-xs font-medium text-text-muted">
         {Icon ? <Icon className="size-3.5 shrink-0" aria-hidden /> : null}
         {children}
       </h2>
@@ -438,7 +438,7 @@ function MonitorCard({ card, nowMs, t }: { card: MonitorCardData; nowMs: number;
         : card.kind === "pending"
           ? t("pending")
           : isPaused
-            ? "Paused"
+            ? t("paused")
             : card.responseMs != null
               ? `${card.responseMs} ms`
               : null;
@@ -719,7 +719,12 @@ export function DashboardOverview({
                       items={worstUptime}
                       empty={t("noUptimeData")}
                       format={(n) => t("downtimeMinutes", { n })}
-                      fillFor={() => "var(--color-status-down)"}
+                      // Only the worst monitor is red, so the list reads as a ranking, not an alarm.
+                      fillFor={(n) =>
+                        n === Math.max(...worstUptime.map((row) => row.n))
+                          ? "var(--color-status-down)"
+                          : "color-mix(in oklch, var(--color-text-muted) 40%, transparent)"
+                      }
                     />
                   </section>
                 ) : null}

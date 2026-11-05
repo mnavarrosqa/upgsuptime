@@ -46,7 +46,7 @@ const ADMIN_ICONS: Record<string, React.ComponentType<{ className?: string }>> =
 };
 
 const linkClass =
-  "relative flex min-h-11 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-colors";
+  "relative flex min-h-11 items-center gap-2.5 rounded-lg px-3 text-[13px] font-medium transition-colors md:min-h-9";
 
 function getInitials(name: string | null | undefined, email: string): string {
   if (name) {
@@ -193,7 +193,7 @@ export function AppSidebar({
 
         {role === "admin" && (
           <div className="mt-6">
-            <p className="mb-1 flex items-center gap-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-text-muted">
+            <p className="mb-2 flex items-center gap-2 px-3 text-xs font-medium text-text-muted">
               <ShieldCheck className="size-3.5" aria-hidden />
               {t("admin")}
             </p>
