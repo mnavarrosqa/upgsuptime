@@ -2,254 +2,267 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { db } from "@/db";
-import { user } from "@/db/schema";
-import { count } from "drizzle-orm";
+import { settings, user } from "@/db/schema";
+import { count, eq } from "drizzle-orm";
 import Link from "next/link";
 import { getLocale, getTranslations } from "next-intl/server";
 import { BrandMark } from "@/components/brand-mark";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { LandingHeroCarousel } from "@/components/landing-hero-carousel";
-const MOCK_MONITORS = [
-  { name: "api.production", status: true,  uptime: "99.97", ms: "112ms", bars: "11111111111111111111" },
-  { name: "app.production", status: true,  uptime: "99.81", ms: "88ms",  bars: "11111111011111111111" },
-  { name: "auth.service",   status: false, uptime: "97.40", ms: "—",     bars: "11111100111100111000" },
-  { name: "cdn.assets",     status: true,  uptime: "100.0", ms: "14ms",  bars: "11111111111111111111" },
-  { name: "db.replica",     status: true,  uptime: "99.92", ms: "31ms",  bars: "11111011111111111111" },
-];
+import {
+  AlertEmailPreview,
+  DashboardWindow,
+  MonitorSetupPreview,
+  StatusPagePreview,
+  type PreviewMonitor,
+} from "@/components/landing/landing-previews";
+import { formatNumber, formatPercent } from "@/lib/number-format";
+
+/** 30 days, oldest first: u = up, w = some failed checks, d = down. */
+const STRIPS = {
+  calm: "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu",
+  payments: "uuuuuuuuuuuuuuuuuuuuuwuuuuuuud",
+  portal: "uuuuuuuuuuwuuuuuuuuuuuuuuuuuuu",
+  shop: "uuuuuuuuuuuuuuuuuuuuuuuuuwuuuu",
+  mail: "uuuuuuuuuuuuuuuuuuuuuuuuuuuuuu",
+  blog: "uuuuuuuwuuuuuuuuuuuuuuuuuuuuuu",
+} as const;
 
 export default async function HomePage() {
-  // Start session and translations fetches immediately; user-count check is cheap
-  // and synchronous relative to the DB call, so we kick everything off in parallel.
-  const [[row], session, t, tCommon, tActivity, tDetail, locale] = await Promise.all([
-    db.select({ count: count() }).from(user),
-    getServerSession(authOptions),
-    getTranslations("landing"),
-    getTranslations("common"),
-    getTranslations("activity"),
-    getTranslations("monitorDetail"),
-    getLocale(),
-  ]);
+  const [[row], [registrationRow], session, t, tCommon, tNav, tOverview, tDash, tEmails, tPublic, locale] =
+    await Promise.all([
+      db.select({ count: count() }).from(user),
+      db.select({ value: settings.value }).from(settings).where(eq(settings.key, "registrationEnabled")),
+      getServerSession(authOptions),
+      getTranslations("landing"),
+      getTranslations("common"),
+      getTranslations("nav"),
+      getTranslations("overview"),
+      getTranslations("dashboard"),
+      getTranslations("emails"),
+      getTranslations("publicStatus"),
+      getLocale(),
+    ]);
 
   if (row.count === 0) redirect("/setup");
   if (session) redirect("/dashboard");
-  const upCount = MOCK_MONITORS.filter((m) => m.status).length;
+
+  // The main action follows the admin setting: sign up when it is open, sign in otherwise.
+  const registrationOpen = registrationRow ? registrationRow.value !== "false" : true;
+  const primary = registrationOpen
+    ? { href: "/register", label: t("ctaRegister") }
+    : { href: "/login", label: tCommon("signIn") };
+
   const es = locale === "es";
+  const pct = (n: number) => formatPercent(n, locale, 2);
+  const names = es
+    ? { site: "Sitio web", payments: "API de pagos", portal: "Panel de clientes", shop: "Tienda online", mail: "Correo", blog: "Blog" }
+    : { site: "Website", payments: "Payments API", portal: "Customer portal", shop: "Online store", mail: "Mail", blog: "Blog" };
+  const exampleUrl = "https://api.example.com/health";
 
-  const mockDetailRows = es
-    ? [
-        { time: "22:23", code: "503", ms: "1245 ms", ok: false },
-        { time: "22:21", code: "503", ms: "987 ms", ok: false },
-        { time: "22:18", code: "0", ms: "—", ok: false },
-        { time: "21:41", code: "503", ms: "1102 ms", ok: false },
-        { time: "20:55", code: "200", ms: "108 ms", ok: true },
-      ]
-    : [
-        { time: "10:23 PM", code: "503", ms: "1245 ms", ok: false },
-        { time: "10:21 PM", code: "503", ms: "987 ms", ok: false },
-        { time: "10:18 PM", code: "0", ms: "—", ok: false },
-        { time: "9:41 PM", code: "503", ms: "1102 ms", ok: false },
-        { time: "8:55 PM", code: "200", ms: "108 ms", ok: true },
-      ];
+  const monitors: PreviewMonitor[] = [
+    {
+      name: names.payments,
+      strip: STRIPS.payments,
+      uptime: pct(99.62),
+      status: "down",
+      statusText: `${tOverview("down")} · ${es ? "4 min" : "4m"}`,
+      detail: `${tEmails("statusCode")} 503`,
+    },
+    { name: names.site, strip: STRIPS.calm, uptime: pct(100), status: "up", statusText: "182 ms" },
+    { name: names.portal, strip: STRIPS.portal, uptime: pct(99.91), status: "up", statusText: "240 ms" },
+    { name: names.shop, strip: STRIPS.shop, uptime: pct(99.87), status: "up", statusText: "310 ms" },
+    { name: names.mail, strip: STRIPS.mail, uptime: pct(100), status: "up", statusText: "64 ms" },
+    { name: names.blog, strip: STRIPS.blog, uptime: pct(99.95), status: "up", statusText: "205 ms" },
+  ];
 
-  const mockActivityRows = es
-    ? [
-        { name: "api.production", down: false, when: "2 min" },
-        { name: "auth.service", down: true, when: "14 min" },
-        { name: "app.production", down: false, when: "1 h" },
-        { name: "auth.service", down: true, when: "1 h" },
-        { name: "cdn.assets", down: false, when: "3 h" },
-        { name: "db.replica", down: false, when: "5 h" },
-      ]
-    : [
-        { name: "api.production", down: false, when: "2m" },
-        { name: "auth.service", down: true, when: "14m" },
-        { name: "app.production", down: false, when: "1h" },
-        { name: "auth.service", down: true, when: "1h" },
-        { name: "cdn.assets", down: false, when: "3h" },
-        { name: "db.replica", down: false, when: "5h" },
-      ];
+  const steps = [
+    {
+      id: "add",
+      title: t("step1Title"),
+      body: t("step1Body"),
+      visual: (
+        <MonitorSetupPreview
+          title={t("setupTitle")}
+          urlLabel={t("setupUrl")}
+          url={exampleUrl}
+          typeLabel={t("setupType")}
+          types={["HTTP", t("setupKeyword"), "DNS", "TCP"]}
+          intervalLabel={t("setupInterval")}
+          interval={t("setupEvery")}
+          ssl={t("setupSsl")}
+          save={t("setupSave")}
+        />
+      ),
+    },
+    {
+      id: "alert",
+      title: t("step2Title"),
+      body: t("step2Body"),
+      visual: (
+        <AlertEmailPreview
+          inbox={t("emailInbox")}
+          when={t("emailWhen")}
+          badge={tEmails("uptime.badgeDown")}
+          headline={tEmails.rich("uptime.headlineDown", {
+            name: names.payments,
+            strong: (chunks) => <strong className="font-semibold">{chunks}</strong>,
+          })}
+          url={exampleUrl}
+          ackButton={tEmails("uptime.ackButton")}
+          viewButton={tEmails("viewMonitor")}
+          rows={[
+            { label: tEmails("uptime.cause"), value: `${tEmails("statusCode")} 503` },
+            { label: tEmails("uptime.startedAt"), value: es ? "14:32" : "2:32 PM" },
+            { label: tEmails("responseTime"), value: `${formatNumber(1240, locale)} ms` },
+          ]}
+        />
+      ),
+    },
+    {
+      id: "share",
+      title: t("step3Title"),
+      body: t("step3Body"),
+      visual: (
+        <StatusPagePreview
+          company={t("statusPageCompany")}
+          title={t("statusPageTitle")}
+          servicesHeading={tPublic("servicesHeading")}
+          services={[
+            { name: names.site, up: true, label: tPublic("statusOperational"), strip: STRIPS.calm, uptime: pct(100) },
+            { name: names.payments, up: false, label: tPublic("statusUnavailable"), strip: STRIPS.payments, uptime: pct(99.62) },
+            { name: names.portal, up: true, label: tPublic("statusOperational"), strip: STRIPS.portal, uptime: pct(99.91) },
+            { name: names.shop, up: true, label: tPublic("statusOperational"), strip: STRIPS.shop, uptime: pct(99.87) },
+          ]}
+        />
+      ),
+    },
+  ];
 
   return (
-    <main className="landing-page min-h-screen bg-bg-page text-text-primary flex flex-col">
+    <main className="flex min-h-screen flex-col bg-bg-page text-text-primary">
       {/* ── Header ── */}
-      <header className="safe-top max-w-6xl mx-auto w-full px-6 pt-6 pb-4 flex items-center justify-between">
-        <div
-          className="flex items-center gap-2.5 text-sm font-semibold text-text-primary"
-          style={{ fontFamily: "var(--font-display)" }}
-        >
-          <BrandMark className="size-8 shrink-0" />
-          <span className="tracking-tight">UPG Monitor</span>
-        </div>
-        <div className="flex items-center gap-3">
+      <header className="safe-top mx-auto flex h-16 w-full max-w-6xl items-center justify-between px-6">
+        <span className="flex items-center gap-2.5 font-display text-base font-medium tracking-tight text-text-primary">
+          <BrandMark className="size-7 shrink-0" />
+          UPG Monitor
+        </span>
+        <nav className="flex items-center gap-2 sm:gap-4">
           <ThemeToggle />
           <Link
             href="/login"
-            className="text-sm text-text-muted hover:text-text-primary transition-colors duration-150 font-medium"
+            className="px-1 text-sm font-medium text-text-muted transition-colors duration-150 hover:text-text-primary"
           >
             {tCommon("signIn")}
           </Link>
-        </div>
+          {registrationOpen ? (
+            <Link
+              href="/register"
+              className="hidden h-9 items-center rounded-lg bg-accent px-4 text-sm font-medium text-bg-page transition-colors duration-150 hover:bg-accent-hover sm:inline-flex"
+            >
+              {t("ctaRegister")}
+            </Link>
+          ) : null}
+        </nav>
       </header>
 
-      {/* ── Hero ── */}
-      <section className="max-w-6xl mx-auto w-full px-6 pt-12 pb-16 sm:pt-14 sm:pb-20 md:pt-16 md:pb-24 grid md:grid-cols-[minmax(0,1fr)_minmax(320px,430px)] lg:grid-cols-[minmax(0,1fr)_minmax(0,450px)] xl:grid-cols-[minmax(0,1fr)_minmax(0,470px)] gap-12 md:gap-10 lg:gap-12 xl:gap-16 items-center">
-        {/* Copy */}
-        <div className="flex flex-col gap-5 sm:gap-6 md:gap-5 lg:gap-6 lg:pt-2">
-          <div className="flex items-center gap-4">
-            <BrandMark animated className="landing-orbit size-14 shrink-0 sm:size-16" />
-            <p className="max-w-[24ch] text-xs text-text-muted font-medium">
-              {t("eyebrow")}
-            </p>
-          </div>
-          <h1 className="font-display font-semibold text-[clamp(2.5rem,5.4vw,4.5rem)] leading-[1.06] tracking-tight text-text-primary max-w-[13ch] sm:max-w-[14ch]">
-            {t("headlinePart1")}<br />
-            {t("headlinePart2")}
+      {/* ── Hero: headline and actions over the product itself ── */}
+      <section className="mx-auto w-full max-w-6xl px-6 pt-12 sm:pt-20 lg:pt-24">
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] lg:items-end lg:gap-12">
+          <h1 className="font-display text-[clamp(2.25rem,6vw,4.5rem)] font-medium leading-[1.04] tracking-[-0.03em] text-text-primary">
+            {t("headlinePart1")}
+            <br />
+            <span className="text-text-muted">{t("headlinePart2")}</span>
           </h1>
-          <p className="text-[clamp(0.9375rem,2vw,1.0625rem)] text-text-muted leading-[1.65] max-w-[34ch] sm:max-w-[38ch] md:max-w-[34ch] lg:max-w-[40ch]">
-            {t("subheadline")}
-          </p>
-
-          <div className="flex flex-wrap items-center gap-3 pt-1.5">
-            <Link
-              href="/login"
-              className="inline-flex w-full justify-center sm:w-auto items-center px-5 py-2.5 bg-accent text-bg-page text-sm font-semibold rounded-lg hover:bg-accent-hover transition-colors duration-150"
-            >
-              {t("cta")}
-            </Link>
-            <Link
-              href="#how-it-works"
-              className="inline-flex w-full justify-center sm:w-auto items-center px-4 py-2.5 text-sm font-medium text-text-muted border border-border rounded-lg hover:text-text-primary hover:bg-bg-card transition-colors duration-150"
-            >
-              {t("explore")} <span aria-hidden className="ml-2">↓</span>
-            </Link>
-          </div>
-          <ul className="flex flex-wrap items-center gap-2.5 pt-1">
-            {([t("bullet1"), t("bullet2"), t("bullet3")] as const).map((label) => (
-              <li
-                key={label}
-                className="inline-flex items-center gap-2 py-1.5 text-xs text-text-muted"
+          <div className="lg:pb-2">
+            <p className="max-w-[36rem] text-[clamp(1rem,1.6vw,1.125rem)] leading-relaxed text-text-muted">
+              {t("subheadline")}
+            </p>
+            <div className="mt-6 flex flex-wrap items-center gap-3">
+              <Link
+                href={primary.href}
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg bg-accent px-5 text-sm font-medium text-bg-page transition-colors duration-150 hover:bg-accent-hover sm:w-auto"
               >
-                <span className="size-1 rounded-full bg-text-muted/45 inline-block flex-shrink-0" />
-                {label}
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="min-w-0 w-full">
-        <p className="mb-4 text-xs text-text-muted">{t("previewLabel")}</p>
-        <LandingHeroCarousel
-          monitors={MOCK_MONITORS}
-          detailRows={mockDetailRows}
-          activityRows={mockActivityRows}
-          upCount={upCount}
-          labels={{
-            panelTitle: t("panelTitle"),
-            panelStatus: t("panelStatus", { up: upCount, total: MOCK_MONITORS.length }),
-            panelFooter: t("panelFooter"),
-            dashboardTitle: t("screenDashboardTitle"),
-            dashboardBadge: t("screenDashboardBadge"),
-            dashboardStat: t("screenDashboardStat"),
-            detailOverview: tDetail("heroEyebrow"),
-            statusDown: t("mockStatusDown"),
-            configEvery: tDetail("configEvery", { n: 1 }),
-            configTimeout: tDetail("configTimeout", { n: 10 }),
-            configSslOn: tDetail("configSslOn"),
-            checkLogTitle: tDetail("checkLogTitle"),
-            colTime: t("mockColTime"),
-            colCode: t("mockColCode"),
-            colResponse: t("mockColResponse"),
-            activityTitle: t("screenActivityTitle"),
-            activityCount: t("screenActivityCount"),
-            activityEventCount: tActivity("eventCount", { count: 8 }),
-            wentDown: t("mockWentDown"),
-            recovered: t("mockRecovered"),
-            carouselLabel: t("carouselLabel"),
-            previousLabel: tActivity("previous"),
-            nextLabel: tActivity("next"),
-            pauseLabel: t("carouselPause"),
-            playLabel: t("carouselPlay"),
-            indicatorLabel: t("carouselIndicator", { index: "{index}" }),
-            slideLabel: t("carouselSlideLabel", { current: "{current}", total: "{total}" }),
-          }}
-        />
-        </div>
-      </section>
-      {/* ── Why it matters ── */}
-      <section id="how-it-works" className="scroll-mt-8 max-w-6xl mx-auto w-full px-6 pt-10 pb-14 sm:pt-12 sm:pb-16 md:pt-14 md:pb-18 border-t border-border">
-        <div className="mb-8 sm:mb-9 md:mb-10">
-          <p className="text-xs text-text-muted font-medium mb-3">
-            {t("whyEyebrow")}
-          </p>
-          <h2 className="font-display font-semibold text-[clamp(1.4rem,3vw,1.875rem)] leading-tight tracking-tight text-text-primary max-w-lg">
-            {t("whyTitle")}
-          </h2>
-        </div>
-
-        <div className="divide-y divide-border">
-          {([
-            { num: "01", title: t("why1Title"), body: t("why1Body") },
-            { num: "02", title: t("why2Title"), body: t("why2Body") },
-            { num: "03", title: t("why3Title"), body: t("why3Body") },
-          ] as const).map((item) => (
-            <div key={item.num} className="py-5 sm:py-6 grid md:grid-cols-[2rem_1fr_2fr] gap-3 md:gap-10 items-baseline">
-              <span className="text-xs text-text-muted tabular-nums font-medium">{item.num}</span>
-              <h3 className="font-display font-semibold text-text-primary">{item.title}</h3>
-              <p className="text-sm text-text-muted leading-relaxed">{item.body}</p>
+                {primary.label}
+              </Link>
+              <Link
+                href="#how-it-works"
+                className="inline-flex h-11 w-full items-center justify-center rounded-lg border border-border bg-bg-card px-5 text-sm font-medium text-text-primary transition-colors duration-150 hover:bg-bg-page sm:w-auto"
+              >
+                {t("explore")}
+              </Link>
             </div>
-          ))}
-        </div>
-      </section>
-
-      {/* ── Features ── */}
-      <section className="max-w-6xl mx-auto w-full px-6 pt-14 pb-12 sm:pt-16 sm:pb-14 border-t border-border">
-        <h2 className="font-display text-2xl font-semibold tracking-tight mb-8">{t("featuresTitle")}</h2>
-        <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-4 md:gap-5">
-          {([
-            { step: "01", title: t("feature1Title"), body: t("feature1Body") },
-            { step: "02", title: t("feature2Title"), body: t("feature2Body") },
-            { step: "03", title: t("feature3Title"), body: t("feature3Body") },
-            { step: "04", title: t("feature4Title"), body: t("feature4Body") },
-          ] as const).map((f) => (
-            <div key={f.title} className="border-t border-border pt-5 pb-3">
-              <span className="mb-3 inline-block text-xs font-medium tabular-nums text-text-muted">
-                {f.step}
-              </span>
-              <h3 className="font-display font-semibold text-text-primary mb-2.5 leading-snug">
-                {f.title}
-              </h3>
-              <p className="text-sm text-text-muted leading-relaxed">
-                {f.body}
-              </p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="max-w-6xl mx-auto w-full px-6 py-14 sm:py-20">
-        <div className="border-y border-border py-10 sm:py-12 flex flex-col sm:flex-row sm:items-center justify-between gap-7">
-          <div>
-            <h2 className="font-display text-2xl sm:text-3xl font-semibold tracking-tight">{t("closingTitle")}</h2>
-            <p className="mt-3 text-sm text-text-muted">{t("heroReassurance")}</p>
           </div>
-          <Link href="/login" className="inline-flex shrink-0 items-center justify-center gap-3 rounded-lg bg-accent px-6 py-3 text-sm font-semibold text-bg-page hover:bg-accent-hover transition-colors">
-            {t("cta")} <span aria-hidden>→</span>
+        </div>
+
+        <div className="mt-12 sm:mt-16">
+          <DashboardWindow
+            address={t("windowAddress")}
+            nav={{ dashboard: tNav("dashboard"), monitors: tNav("monitors"), activity: tNav("activity") }}
+            headline={tDash("downCount", { count: 1 })}
+            meta={`${tDash("monitorCount", { count: monitors.length })} · ${tDash("checksFrom", { location: "Santiago" })}`}
+            stats={[
+              { label: tOverview("availability7d"), value: formatPercent(99.8, locale) },
+              { label: tOverview("response7d"), value: "164 ms" },
+              { label: tOverview("downtimeLabel"), value: tOverview("downtimeMinutes", { n: 42 }) },
+              { label: tOverview("certificateLabel"), value: tOverview("sslDays", { n: 23 }) },
+            ]}
+            monitors={monitors}
+          />
+          <p className="mt-3 text-right text-xs text-text-muted">{t("previewLabel")}</p>
+        </div>
+      </section>
+
+      {/* ── How it works: one step per row, each with the screen it produces ── */}
+      <section id="how-it-works" className="mx-auto w-full max-w-6xl scroll-mt-8 px-6 pt-24 sm:pt-32">
+        <h2 className="max-w-xl font-display text-[clamp(1.75rem,3.4vw,2.5rem)] font-medium leading-tight tracking-[-0.02em] text-text-primary">
+          {t("howTitle")}
+        </h2>
+        <ol className="mt-12 space-y-16 sm:mt-16 sm:space-y-24">
+          {steps.map((step, i) => (
+            <li
+              key={step.id}
+              className="grid items-center gap-8 md:grid-cols-2 md:gap-12 lg:gap-16"
+            >
+              <div className={i % 2 === 1 ? "md:order-2" : undefined}>
+                <p className="text-sm tabular-nums text-text-muted">{String(i + 1).padStart(2, "0")}</p>
+                <h3 className="mt-3 font-display text-xl font-medium tracking-tight text-text-primary sm:text-2xl">
+                  {step.title}
+                </h3>
+                <p className="mt-3 max-w-[34rem] leading-relaxed text-text-muted">{step.body}</p>
+              </div>
+              <div className="min-w-0">{step.visual}</div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* ── Closing ── */}
+      <section className="mx-auto w-full max-w-6xl px-6 py-24 sm:py-32">
+        <div className="flex flex-col justify-between gap-6 border-y border-border py-10 sm:flex-row sm:items-center sm:py-12">
+          <h2 className="font-display text-2xl font-medium tracking-tight text-text-primary sm:text-3xl">
+            {t("closingTitle")}
+          </h2>
+          <Link
+            href={primary.href}
+            className="inline-flex h-11 shrink-0 items-center justify-center rounded-lg bg-accent px-5 text-sm font-medium text-bg-page transition-colors duration-150 hover:bg-accent-hover"
+          >
+            {primary.label}
           </Link>
         </div>
       </section>
 
       {/* ── Footer ── */}
-      <footer className="mt-auto border-t border-border px-6 py-6 sm:py-7">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
-          <span className="inline-flex items-center gap-2.5 text-sm font-semibold text-text-primary">
-            <BrandMark className="size-6 shrink-0" />
-            <span>UPG Monitor</span>
+      <footer className="mt-auto border-t border-border px-6 py-6">
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4">
+          <span className="inline-flex items-center gap-2.5 text-sm font-medium text-text-primary">
+            <BrandMark className="size-5 shrink-0" />
+            UPG Monitor
           </span>
           <Link
             href="/login"
-            className="inline-flex items-center text-xs text-text-muted hover:text-text-primary transition-colors duration-150"
+            className="text-sm text-text-muted transition-colors duration-150 hover:text-text-primary"
           >
-            {tCommon("signIn")} →
+            {tCommon("signIn")}
           </Link>
         </div>
       </footer>
