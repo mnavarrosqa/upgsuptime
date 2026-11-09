@@ -60,7 +60,8 @@ vi.mock("@/lib/degradation", () => ({
   sendDegradationAlert: mocks.sendDegradationAlert,
 }));
 
-import { createInstrumentedConnect, runCheck } from "./run-check";
+import { createInstrumentedConnect, ingestProbeResult, runCheck } from "./run-check";
+import { probeMonitor, type ProbeResult } from "./probe";
 import type { PhaseTimings } from "./run-check";
 import { checkResult, degradationAlertEvent } from "@/db/schema";
 
@@ -542,6 +543,62 @@ describe("runCheck degradation alerts", () => {
 
     expect(mocks.evaluateDegradation).not.toHaveBeenCalled();
     expect(lastUpdate()).toMatchObject({ consecutiveDegradedChecks: 0 });
+  });
+});
+
+describe("probe and ingest", () => {
+  function probeResult(overrides: Partial<ProbeResult> = {}): ProbeResult {
+    return {
+      ok: true,
+      statusCode: 200,
+      responseTimeMs: 120,
+      timings: { dnsMs: 5, connectMs: 10, tlsMs: 20, ttfbMs: 100 },
+      attempts: 1,
+      checkedAt: new Date("2026-03-01T12:00:00Z"),
+      ssl: null,
+      ...overrides,
+    };
+  }
+
+  it("probes without touching the database or sending alerts", async () => {
+    mocks.checkSSL.mockResolvedValue({ valid: true, expiresAt: new Date(Date.now() + 90 * DAY_MS), daysUntilExpiry: 90 });
+
+    const result = await settle(probeMonitor(buildMonitor({ sslMonitoring: true })));
+
+    expect(result).toMatchObject({ ok: true, statusCode: 200, attempts: 1, ssl: { valid: true, daysUntilExpiry: 90 } });
+    expect(result.checkedAt).toBeInstanceOf(Date);
+    expect(mocks.inserts).toEqual([]);
+    expect(mocks.updates).toEqual([]);
+    expect(mocks.sendNotifications).not.toHaveBeenCalled();
+  });
+
+  it("records a probe result as given, stamped with the time it was checked", async () => {
+    const checkedAt = new Date("2026-03-01T12:00:00Z");
+    const expiresAt = new Date("2026-06-01T00:00:00Z");
+
+    await ingestProbeResult(
+      buildMonitor({ sslMonitoring: true }),
+      probeResult({ checkedAt, ssl: { valid: true, expiresAt, daysUntilExpiry: 92, error: null } }),
+      owner,
+      { maintenanceActive: false },
+    );
+
+    expect(checkResultRows()).toEqual([
+      expect.objectContaining({ ok: true, statusCode: 200, responseTimeMs: 120, ttfbMs: 100, attempts: 1, createdAt: checkedAt }),
+    ]);
+    expect(lastUpdate()).toMatchObject({ lastCheckAt: checkedAt, sslValid: true, sslExpiresAt: expiresAt, sslLastCheckedAt: checkedAt });
+    expect(mocks.fetch).not.toHaveBeenCalled();
+  });
+
+  it("runs the state machine on a probe result that came from elsewhere", async () => {
+    const m = buildMonitor({ currentStatus: true, consecutiveFailures: 1 });
+
+    await ingestProbeResult(m, probeResult({ ok: false, statusCode: 503, message: "Service Unavailable" }), owner, {
+      maintenanceActive: false,
+    });
+
+    expect(lastUpdate()).toMatchObject({ currentStatus: false, consecutiveFailures: 2 });
+    expect(mocks.sendNotifications).toHaveBeenCalledTimes(1);
   });
 });
 
