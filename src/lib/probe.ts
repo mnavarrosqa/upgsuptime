@@ -1,0 +1,546 @@
+import { lookup as dnsLookup, resolve as dnsResolve } from "dns/promises";
+import { connect as netConnect, isIP } from "net";
+import { fetch as undiciFetch, buildConnector, Agent } from "undici";
+import type { Monitor } from "@/db/schema";
+import { checkUrlAllowed, isBlockedIP } from "@/lib/url-allowed";
+import { checkSSL, type SslCheckResult } from "@/lib/check-ssl";
+import { parseStoredRequestHeaders } from "@/lib/monitor-config";
+
+/**
+ * The network half of a check: reach the target and measure it, with no database,
+ * state or notifications. run-check.ts records what this returns; it is kept
+ * separate so the same code can probe from other locations.
+ */
+
+export type PhaseTimings = {
+  dnsMs?: number;
+  connectMs?: number;
+  tlsMs?: number;
+  ttfbMs?: number;
+};
+
+/** The monitor fields a probe reads. */
+export type ProbeTarget = Pick<
+  Monitor,
+  | "url"
+  | "type"
+  | "timeoutSeconds"
+  | "expectedStatusCodes"
+  | "method"
+  | "requestHeaders"
+  | "requestBody"
+  | "requestBodyType"
+  | "followRedirects"
+  | "maxRedirects"
+  | "sslMonitoring"
+  | "keywordContains"
+  | "keywordShouldExist"
+  | "dnsRecordType"
+  | "dnsExpectedValue"
+  | "tcpHost"
+  | "tcpPort"
+>;
+
+export type ProbeResult = {
+  ok: boolean;
+  statusCode?: number;
+  responseTimeMs: number;
+  message?: string;
+  timings?: PhaseTimings;
+  attempts?: number;
+  /** When the check itself finished (before the SSL lookup that runs beside it). */
+  checkedAt: Date;
+  /** Certificate details for HTTPS monitors with SSL monitoring, otherwise null. */
+  ssl: SslCheckResult | null;
+};
+
+/**
+ * Undici connector that re-validates resolved IPs at connect time (SSRF guard)
+ * and captures per-request DNS/connect timing via a shared PhaseTimings object.
+ */
+const defaultConnector = buildConnector({});
+
+/**
+ * The monitor URL's host, the IP that `checkUrlAllowed` validated for it, and how
+ * long that lookup took (it runs before the request, so it is reported as DNS time).
+ */
+type PinnedHost = { hostname: string; ip: string; lookupMs?: number };
+
+function bareHostname(hostname: string): string {
+  return hostname.toLowerCase().replace(/^\[(.*)\]$/, "$1");
+}
+
+function pinnedHostFor(url: string, resolvedIp: string, lookupMs: number): PinnedHost {
+  return { hostname: bareHostname(new URL(url).hostname), ip: resolvedIp, lookupMs };
+}
+
+type ConnectFn = buildConnector.connector;
+
+/**
+ * Undici `connect` hook: resolves and SSRF-validates the target, connects by IP,
+ * and records DNS/connect timings. Exported for tests.
+ */
+export function createInstrumentedConnect(timings: PhaseTimings, pinned?: PinnedHost): ConnectFn {
+  return (options, callback) => {
+    const hostname = bareHostname((options as { hostname?: string }).hostname ?? "");
+
+    // Always connect to an IP we validated ourselves, so the connector cannot
+    // re-resolve DNS to a different (possibly internal) address.
+    const connectToIp = (ip: string) => {
+      if (isBlockedIP(ip)) {
+        callback(new Error(`Resolved IP ${ip} is not allowed (SSRF protection)`), null);
+        return;
+      }
+      const connectOpts = {
+        ...options,
+        hostname: ip,
+        servername: isIP(hostname) ? (options as { servername?: string }).servername : hostname,
+      };
+      const connectStart = performance.now();
+      let tcpConnectedAt: number | undefined;
+      // undici's connector returns the socket synchronously (its typings say void).
+      // For HTTPS the callback fires after the handshake, so the socket's own
+      // "connect" event marks where TCP ends and TLS begins.
+      const pending = defaultConnector(connectOpts as typeof options, (err, socket) => {
+        if (!err && socket) {
+          const connectEnd = performance.now();
+          const tlsSocket = socket as import("tls").TLSSocket;
+          if (typeof tlsSocket.encrypted !== "undefined" && tcpConnectedAt !== undefined) {
+            timings.connectMs = Math.round(tcpConnectedAt - connectStart);
+            timings.tlsMs = Math.round(connectEnd - tcpConnectedAt);
+          } else {
+            timings.connectMs = Math.round(connectEnd - connectStart);
+          }
+        }
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (callback as any)(err, socket);
+      }) as unknown as import("net").Socket | undefined;
+      pending?.once?.("connect", () => {
+        tcpConnectedAt = performance.now();
+      });
+    };
+
+    // The pinned IP only belongs to the monitor's own host; redirects to other
+    // hosts must be resolved and validated on their own.
+    if (pinned && hostname === pinned.hostname) {
+      timings.dnsMs = pinned.lookupMs ?? 0;
+      connectToIp(pinned.ip);
+    } else if (isIP(hostname)) {
+      timings.dnsMs = 0;
+      connectToIp(hostname);
+    } else {
+      const dnsStart = performance.now();
+      dnsLookup(hostname, { all: true })
+        .then((addresses) => {
+          timings.dnsMs = Math.round(performance.now() - dnsStart);
+          const blocked = addresses.find(({ address }) => isBlockedIP(address));
+          if (blocked) {
+            callback(new Error(`Resolved IP ${blocked.address} is not allowed (SSRF protection)`), null);
+            return;
+          }
+          if (!addresses.length) {
+            callback(new Error(`Could not resolve ${hostname}`), null);
+            return;
+          }
+          connectToIp(addresses[0].address);
+        })
+        .catch((err: unknown) => {
+          timings.dnsMs = Math.round(performance.now() - dnsStart);
+          callback(err instanceof Error ? err : new Error(String(err)), null);
+        });
+    }
+  };
+}
+
+function createInstrumentedAgent(timings: PhaseTimings, pinned?: PinnedHost): Agent {
+  return new Agent({ connect: createInstrumentedConnect(timings, pinned) });
+}
+
+/** Total fetch attempts per check (1 initial + 2 retries). */
+const TOTAL_ATTEMPTS = 3;
+/** Delay between retry attempts in milliseconds. */
+const RETRY_DELAY_MS = 1000;
+/** Maximum body bytes to read for keyword checks (2 MB). */
+const KEYWORD_BODY_LIMIT_BYTES = 2 * 1024 * 1024;
+
+/**
+ * Parse expectedStatusCodes string into a predicate for status codes.
+ * Supports: "200", "200,201", "200-299"
+ */
+function parseExpectedStatusCodes(value: string): (status: number) => boolean {
+  const raw = (value ?? "200-299").trim();
+  if (!raw) return (status) => status >= 200 && status < 300;
+
+  const parts = raw.split(",").map((p) => p.trim());
+  return (status: number) => {
+    for (const part of parts) {
+      if (part.includes("-")) {
+        const [a, b] = part.split("-").map((s) => parseInt(s, 10));
+        if (!Number.isNaN(a) && !Number.isNaN(b) && status >= a && status <= b)
+          return true;
+      } else {
+        const code = parseInt(part, 10);
+        if (!Number.isNaN(code) && status === code) return true;
+      }
+    }
+    return false;
+  };
+}
+
+/** Human-readable label for common HTTP status codes */
+function httpStatusText(code: number): string {
+  const texts: Record<number, string> = {
+    400: "Bad Request",
+    401: "Unauthorized",
+    403: "Forbidden",
+    404: "Not Found",
+    408: "Request Timeout",
+    429: "Too Many Requests",
+    500: "Internal Server Error",
+    502: "Bad Gateway",
+    503: "Service Unavailable",
+    504: "Gateway Timeout",
+  };
+  return texts[code] ?? "HTTP error";
+}
+
+/** Stamps the time the check finished, then waits for the SSL lookup started beside it. */
+async function finishProbe(
+  result: Omit<ProbeResult, "checkedAt" | "ssl">,
+  sslPromise: Promise<SslCheckResult | null> = Promise.resolve(null),
+): Promise<ProbeResult> {
+  const checkedAt = new Date();
+  return { ...result, checkedAt, ssl: await sslPromise };
+}
+
+// ─── HTTP check ───────────────────────────────────────────────────────────────
+
+function buildHttpRequestOptions(m: ProbeTarget): {
+  method: "GET" | "HEAD" | "POST" | "PUT" | "PATCH";
+  headers: Record<string, string>;
+  body?: string;
+  redirect: "follow" | "manual";
+  maxRedirections: number;
+} {
+  const method = (["GET", "HEAD", "POST", "PUT", "PATCH"].includes(m.method)
+    ? m.method
+    : "GET") as "GET" | "HEAD" | "POST" | "PUT" | "PATCH";
+  const headers: Record<string, string> = { "User-Agent": "UPGMonitor/1.0" };
+  for (const header of parseStoredRequestHeaders(m.requestHeaders)) {
+    headers[header.name] = header.value;
+  }
+
+  const body = m.requestBody ?? undefined;
+  if (body && method !== "GET" && method !== "HEAD") {
+    const hasContentType = Object.keys(headers).some(
+      (name) => name.toLowerCase() === "content-type"
+    );
+    if (!hasContentType && m.requestBodyType === "json") {
+      headers["Content-Type"] = "application/json";
+    } else if (!hasContentType && m.requestBodyType === "form") {
+      headers["Content-Type"] = "application/x-www-form-urlencoded";
+    }
+  }
+
+  return {
+    method,
+    headers,
+    body: body && method !== "GET" && method !== "HEAD" ? body : undefined,
+    redirect: m.followRedirects === false ? "manual" : "follow",
+    maxRedirections: Math.min(20, Math.max(0, m.maxRedirects ?? 20)),
+  };
+}
+
+async function probeHttp(m: ProbeTarget): Promise<ProbeResult> {
+  const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
+  const requestOptions = buildHttpRequestOptions(m);
+  const isSuccess = parseExpectedStatusCodes(m.expectedStatusCodes ?? "200-299");
+
+  let ok = false;
+  let statusCode: number | undefined;
+  let message: string | undefined;
+  let responseTimeMs = 0;
+  let timings: PhaseTimings = {};
+  let finalAttempt = 1;
+
+  const lookupStart = performance.now();
+  const urlCheck = await checkUrlAllowed(m.url);
+  const lookupMs = Math.round(performance.now() - lookupStart);
+  if (!urlCheck.allowed) {
+    message = urlCheck.reason;
+  } else {
+    for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
+      if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      finalAttempt = attempt;
+
+      const attemptStart = performance.now();
+      ok = false;
+      statusCode = undefined;
+      message = undefined;
+      timings = {};
+      const agent = createInstrumentedAgent(timings, pinnedHostFor(m.url, urlCheck.resolvedHost, lookupMs));
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const fetchOptions = {
+          method: requestOptions.method,
+          signal: controller.signal,
+          headers: requestOptions.headers,
+          body: requestOptions.body,
+          redirect: requestOptions.redirect,
+          maxRedirections: requestOptions.maxRedirections,
+          dispatcher: agent,
+        } as unknown as Parameters<typeof undiciFetch>[1];
+        const res = await undiciFetch(m.url, fetchOptions);
+        timings.ttfbMs = Math.round(performance.now() - attemptStart);
+        statusCode = res.status;
+        ok = isSuccess(res.status);
+        await res.body?.cancel();
+      } catch (err) {
+        message = err instanceof Error ? err.message : String(err);
+      } finally {
+        clearTimeout(timeout);
+        await agent.close();
+      }
+
+      responseTimeMs = Math.round(performance.now() - attemptStart);
+      if (ok) break;
+    }
+  }
+
+  if (!ok && statusCode != null && !message) {
+    message = httpStatusText(statusCode);
+  }
+
+  const urlAllowed = urlCheck.allowed;
+  const sslPromise =
+    m.sslMonitoring && urlAllowed
+      ? checkSSL(m.url, 10_000)
+      : Promise.resolve(null);
+
+  return finishProbe({ ok, statusCode, responseTimeMs, message, timings, attempts: finalAttempt }, sslPromise);
+}
+
+// ─── Keyword check ────────────────────────────────────────────────────────────
+
+async function probeKeyword(m: ProbeTarget): Promise<ProbeResult> {
+  const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
+  const isSuccess = parseExpectedStatusCodes(m.expectedStatusCodes ?? "200-299");
+  const keyword = (m.keywordContains ?? "").toLowerCase();
+  const shouldExist = m.keywordShouldExist !== false; // default true
+
+  let ok = false;
+  let statusCode: number | undefined;
+  let message: string | undefined;
+  let responseTimeMs = 0;
+  let timings: PhaseTimings = {};
+  let finalAttempt = 1;
+
+  const lookupStart = performance.now();
+  const urlCheck = await checkUrlAllowed(m.url);
+  const lookupMs = Math.round(performance.now() - lookupStart);
+  if (!urlCheck.allowed) {
+    message = urlCheck.reason;
+  } else {
+    for (let attempt = 1; attempt <= TOTAL_ATTEMPTS; attempt++) {
+      if (attempt > 1) await new Promise((r) => setTimeout(r, RETRY_DELAY_MS));
+      finalAttempt = attempt;
+
+      const attemptStart = performance.now();
+      ok = false;
+      statusCode = undefined;
+      message = undefined;
+      timings = {};
+      const agent = createInstrumentedAgent(timings, pinnedHostFor(m.url, urlCheck.resolvedHost, lookupMs));
+
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), timeoutMs);
+      try {
+        const res = await undiciFetch(m.url, {
+          method: "GET",
+          signal: controller.signal,
+          headers: { "User-Agent": "UPGMonitor/1.0" },
+          dispatcher: agent,
+        });
+        timings.ttfbMs = Math.round(performance.now() - attemptStart);
+        statusCode = res.status;
+        const statusOk = isSuccess(res.status);
+
+        // Read body up to KEYWORD_BODY_LIMIT_BYTES
+        let bodyText = "";
+        if (res.body) {
+          const reader = res.body.getReader();
+          let bytesRead = 0;
+          const chunks: Uint8Array[] = [];
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              bytesRead += value.byteLength;
+              if (bytesRead > KEYWORD_BODY_LIMIT_BYTES) {
+                await reader.cancel();
+                break;
+              }
+              chunks.push(value);
+            }
+          } catch {
+            // partial read is fine — work with what we have
+          }
+          if (chunks.length > 0) {
+            const total = chunks.reduce((acc, c) => acc + c.length, 0);
+            const merged = new Uint8Array(total);
+            let offset = 0;
+            for (const chunk of chunks) {
+              merged.set(chunk, offset);
+              offset += chunk.length;
+            }
+            bodyText = new TextDecoder().decode(merged);
+          }
+        } else {
+          // No body — nothing to drain
+        }
+
+        const found = bodyText.toLowerCase().includes(keyword);
+        const keywordOk = shouldExist ? found : !found;
+        ok = statusOk && keywordOk;
+
+        if (!statusOk) {
+          message = httpStatusText(statusCode);
+        } else if (!keywordOk) {
+          message = shouldExist
+            ? `Keyword "${m.keywordContains}" not found in response`
+            : `Keyword "${m.keywordContains}" found in response (expected absent)`;
+        }
+      } catch (err) {
+        message = err instanceof Error ? err.message : String(err);
+      } finally {
+        clearTimeout(timeout);
+        await agent.close();
+      }
+
+      responseTimeMs = Math.round(performance.now() - attemptStart);
+      if (ok) break;
+    }
+  }
+
+  // SSL check in parallel (keyword monitors can be HTTPS)
+  const kwUrlAllowed = urlCheck.allowed;
+  const sslPromise =
+    m.sslMonitoring && kwUrlAllowed
+      ? checkSSL(m.url, 10_000)
+      : Promise.resolve(null);
+
+  return finishProbe({ ok, statusCode, responseTimeMs, message, timings, attempts: finalAttempt }, sslPromise);
+}
+
+// ─── DNS check ────────────────────────────────────────────────────────────────
+
+async function probeDns(m: ProbeTarget): Promise<ProbeResult> {
+  const hostname = m.url; // DNS monitors store bare hostname in url column
+  const recordType = (m.dnsRecordType ?? "A") as "A" | "AAAA" | "CNAME" | "MX" | "TXT" | "NS";
+  const expected = (m.dnsExpectedValue ?? "").trim().toLowerCase();
+
+  let ok = false;
+  let message: string | undefined;
+  const start = performance.now();
+
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const records = await (dnsResolve as any)(hostname, recordType);
+    const responseTimeMs = Math.round(performance.now() - start);
+
+    // Normalise records to strings for comparison
+    let resolved: string[] = [];
+    if (recordType === "MX") {
+      resolved = (records as Array<{ exchange: string }>).map((r) =>
+        r.exchange.toLowerCase()
+      );
+    } else if (recordType === "TXT") {
+      // TXT: string[][] — each record is an array of chunks; join chunks
+      resolved = (records as string[][]).map((chunks) =>
+        chunks.join("").toLowerCase()
+      );
+    } else {
+      resolved = (records as string[]).map((r) => r.toLowerCase());
+    }
+
+    // TXT uses substring match; all others use exact match
+    if (recordType === "TXT") {
+      ok = resolved.some((r) => r.includes(expected));
+    } else {
+      ok = resolved.some((r) => r === expected);
+    }
+
+    if (!ok) {
+      const found = resolved.join(", ") || "(none)";
+      message = `No ${recordType} record matches "${m.dnsExpectedValue}". Found: ${found}`;
+    }
+
+    // DNS monitors never run SSL checks
+    return finishProbe({ ok, responseTimeMs, message, timings: { dnsMs: responseTimeMs } });
+  } catch (err) {
+    const responseTimeMs = Math.round(performance.now() - start);
+    message = err instanceof Error ? err.message : String(err);
+    return finishProbe({ ok: false, responseTimeMs, message, timings: { dnsMs: responseTimeMs } });
+  }
+}
+
+// ─── TCP check ────────────────────────────────────────────────────────────────
+
+async function probeTcp(m: ProbeTarget): Promise<ProbeResult> {
+  const host = (m.tcpHost ?? m.url).trim();
+  const port = m.tcpPort ?? 0;
+  const timeoutMs = Math.min(120, Math.max(5, m.timeoutSeconds ?? 15)) * 1000;
+  const start = performance.now();
+  let ok = false;
+  let message: string | undefined;
+  const timings: PhaseTimings = {};
+
+  try {
+    const dnsStart = performance.now();
+    const addresses = await dnsLookup(host, { all: true });
+    timings.dnsMs = Math.round(performance.now() - dnsStart);
+    if (!addresses.length) {
+      message = "Could not resolve TCP host";
+    } else if (addresses.some(({ address }) => isBlockedIP(address))) {
+      message = "TCP host resolves to a disallowed address";
+    } else {
+      const connectStart = performance.now();
+      await new Promise<void>((resolve, reject) => {
+        const socket = netConnect({ host: addresses[0].address, port });
+        const timeout = setTimeout(() => {
+          socket.destroy();
+          reject(new Error("TCP connection timed out"));
+        }, timeoutMs);
+
+        socket.once("connect", () => {
+          clearTimeout(timeout);
+          timings.connectMs = Math.round(performance.now() - connectStart);
+          ok = true;
+          socket.end();
+          resolve();
+        });
+        socket.once("error", (err) => {
+          clearTimeout(timeout);
+          reject(err);
+        });
+      });
+    }
+  } catch (err) {
+    message = err instanceof Error ? err.message : String(err);
+  }
+
+  return finishProbe({ ok, responseTimeMs: Math.round(performance.now() - start), message, timings });
+}
+
+// ─── Public entry point ───────────────────────────────────────────────────────
+
+/** Probe a monitor once. Dispatches on its type (http | keyword | dns | tcp). */
+export async function probeMonitor(m: ProbeTarget): Promise<ProbeResult> {
+  const monitorType = m.type ?? "http";
+  if (monitorType === "dns") return probeDns(m);
+  if (monitorType === "keyword") return probeKeyword(m);
+  if (monitorType === "tcp") return probeTcp(m);
+  return probeHttp(m);
+}
